@@ -1,0 +1,14 @@
+{
+  "name": "amber",
+  "bg": "#0c0a07",
+  "bgAlt": "#131009",
+  "surface": "#1b1710",
+  "ink": "#ece4d4",
+  "muted": "#7a6c51",
+  "faint": "#493e29",
+  "hairline": "#221c13",
+  "lineStrong": "#332b1d",
+  "acid": "#ffb02e",
+  "acidDeep": "#c47f16",
+  "alert": "#ff4657"
+}

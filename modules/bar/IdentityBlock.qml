@@ -1,5 +1,6 @@
 import QtQuick
 import qs.theme
+import qs.modules.common
 
 Item {
     id: root
@@ -20,6 +21,8 @@ Item {
         id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: ShellState.togglePanel()
     }
 
     Row {
@@ -68,7 +71,7 @@ Item {
             }
 
             Text {
-                text: "SYS.BAR // v0.1"
+                text: "SYS.BAR // v" + Theme.version
                 color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: 7

@@ -1,0 +1,14 @@
+{
+  "name": "matugen {{mode}}",
+  "bg": "#{{colors.surface_container_lowest.dark.hex_stripped}}",
+  "bgAlt": "#{{colors.surface_dim.dark.hex_stripped}}",
+  "surface": "#{{colors.surface_container_low.dark.hex_stripped}}",
+  "ink": "#{{colors.on_surface.dark.hex_stripped}}",
+  "muted": "#{{colors.outline.dark.hex_stripped}}",
+  "faint": "#{{colors.outline_variant.dark.hex_stripped}}",
+  "hairline": "#{{colors.surface_container.dark.hex_stripped}}",
+  "lineStrong": "#{{colors.surface_container_high.dark.hex_stripped}}",
+  "acid": "#{{colors.primary_fixed_dim.dark.hex_stripped}}",
+  "acidDeep": "#{{colors.inverse_primary.dark.hex_stripped}}",
+  "alert": "#{{colors.error.light.hex_stripped}}"
+}

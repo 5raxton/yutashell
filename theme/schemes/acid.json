@@ -1,0 +1,14 @@
+{
+  "name": "acid",
+  "bg": "#0a0a0c",
+  "bgAlt": "#101014",
+  "surface": "#17171c",
+  "ink": "#eae8e0",
+  "muted": "#6b6a63",
+  "faint": "#3f3e3a",
+  "hairline": "#1d1d22",
+  "lineStrong": "#2c2c34",
+  "acid": "#c8ff3d",
+  "acidDeep": "#8fbe1f",
+  "alert": "#ff3b52"
+}

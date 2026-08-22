@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Hyprland
 import QtQuick
 import qs.theme
+import qs.modules.common
 import "ui"
 
 PanelWindow {
@@ -70,13 +71,25 @@ PanelWindow {
 
             TrayCluster {
                 tip: root.tip
+                visible: ShellState.barTray
             }
-            DividerV {}
+
+            DividerV {
+                visible: ShellState.barTray && ShellState.barStats
+            }
+
             StatsCluster {
                 tip: root.tip
+                visible: ShellState.barStats
             }
-            DividerV {}
-            ClockBlock {}
+
+            DividerV {
+                visible: (ShellState.barTray || ShellState.barStats) && ShellState.barClock
+            }
+
+            ClockBlock {
+                visible: ShellState.barClock
+            }
         }
     }
 

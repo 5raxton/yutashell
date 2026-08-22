@@ -1,0 +1,14 @@
+{
+  "name": "crimson",
+  "bg": "#0c0a0a",
+  "bgAlt": "#130f10",
+  "surface": "#1c1415",
+  "ink": "#ece6e4",
+  "muted": "#78686a",
+  "faint": "#48393b",
+  "hairline": "#221a1b",
+  "lineStrong": "#34282a",
+  "acid": "#ff4657",
+  "acidDeep": "#b52a38",
+  "alert": "#ffb02e"
+}

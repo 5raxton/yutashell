@@ -1,0 +1,14 @@
+{
+  "name": "cyan",
+  "bg": "#080b0d",
+  "bgAlt": "#0d1316",
+  "surface": "#111a1e",
+  "ink": "#e0ebe9",
+  "muted": "#5f7278",
+  "faint": "#37474d",
+  "hairline": "#131d22",
+  "lineStrong": "#203036",
+  "acid": "#33e0cf",
+  "acidDeep": "#17948a",
+  "alert": "#ff5566"
+}
