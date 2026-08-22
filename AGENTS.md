@@ -20,6 +20,7 @@ Quickshell config for Hyprland. Entry: `shell.qml`. Design tokens in `theme/Them
 - Quickshell 0.3.1. `Hyprland.activeToplevel` never populates — track focused windows via `activewindow`/`activewindowv2` raw events + one-shot `hyprctl -j activewindow` probe.
 - Per-monitor surfaces: `Variants { model: Quickshell.screens; Bar { required property var modelData; screen: modelData } }` — verified working for the bar; instances follow hot-plug. Known limitation: the shared Tooltip window sits on one screen, so tooltips triggered from another monitor's bar can misposition (fine single-monitor; fix when multi-monitor matters).
 - `Quickshell.Services.Mpris` verified: `Mpris.players.values`; player has `identity`, `isPlaying`, `trackArtist`/`trackTitle`, `canTogglePlaying`/`togglePlaying()`, `canGoNext/Previous`/`next()`/`previous()`, `volume`+`volumeSupported`. Used by the bar media segment (`modules/bar/MediaBlock.qml`).
+- Light mode is **generated, not stored**: `Theme._toLight()` HSL-remaps any token map (preset or wallpaper palette) to paper/ink; `_fitOnLight()` darkens acid/alert against the live bg until they pass the same ratios the contrast self-check asserts (3.0 / 2.5). Zero warnings across full preset cycles in light mode = acceptance signal.
 - Hyprland runs the **Helmsman Lua dispatcher**: raw dispatch strings (`workspace 3`) fail; wrapper functions send Lua-form dispatches like `hl.dsp.focus({ workspace = "N" })`.
 - Wallpaper engine is **awww** (`awww-daemon`, not swww/hyprpaper). matugen installed.
 - No CJK font → `Theme.jpEnabled` false → romaji fallbacks everywhere.
@@ -67,10 +68,12 @@ Back-to-back `writeAdapter()` / `setText()` / `reload()` calls within a few hund
 - Post-hooks with embedded quotes (gsettings, sudoers) only parse via the above.
 
 ### 7. Test harness
-- Background quickshell between bash-tool calls needs `setsid nohup … < /dev/null & disown`; plain nohup gets reaped when the tool session ends (looks like a mysterious crash — it isn't).
+- Background quickshell between bash-tool calls needs `setsid nohup … < /dev/null & disown`; plain nohup gets reaped when the tool session ends (looks like a mysterious crash — it isn't). The spawn command may still hold the tool session's pipe open past its timeout even with redirects — outputs arrive anyway; run spawns in their own short-timeout call.
 - `console.log` from QML does NOT reliably reach nohup-captured stderr — stream logs with `qs -p <path> log > file &` and read that file.
 - Bare `qs ipc call …` fails when the instance was launched with an explicit `-p` path — always pass the same `-p`.
 - Template ids are catalog ids (`kitty`, not `kitty.conf`).
+- **IPC broadcasts hit EVERY instance sharing the path** — including the user's live shell. Mutating verification calls (`scheme set`, `theme dark`) repaint AND persist on the live session too. Note the pre-test prefs from logs first, restore them after, and prefer read-only probes when possible.
+- Editing QML while an instance runs triggers hot-reload mid-edit-sequence: saving a caller before its callee produces transient `ReferenceError`s in the running shell's log. Don't chase those in log captures — they're edit-order artifacts, not code bugs. Verify against a freshly spawned instance instead.
 
 ## Conventions (enforced)
 

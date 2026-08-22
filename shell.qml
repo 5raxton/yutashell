@@ -72,6 +72,20 @@ ShellRoot {
         function generate(image: string): void {
             Wallpaper.apply(String(image));
         }
+
+        function dark(mode: string): void {
+            const m = String(mode).toLowerCase();
+            if (m === "on")
+                Theme.setDark(true);
+            else if (m === "off")
+                Theme.setDark(false);
+            else
+                Theme.setDark(!Theme.dark);
+        }
+
+        function accent(color: string): void {
+            Theme.setAccent(String(color));
+        }
     }
 
     IpcHandler {

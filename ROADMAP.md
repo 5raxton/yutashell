@@ -102,7 +102,7 @@ Top bar: identity block, workspace switcher, focused-window title, system tray, 
 - [x] Per-monitor instances: one bar window per connected screen via `Variants` over `Quickshell.screens` (`screen: modelData`); instances appear/disappear with monitor hot-plug
 - [x] Optional media segment (MPRIS track ticker) between tray and stats: prefers the playing player, artist — title marquee (scrolls only while playing and overflowing; snaps home when paused), click play/pause, middle-click/wheel next & previous, hover tooltip with player identity, `barMedia` toggle persisted in state.json and exposed in the settings Modules tab
 
-## Phase 2 — Theme engine & matugen ✅ DONE (except light mode)
+## Phase 2 — Theme engine & matugen ✅ DONE
 
 Goal: wallpaper-driven palettes with user-selectable schemes, applied live across the whole shell by rewriting only token values.
 
@@ -116,13 +116,13 @@ How: matugen generates a palette JSON from the wallpaper; `Theme` loads it at st
 - [x] Export templates: **full matugen-themes catalog** vendored into `theme/matugen/catalog/` via `TemplateCatalog.qml` (~63 templates incl. `cava-colors.ini`, hyprland, terminals, editors); all DISABLED by default, opt-in via settings or `templates` IPC; custom entries supported; persisted in state.json
 - [x] Standalone wallpaper picker: own overlay panel + keybind (`picker toggle`); search-as-you-type, cursor/hover tile states, hand-drawn scroll indicator, OOM-safe thumbnails
 - [x] Contrast self-check: ink/bg ≥ 4.5, acid/bg ≥ 3.0, alert/bg ≥ 2.5 asserted at load, warnings logged
-- [ ] Light-mode variant pass (paper background, ink text) gated behind a `Theme.dark` flag — feeds the PH.16 appearance toggle
+- [x] Light-mode variant pass: `Theme.dark` flag; light palettes are **generated at runtime** by HSL-remapping any token map (preset or matugen wallpaper palette) — paper surfaces, ink text — while acid/alert are contrast-fitted against the live bg until they pass the same thresholds the self-check asserts. No per-scheme light files to maintain. Persisted via state.json; toggled live from settings or IPC (`theme dark on|off|toggle`)
 
-## Phase 3 — Settings panel (control core) ◐ MOSTLY DONE
+## Phase 3 — Settings panel (control core) ✅ DONE
 
 Current state: right-side drawer/popout built entirely from the shared kit. Tabs: Appearance / Templates / Modules / System(stub) / About — lazy Loaders off a declarative page registry. Width stepper (400–760 px), popout-card mode, persisted. IPC `panel toggle/open/close`.
 
-> The big settings expansion is **PH.16** — this phase's leftovers get absorbed there. Don't build new tabs here.
+> The big settings expansion is **PH.16** by design — don't build new tabs here; this phase is closed at "control core complete".
 
 - [x] v3 rebuild: whole panel recomposed from the shared kit — one type ramp, one rhythm scale, acid reserved for semantics
 - [x] Drawer scaffold: right-anchored overlay, slide-in 160 ms OutCubic, dim scrim, ESC/click-out closes; `layer.enabled` raster trick so slides animate at compositor cost
@@ -133,8 +133,10 @@ Current state: right-side drawer/popout built entirely from the shared kit. Tabs
 - [x] Modules tab: bar segment toggles (tray/stats/clock) persisted, consumed live by Bar layout bindings
 - [x] About tab: version, stack info, live scheme source, IPC cheatsheet
 - [x] IPC handlers for panel/picker/scheme/wallpaper/theme/templates; identity block opens the panel
-- [ ] Appearance leftovers (accent override swatches, light/dark toggle) → **moved into PH.16 appearance spec**
-- [ ] System/integrations stub rows → **replaced by PH.16 real tabs**
+- [x] Appearance leftovers delivered in-phase: light/dark segmented toggle + accent override swatch strip (curated candidates, slash tile = follow scheme, live-recolors, persists) in the Appearance tab's "Mode & accent" section
+- [x] IPC extended: `theme dark on|off|toggle`, `theme accent <#hex|none>` — same implementation drives keybinds, CLI, and the settings toggle
+
+> Everything beyond this point (the 13-tab customization suite, global search, per-module page registry) is **PH.16** by design. The System tab keeps its forward-reference stub rows until those phases land.
 
 ## Phase 4 — App launcher ⬜ OPEN
 
@@ -365,7 +367,7 @@ Scaffold rework first:
 
 The thirteen tabs:
 
-- [ ] **APPEARANCE** — scheme preset swatches (existing), follow-wallpaper (existing), light/dark mode (needs PH.2 light pass), accent override swatches, system font family override + **UI scale factor** (fs-ramp multiplier), **animation master toggle** (off = durations collapse toward instant for perf), shell chrome toggles (brand tick, corner ticks, scrim strength, hairline emphasis), effects toggles (blur/transparency pass-throughs where the toolkit supports them), matugen template browser (moved)
+- [ ] **APPEARANCE** — scheme preset swatches (existing), follow-wallpaper (existing), light/dark mode + accent override (engines shipped in PH.2/3 — PH.16 adds font override, scale, chrome/effects toggles alongside), system font family override + **UI scale factor** (fs-ramp multiplier), **animation master toggle** (off = durations collapse toward instant for perf), shell chrome toggles (brand tick, corner ticks, scrim strength, hairline emphasis), effects toggles (blur/transparency pass-throughs where the toolkit supports them), matugen template browser (moved)
 - [ ] **DOCK** — enable/disable, monitor assignment, hide mode (always/dodge/never), size/spacing, click-behavior presets, preview thumbs on/off
 - [ ] **PANELS** — per-panel presentation: settings (drawer/popout — existing controls move here), picker, notifications stack corner, OSD corner, CC anchor/monitor; widths, scrim, open direction
 - [ ] **LAUNCHER** — anchor position, default mode (grid/list), icon size, pins/recents management (edit + clear)

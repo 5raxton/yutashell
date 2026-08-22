@@ -38,6 +38,8 @@ Singleton {
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
     readonly property alias wallpaperPath: adapter.wallpaperPath
+    readonly property alias dark: adapter.dark
+    readonly property alias accentOverride: adapter.accentOverride
     readonly property alias tplEnabled: adapter.tplEnabled
     readonly property alias customTpl: adapter.customTpl
     readonly property alias barTray: adapter.barTray
@@ -76,6 +78,8 @@ Singleton {
             property string scheme: "acid"
             property bool followWallpaper: false
             property string wallpaperPath: ""
+            property bool dark: true
+            property string accentOverride: ""
 
             // matugen template registry v2:
             // tplEnabled = JSON array of ids (catalog + custom) that are ON

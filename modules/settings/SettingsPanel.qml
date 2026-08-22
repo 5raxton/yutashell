@@ -703,6 +703,110 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "03"
+                        label: "Mode & accent"
+                        chip: Theme.dark ? "dark" : "light"
+                    }
+
+                    // light/dark — segmented, snaps instantly like all state toggles
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        YButton {
+                            width: (parent.width - Theme.sp1) / 2
+                            tone: Theme.dark ? "acid" : "default"
+                            label: "dark"
+                            onClicked: Theme.setDark(true)
+                        }
+
+                        YButton {
+                            width: (parent.width - Theme.sp1) / 2
+                            tone: !Theme.dark ? "acid" : "default"
+                            label: "light"
+                            onClicked: Theme.setDark(false)
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "light mode regenerates every palette at runtime — paper surfaces, ink text, contrast-fitted accents."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Text {
+                        text: "ACCENT OVERRIDE"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        font.letterSpacing: 2
+                    }
+
+                    Row {
+                        spacing: 5
+
+                        Repeater {
+                            model: root.accentChoices
+
+                            delegate: Rectangle {
+                                id: swatch
+
+                                required property int index
+                                required property string modelData
+
+                                readonly property bool active: (Theme.accentOverride.length === 0 && modelData.length === 0) || Theme.accentOverride.toLowerCase() === modelData.toLowerCase()
+
+                                width: 24
+                                height: 24
+                                color: modelData.length > 0 ? modelData : "transparent"
+                                border.width: 1
+                                border.color: active ? Theme.ink : swatchArea.containsMouse ? Theme.muted : Theme.hairline
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: parent.modelData.length === 0
+                                    text: "/"
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 12
+                                    font.weight: Font.Bold
+                                }
+
+                                Rectangle {
+                                    visible: swatch.active
+                                    x: parent.width - 7
+                                    y: parent.height - 7
+                                    width: 6
+                                    height: 6
+                                    color: Theme.acid
+                                }
+
+                                MouseArea {
+                                    id: swatchArea
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Theme.setAccent(swatch.modelData)
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "slash tile follows the scheme — overrides recolor live and persist."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "04"
                         label: "Control core"
                         chip: root.popout ? "popout" : root.drawerW + "px drawer"
                     }
@@ -1063,7 +1167,7 @@ PanelWindow {
                             width: parent.width - Theme.sp2 * 2
 
                             Repeater {
-                                model: ["qs ipc call panel toggle", "qs ipc call picker toggle", "qs ipc call scheme set <name>", "qs ipc call wallpaper set <path>", "qs ipc call templates list|on|off"]
+                                model: ["qs ipc call panel toggle", "qs ipc call picker toggle", "qs ipc call scheme set <name>", "qs ipc call wallpaper set <path>", "qs ipc call theme dark on|off|toggle", "qs ipc call theme accent <#hex|none>", "qs ipc call templates list|on|off"]
 
                                 delegate: Text {
                                     required property var modelData
@@ -1096,6 +1200,10 @@ PanelWindow {
 
     // ---- scheme preview data for swatches ----
     property var presetData: []
+
+    // curated override candidates (data, not chrome — the live acid token
+    // still decides selection/active visuals)
+    property var accentChoices: ["", "#c8ff3d", "#3dffc0", "#35d0ff", "#3da9ff", "#b96bff", "#ff5cd0", "#ff3b52", "#ffd23d", "#eae8e0"]
 
     Component.onCompleted: {
         const out = [];

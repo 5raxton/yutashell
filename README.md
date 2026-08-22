@@ -3,7 +3,7 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** WIP — Phases 0–2 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen), Phase 3 (settings panel) mostly done. See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
+> **Status:** WIP — Phases 0–3 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen incl. light mode, settings control core). See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
 
 ![screenshot placeholder — add one when the shell stabilizes]
 
@@ -17,10 +17,10 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   - Media segment: MPRIS now-playing ticker between tray and stats — prefers the playing player, marquee track line while playing, click play/pause, wheel next/prev, hover tooltip; toggleable in settings
   - Live stats cluster: network down/up rates, CPU % + VU meter, memory %, battery % with charging/low states
   - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed
-- **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. Japanese labels auto-degrade to romaji when no CJK font is present.
+- **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. **Light mode** regenerates every palette at runtime (paper surfaces, ink text, contrast-fitted accents); an **accent override** lets any color take the acid slot. Japanese labels auto-degrade to romaji when no CJK font is present.
 - **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
 - **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change
-- **Settings panel** (`modules/settings/`): right-side drawer — scheme swatches, current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, system/about tabs
+- **Settings panel** (`modules/settings/`): right-side drawer — scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, system/about tabs
 - **Wallpaper picker** (`modules/picker/`): standalone overlay panel with searchable thumbnail grid — bind it to its own key and swap wallpapers without touching settings; picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
 - **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll — every panel is composed from these plus Theme tokens only, so both surfaces read as one system
 
@@ -70,6 +70,8 @@ qs ipc call <target> <function> [args...]
 | `wallpaper` | `random` | jump to a random indexed wallpaper |
 | `wallpaper` | `list` | print every indexed wallpaper path |
 | `theme` | `generate <image>` | same as `wallpaper set` (explicit alias) |
+| `theme` | `dark on\|off\|toggle` | light/dark mode — light palettes are regenerated live from the active scheme or wallpaper |
+| `theme` | `accent <#hex\|none>` | override the acid accent (persisted; `none` follows the scheme again) |
 | `templates` | `list` | show template catalog with enabled state |
 | `templates` | `on <id>` / `off <id>` | enable/disable a template (rewrites matugen.toml, re-applies) |
 | `templates` | `add <id> <input> <output>` | register a custom matugen template |
@@ -123,7 +125,7 @@ Everything the shell writes lives under `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, bar segment toggles, template registry |
+| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry |
 | `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
 | `matugen.toml` | generated matugen config assembled from the template registry |
 

@@ -115,21 +115,122 @@ Singleton {
         if (!map)
             return false;
         let hit = false;
+        // JS objects preserve insertion order → bg is always transformed before
+        // acid/alert, so the contrast fitting below can measure against it.
         for (const k in defaults) {
-            if (typeof map[k] === "string") {
-                root[k] = map[k];
-                hit = true;
-            }
-            // missing tokens inherit the live palette — partial maps are legal
+            if (typeof map[k] !== "string")
+                continue;
+            root[k] = root.dark ? map[k] : _toLight(map[k], k);
+            hit = true;
         }
-        if (hit)
+        if (hit) {
+            _applyAccentOverride();
             checkContrast();
+        }
         return hit;
     }
 
     function applyPreset(id) {
         schemeLoader.path = root.schemePath(id);
         schemeLoader.reload();
+    }
+
+    // ======== MODE (dark/light) & ACCENT OVERRIDE ========
+    // Light mode is generated at runtime — every token map (scheme preset or
+    // matugen wallpaper palette) is HSL-remapped to paper/ink, and acid/alert
+    // are darkened just enough to pass the same contrast thresholds the
+    // self-check asserts. No per-scheme light files to maintain.
+    property bool dark: true
+
+    function _h(hue) {
+        return hue < 0 ? 0 : hue;
+    }
+
+    // darken a saturated token until it reads on the live light bg
+    function _fitOnLight(col, minRatio) {
+        let l = col.hslLightness;
+        let out = col;
+        let guard = 0;
+        while (_ratio(out, root.bg) < minRatio && l > 0.06 && guard++ < 40) {
+            l -= 0.02;
+            out = Qt.hsla(_h(col.hslHue), col.hslSaturation, l, 1);
+        }
+        return out;
+    }
+
+    function _toLight(src, role) {
+        const c = Qt.color(String(src));
+        const h = _h(c.hslHue);
+        const s = c.hslSaturation;
+        const l = c.hslLightness;
+        switch (role) {
+        case "bg":
+            return Qt.hsla(h, Math.min(s, 0.10), 0.94, 1);
+        case "bgAlt":
+            return Qt.hsla(h, Math.min(s, 0.12), 0.91, 1);
+        case "surface":
+            return Qt.hsla(h, Math.min(s, 0.16), 0.86, 1);
+        case "hairline":
+            return Qt.hsla(h, Math.min(s, 0.10), 0.80, 1);
+        case "lineStrong":
+            return Qt.hsla(h, Math.min(s, 0.16), 0.62, 1);
+        case "faint":
+            return Qt.hsla(h, Math.min(s, 0.08), 0.76, 1);
+        case "ink":
+            return Qt.hsla(h, Math.min(s, 0.24), 0.14, 1);
+        case "muted":
+            return Qt.hsla(h, Math.min(s, 0.12), 0.38, 1);
+        case "acid":
+            return _fitOnLight(Qt.hsla(h, Math.max(0.45, Math.min(s, 0.90)), Math.min(l, 0.44), 1), 3.0);
+        case "acidDeep":
+            return _fitOnLight(Qt.hsla(h, Math.max(0.45, Math.min(s, 0.90)), Math.min(l, 0.32), 1), 3.0);
+        case "alert":
+            return _fitOnLight(Qt.hsla(h, Math.max(0.60, s), Math.min(l, 0.46), 1), 2.5);
+        default:
+            return c;
+        }
+    }
+
+    function setDark(on) {
+        if (root.dark === on)
+            return;
+        root.dark = on;
+        ShellState.set("dark", on);
+        _reapplyCurrent();
+    }
+
+    function setAccent(color) {
+        const c = String(color ?? "").trim();
+        ShellState.set("accentOverride", (c.length === 0 || c.toLowerCase() === "none") ? "" : c);
+        _reapplyCurrent();
+    }
+
+    // re-run the current source through the engine so mode/accent changes
+    // repaint everything without modules knowing either exists
+    function _reapplyCurrent() {
+        if (root.followWallpaper && String(ShellState.wallpaperPath ?? "").length > 0) {
+            wallThemeFile.reload();
+            applyWallpaperTokens();
+        } else if (root.activeScheme.length > 0) {
+            applyPreset(root.activeScheme);
+        } else {
+            _applyTokens(defaults);
+        }
+    }
+
+    function _applyAccentOverride() {
+        const o = ShellState.accentOverride;
+        if (!o || o.length === 0)
+            return;
+        try {
+            let c = Qt.color(o);
+            if (!root.dark)
+                c = _fitOnLight(c, 3.0);
+            root.acid = c;
+            root.acidDeep = Qt.hsla(_h(c.hslHue), c.hslSaturation, Math.max(0.10, c.hslLightness * (root.dark ? 0.72 : 0.80)), 1);
+        } catch (e) {
+            console.warn("[theme] accent override unreadable:", o);
+        }
     }
 
     function setFollowWallpaper(on) {
@@ -248,6 +349,9 @@ Singleton {
     }
 
     Component.onCompleted: {
+        root.dark = ShellState.dark;
+        if (!root.dark)
+            _applyTokens(defaults);
         root.followWallpaper = ShellState.followWallpaper;
         if (ShellState.followWallpaper) {
             wallThemeFile.reload();
