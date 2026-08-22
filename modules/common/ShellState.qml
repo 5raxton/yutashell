@@ -8,6 +8,7 @@ Singleton {
 
     // ---- runtime shell state (never persisted) ----
     property bool panelOpen: false
+    property bool pickerOpen: false
 
     function togglePanel() {
         root.panelOpen = !root.panelOpen;
@@ -21,18 +22,44 @@ Singleton {
         root.panelOpen = false;
     }
 
+    function togglePicker() {
+        root.pickerOpen = !root.pickerOpen;
+    }
+
+    function openPicker() {
+        root.pickerOpen = true;
+    }
+
+    function closePicker() {
+        root.pickerOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
     readonly property alias wallpaperPath: adapter.wallpaperPath
-    readonly property alias templatesJson: adapter.templatesJson
+    readonly property alias tplEnabled: adapter.tplEnabled
+    readonly property alias customTpl: adapter.customTpl
     readonly property alias barTray: adapter.barTray
     readonly property alias barStats: adapter.barStats
     readonly property alias barClock: adapter.barClock
 
+    // control-core presentation
+    readonly property alias panelW: adapter.panelW
+    readonly property alias panelPopout: adapter.panelPopout
+
     function set(key, value) {
         adapter[key] = value;
-        stateFile.writeAdapter();
+        // Coalesce bursts into one flush — back-to-back writeAdapter() calls
+        // overlap inside FileView and get silently dropped.
+        flushTimer.restart();
+    }
+
+    Timer {
+        id: flushTimer
+
+        interval: 80
+        onTriggered: stateFile.writeAdapter()
     }
 
     FileView {
@@ -49,102 +76,30 @@ Singleton {
             property bool followWallpaper: false
             property string wallpaperPath: ""
 
-            // matugen template registry (JSON array of {id,input,output,postHook,enabled})
-            property string templatesJson: ""
+            // matugen template registry v2:
+            // tplEnabled = JSON array of ids (catalog + custom) that are ON
+            // customTpl  = JSON array of user entries shaped like catalog ones
+            // (legacy "templatesJson" key is intentionally dropped — old seeds
+            // were all disabled and pointed at non-existent template files)
+            property string tplEnabled: "[]"
+            property string customTpl: "[]"
 
             // bar segments
             property bool barTray: true
             property bool barStats: true
             property bool barClock: true
+
+            // control-core presentation: drawer width (px, clamped by consumer)
+            // and popout mode (centered card instead of right drawer)
+            property int panelW: 464
+            property bool panelPopout: false
         }
     }
 
-    function seedTemplates() {
-        const t = Quickshell.env("HOME") + "/.config/matugen/templates/";
-        const defaults = [
-            {
-                id: "alacritty",
-                input: t + "alacritty.toml",
-                output: "~/.config/alacritty/colors.toml",
-                postHook: "",
-                enabled: false
-            },
-            {
-                id: "kitty",
-                input: t + "kitty-colors.conf",
-                output: "~/.config/kitty/themes/Matugen.conf",
-                postHook: "pkill -SIGUSR1 kitty || true",
-                enabled: false
-            },
-            {
-                id: "fuzzel",
-                input: t + "fuzzel.ini",
-                output: "~/.config/fuzzel/colors.ini",
-                postHook: "",
-                enabled: false
-            },
-            {
-                id: "hyprland",
-                input: t + "hyprland-colors.conf",
-                output: "~/.config/hypr/colors.conf",
-                postHook: "",
-                enabled: false
-            },
-            {
-                id: "gtk3",
-                input: t + "gtk-colors.css",
-                output: "~/.config/gtk-3.0/colors.css",
-                postHook: "",
-                enabled: false
-            },
-            {
-                id: "gtk4",
-                input: t + "gtk-colors.css",
-                output: "~/.config/gtk-4.0/colors.css",
-                postHook: "",
-                enabled: false
-            },
-            {
-                id: "mako",
-                input: t + "mako",
-                output: "~/.config/mako/mako-colors",
-                postHook: "makoctl reload || true",
-                enabled: false
-            },
-            {
-                id: "dunst",
-                input: t + "dunstrc-colors",
-                output: "~/.config/dunst/dunstrc",
-                postHook: "dunstctl reload || true",
-                enabled: false
-            },
-            {
-                id: "starship",
-                input: t + "starship-colors.toml",
-                output: "~/.config/starship.toml",
-                postHook: "",
-                enabled: false
-            },
-            {
-                id: "btop",
-                input: t + "btop.theme",
-                output: "~/.config/btop/themes/matugen.theme",
-                postHook: "pkill -USR2 btop || true",
-                enabled: false
-            },
-            {
-                id: "rofi",
-                input: t + "rofi-colors.rasi",
-                output: "~/.config/rofi/colors.rasi",
-                postHook: "",
-                enabled: false
-            }
-        ];
-        set("templatesJson", JSON.stringify(defaults));
-    }
-
     Component.onCompleted: {
-        if (stateFile.loadFailed)
+        // Seed defaults ONLY when the file is absent/empty. A transient read
+        // race must never clobber the user's persisted prefs with defaults.
+        if (stateFile.loadFailed && stateFile.text().length === 0)
             stateFile.writeAdapter();
     }
 }

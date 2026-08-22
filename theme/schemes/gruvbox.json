@@ -1,0 +1,14 @@
+{
+  "name": "gruvbox",
+  "bg": "#282828",
+  "bgAlt": "#1d2021",
+  "surface": "#3c3836",
+  "ink": "#ebdbb2",
+  "muted": "#928374",
+  "faint": "#504945",
+  "hairline": "#32302f",
+  "lineStrong": "#665c54",
+  "acid": "#b8bb26",
+  "acidDeep": "#98971a",
+  "alert": "#fb4934"
+}

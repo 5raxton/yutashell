@@ -16,10 +16,12 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   - System tray (StatusNotifier): left-click menus, middle-click secondary actions, wheel scroll
   - Live stats cluster: network down/up rates, CPU % + VU meter, memory %, battery % with charging/low states
   - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed
-- **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Four curated scheme presets (acid/crimson/cyan/amber) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. Japanese labels auto-degrade to romaji when no CJK font is present.
+- **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. Japanese labels auto-degrade to romaji when no CJK font is present.
 - **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
 - **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change
-- **Settings panel** (`modules/settings/`): right-side drawer — scheme picker with live swatch previews, wallpaper grid with thumbnails, template manager, bar segment toggles, system/about tabs
+- **Settings panel** (`modules/settings/`): right-side drawer — scheme swatches, current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, system/about tabs
+- **Wallpaper picker** (`modules/picker/`): standalone overlay panel with searchable thumbnail grid — bind it to its own key and swap wallpapers without touching settings; picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
+- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll — every panel is composed from these plus Theme tokens only, so both surfaces read as one system
 
 ## Requirements
 
@@ -58,15 +60,17 @@ qs ipc call <target> <function> [args...]
 | target | function | what it does |
 |---|---|---|
 | `panel` | `toggle` / `open` / `close` | settings drawer |
-| `scheme` | `set <name>` | apply a preset: `acid`, `crimson`, `cyan`, `amber` |
+| `picker` | `toggle` / `open` / `close` | standalone wallpaper picker panel |
+| `scheme` | `set <name>` | apply a preset — see `scheme list` for all 12 ids |
 | `scheme` | `list` | print available preset ids |
 | `scheme` | `wallpaper` | re-follow the last applied wallpaper's palette |
 | `wallpaper` | `set <path>` | set + paint + regenerate palette for an image |
 | `wallpaper` | `next` | cycle to the next indexed wallpaper |
+| `wallpaper` | `random` | jump to a random indexed wallpaper |
 | `wallpaper` | `list` | print every indexed wallpaper path |
 | `theme` | `generate <image>` | same as `wallpaper set` (explicit alias) |
-| `templates` | `list` | show template registry with enabled state |
-| `templates` | `on <id>` / `off <id>` | enable/disable a template |
+| `templates` | `list` | show template catalog with enabled state |
+| `templates` | `on <id>` / `off <id>` | enable/disable a template (rewrites matugen.toml, re-applies) |
 | `templates` | `add <id> <input> <output>` | register a custom matugen template |
 | `templates` | `remove <id>` | remove one |
 
@@ -77,6 +81,7 @@ Add to your `hyprland.conf` (or Helmsman equivalent):
 ```
 bind = SUPER, S, exec, qs ipc call panel toggle
 bind = SUPER, W, exec, qs ipc call wallpaper next
+bind = SUPERSHIFT, W, exec, qs ipc call picker toggle
 bind = SUPERSHIFT, C, exec, qs ipc call scheme set crimson
 ```
 
@@ -90,7 +95,7 @@ yutashell/
 ├── theme/
 │   ├── qmldir                 # singleton registration
 │   ├── Theme.qml              # design tokens + scheme engine + contrast check
-│   ├── schemes/               # static preset palettes (acid/crimson/cyan/amber)
+│   ├── schemes/               # static preset palettes (12 schemes)
 │   └── matugen/               # our own matugen template → theme.json
 ├── modules/
 │   ├── bar/                   # taskbar (see Phase 1 in ROADMAP)

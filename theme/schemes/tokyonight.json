@@ -1,0 +1,14 @@
+{
+  "name": "tokyonight",
+  "bg": "#1a1b26",
+  "bgAlt": "#16161e",
+  "surface": "#24283b",
+  "ink": "#c0caf5",
+  "muted": "#565f89",
+  "faint": "#292e42",
+  "hairline": "#1f2233",
+  "lineStrong": "#3b4261",
+  "acid": "#7aa2f7",
+  "acidDeep": "#5d78c9",
+  "alert": "#f7768e"
+}

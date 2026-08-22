@@ -1,6 +1,7 @@
 import QtQuick
 import qs.theme
 
+// Single-line input. Focus = acid left bar + stronger border.
 Rectangle {
     id: root
 
@@ -8,44 +9,51 @@ Rectangle {
     property string placeholder: ""
     signal accepted()
 
+    function forceFocus() {
+        input.forceActiveFocus();
+    }
+
+    readonly property bool focused: input.activeFocus
+
     implicitWidth: 180
-    implicitHeight: 24
+    implicitHeight: Theme.ctlH
     color: Theme.bg
     border.width: 1
-    border.color: input.activeFocus ? Theme.acid : Theme.hairline
+    border.color: root.focused ? Theme.lineStrong : Theme.hairline
 
     TextInput {
         id: input
 
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
+        anchors.leftMargin: Theme.sp2 + 2
+        anchors.rightMargin: Theme.sp2
         anchors.verticalCenter: parent.verticalCenter
         color: Theme.ink
         font.family: Theme.fontFamily
-        font.pixelSize: 9
+        font.pixelSize: Theme.fsBody
         clip: true
         selectByMouse: true
         cursorVisible: activeFocus
         onAccepted: root.accepted()
+        Keys.onEscapePressed: input.focus = false
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
             visible: input.text.length === 0 && !input.activeFocus
-            text: root.placeholder.toUpperCase()
+            text: root.placeholder
             color: Theme.faint
             font.family: Theme.fontFamily
-            font.pixelSize: 9
-            font.letterSpacing: 1
+            font.pixelSize: Theme.fsLabel
+            font.letterSpacing: 0.5
         }
     }
 
     Rectangle {
-        anchors.right: parent.right
+        anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: 2
-        color: input.activeFocus ? Theme.acid : "transparent"
+        color: root.focused ? Theme.acid : "transparent"
     }
 
     MouseArea {

@@ -1,2 +1,3 @@
 singleton ShellState 1.0 ShellState.qml
 singleton Wallpaper 1.0 Wallpaper.qml
+singleton TemplateCatalog 1.0 TemplateCatalog.qml

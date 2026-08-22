@@ -1,0 +1,14 @@
+{
+  "name": "doom",
+  "bg": "#282c34",
+  "bgAlt": "#21252b",
+  "surface": "#3a3f4b",
+  "ink": "#bbccf2",
+  "muted": "#7c869b",
+  "faint": "#3f444f",
+  "hairline": "#2e333d",
+  "lineStrong": "#4a5160",
+  "acid": "#98be65",
+  "acidDeep": "#7da34e",
+  "alert": "#ff6c6b"
+}

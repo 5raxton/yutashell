@@ -60,9 +60,10 @@ How: matugen generates a palette JSON from the wallpaper; `Theme` loads it at st
 - [x] matugen wired through a generated registry config: `~/.local/state/yutashell/matugen.toml` is written from the template registry (Wallpaper.qml `writeGenConfig()`); the shell's own template lives at `theme/matugen/yutashell.json` and emits `~/.local/state/yutashell/theme.json`
 - [x] `Theme` dynamic token engine: `_applyTokens()` maps scheme/wallpaper JSON → tokens with hardcoded defaults as fallback; partial maps legal
 - [x] Wallpaper set flow: settings grid / IPC picks image → matugen regenerates all enabled templates → awww paints → theme.json rewritten → shell recolors live (`FileView.watchChanges`)
-- [x] Scheme presets: acid (default), crimson, cyan, amber — static JSONs in `theme/schemes/`
+- [x] Scheme presets: acid, crimson, cyan, amber + catppuccin, cyberpunk, doom, gruvbox, mono (b/w), tokyonight, kanagawa, dracula — static JSONs in `theme/schemes/` (12 total)
 - [ ] Light-mode variant pass (paper background, ink text) gated behind a `Theme.dark` flag
-- [x] Export templates for external apps: per-app template registry (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi + custom entries) editable in settings / via `templates` IPC, persisted in state.json
+- [x] Export templates for external apps: **full matugen-themes catalog** (63 templates: terminals, editors, shells, browsers, launchers, notifs, compositors, desktop, media, system) vendored into `theme/matugen/catalog/` via `TemplateCatalog.qml`; every entry ships DISABLED, opt-in per app via settings or `templates` IPC; custom user entries supported; persisted in state.json
+- [x] Standalone wallpaper picker: own overlay panel + keybind (`picker toggle`) so swapping wallpapers never opens settings; search-as-you-type, cursor/hover tile states, hand-drawn scroll indicator; picking runs the full pipeline
 - [x] Contrast self-check: ink/bg ≥ 4.5, acid/bg ≥ 3.0, alert/bg ≥ 2.5 asserted at load, warnings logged
 
 ## Phase 3 — Settings panel (control core) ✅ MOSTLY DONE
@@ -71,14 +72,18 @@ Goal: one right-side drawer panel that controls appearance, toggles services/mod
 
 How: `PanelWindow` anchored right with `WlrLayershell` overlay layer, exclusive on demand. Tabs rendered from a declarative page registry so new modules register settings pages themselves. Persistence via the state.json pattern. Opened by keybind through IPC or clicking the identity block.
 
+- [x] v3 rebuild: whole panel (and picker chrome) recomposed from the shared kit (`modules/common/ui`: YButton/YSwitch/YRow/YSection/YField/YChip/YScroll) — one type ramp, one rhythm scale, acid reserved for semantics. Fixed the panel-open bug (content root was never sized → 0×0 ghost)
 - [x] Drawer scaffold: right-anchored overlay window, slide-in 160 ms OutCubic, dim scrim over desktop, ESC/click-out closes
-- [x] Tab framework: Appearance / Modules / System (stub) / About
-- [x] Appearance tab: scheme preset picker (live swatch previews), wallpaper index grid (thumbnail tiles, rescan/random), matugen template manager (add/remove/enable rows), follow-wallpaper toggle
+- [x] Tab framework: Appearance / Templates / Modules / System (stub) / About — pages are lazy Loaders off a declarative registry (heavy lists only build when visited)
+- [x] Appearance tab: scheme preset swatches (adaptive 2/3-col grid), current-wallpaper card + picker/random/rescan actions, follow-wallpaper toggle (wallpaper browsing lives in the dedicated picker panel now — settings stays light)
+- [x] Control-core presentation: user-tunable drawer width (400–760 px stepper) + popout-card mode (centered bordered card vs right drawer), persisted in state.json, live-animated switch
+- [x] Picker v2 redesign: full-height right-edge "CONTACT.SHEET" sheet matching control-core header/footer language, adaptive columns (3+ by width), layer-enabled slide (no per-frame repaint jank), same keyboard model
+- [x] Templates tab: full catalog browser — search field, grouped rows with hover install-hints, enable toggles, add-custom form, enabled/total counter
 - [ ] Appearance tab leftovers: accent override swatches, light/dark toggle (needs Phase 2 light mode)
 - [x] Modules tab: bar segment toggles (tray/stats/clock) stored in state.json, consumed live by Bar layout bindings
 - [ ] Integrations tab: currently phase-stub rows only — wire WiFi/BT status, DND switch, autostart editor when those phases land
 - [x] About tab: version, stack info, live scheme source, IPC cheatsheet
-- [x] `IpcHandler`s exposing `panel toggle/open/close`, `scheme set/list/wallpaper`, `wallpaper set/next/list`, `theme generate <image>`, `templates list/on/off/add/remove`
+- [x] `IpcHandler`s exposing `panel toggle/open/close`, `picker toggle/open/close`, `scheme set/list/wallpaper`, `wallpaper set/next/random/list`, `theme generate <image>`, `templates list/on/off/add/remove`
 - [x] Identity block left-click opens the panel
 
 ## Phase 4 — App launcher

@@ -1,0 +1,14 @@
+{
+  "name": "cyberpunk",
+  "bg": "#0f0f13",
+  "bgAlt": "#131318",
+  "surface": "#1c1c24",
+  "ink": "#e8e6df",
+  "muted": "#7a7a85",
+  "faint": "#3c3c46",
+  "hairline": "#20202a",
+  "lineStrong": "#3a3a48",
+  "acid": "#f7e018",
+  "acidDeep": "#c9b413",
+  "alert": "#ff2e63"
+}

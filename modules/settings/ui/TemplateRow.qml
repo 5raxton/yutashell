@@ -1,88 +1,65 @@
 import QtQuick
 import qs.theme
-import "."
+import qs.modules.common
+import "../../common/ui"
 
-Rectangle {
-    id: root
+// One template registry row from Wallpaper.templatesList():
+// {id,label,group,output,enabled,custom}. YRow with a switch; hover swaps the
+// output path for the install hint. Custom rows get a USER chip + delete ×.
+YRow {
+    id: row
 
-    property string tplId: ""
-    property string output: ""
-    property bool enabled_: false
+    required property var modelData
 
-    signal toggled(bool on)
-    signal removed()
+    readonly property bool custom: modelData?.custom ?? false
 
-    implicitWidth: 300
-    implicitHeight: 34
-    color: area.containsMouse ? Theme.surface : Theme.bg
-    border.width: 1
-    border.color: root.enabled_ ? Theme.hairline : Theme.hairline
+    title: String(modelData?.label ?? "")
+    sub: String(modelData?.output ?? "")
+    note: String(modelData?.note ?? "")
+    on_: modelData?.enabled ?? false
+    interactive: false
+    clip: true
+    trailingW: row.custom ? 112 : 40
 
-    MouseArea {
-        id: area
-        anchors.fill: parent
-        hoverEnabled: true
-    }
-
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 2
-        color: root.enabled_ ? Theme.acid : Theme.faint
-    }
-
-    Column {
+    Row {
         anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
-        anchors.leftMargin: 10
-        spacing: 2
-        width: parent.width - 90
+        spacing: Theme.sp2
 
-        Text {
-            text: root.tplId.toUpperCase()
-            color: root.enabled_ ? Theme.ink : Theme.muted
-            font.family: Theme.fontFamily
-            font.pixelSize: 9
-            font.weight: Font.DemiBold
-            font.letterSpacing: 1
+        YChip {
+            visible: row.custom
+            label: "USER"
+            tone: "acid"
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        Text {
-            width: parent.width
-            text: root.output
-            elide: Text.ElideMiddle
-            color: Theme.faint
-            font.family: Theme.fontFamily
-            font.pixelSize: 7
+        Item {
+            visible: row.custom
+            anchors.verticalCenter: parent.verticalCenter
+            width: 14
+            height: 16
+
+            Text {
+                anchors.centerIn: parent
+                text: "×"
+                color: delArea.containsMouse ? Theme.alert : Theme.faint
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fsTitle
+            }
+
+            MouseArea {
+                id: delArea
+
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Wallpaper.removeTemplate(row.modelData.id)
+            }
         }
-    }
 
-    Text {
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: switchBox.left
-        anchors.rightMargin: 10
-        text: "×"
-        color: delArea.containsMouse ? Theme.alert : Theme.faint
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-
-        MouseArea {
-            id: delArea
-            anchors.fill: parent
-            anchors.margins: -6
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.removed()
+        YSwitch {
+            checked: row.on_
+            anchors.verticalCenter: parent.verticalCenter
+            onToggled: Wallpaper.setTemplateEnabled(row.modelData.id, !row.modelData.enabled)
         }
-    }
-
-    SwitchBox {
-        id: switchBox
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: 8
-        checked: root.enabled_
-        onToggled: root.toggled(!root.enabled_)
     }
 }

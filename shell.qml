@@ -5,6 +5,7 @@ import qs.modules.common
 import "modules/bar"
 import "modules/bar/ui"
 import "modules/settings"
+import "modules/picker"
 
 ShellRoot {
     Tooltip {
@@ -17,18 +18,24 @@ ShellRoot {
 
     SettingsPanel {}
 
+    WallpaperPicker {}
+
+
     IpcHandler {
         target: "panel"
 
         function toggle(): void {
+            console.log("[ipc] panel.toggle hit");
             ShellState.togglePanel();
         }
 
         function open(): void {
+            console.log("[ipc] panel.open hit");
             ShellState.openPanel();
         }
 
         function close(): void {
+            console.log("[ipc] panel.close hit");
             ShellState.closePanel();
         }
     }
@@ -59,6 +66,22 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "picker"
+
+        function toggle(): void {
+            ShellState.togglePicker();
+        }
+
+        function open(): void {
+            ShellState.openPicker();
+        }
+
+        function close(): void {
+            ShellState.closePicker();
+        }
+    }
+
+    IpcHandler {
         target: "wallpaper"
 
         function set(path: string): void {
@@ -67,6 +90,10 @@ ShellRoot {
 
         function next(): void {
             Wallpaper.applyNext();
+        }
+
+        function random(): void {
+            Wallpaper.applyRandom();
         }
 
         function list(): string {
@@ -78,7 +105,7 @@ ShellRoot {
         target: "templates"
 
         function list(): string {
-            return Wallpaper.templatesList().map(t => (t.enabled ? "[x] " : "[ ] ") + t.id).join("\n");
+            return Wallpaper.templatesList().map(t => (t.enabled ? "[x] " : "[ ] ") + t.id + " — " + t.label + " (" + t.group + ")").join("\n");
         }
 
         function on(name: string): void {

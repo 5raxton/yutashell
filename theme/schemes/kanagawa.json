@@ -1,0 +1,14 @@
+{
+  "name": "kanagawa",
+  "bg": "#1f1f28",
+  "bgAlt": "#16161d",
+  "surface": "#2a2a37",
+  "ink": "#dcd7ba",
+  "muted": "#727169",
+  "faint": "#363646",
+  "hairline": "#262631",
+  "lineStrong": "#54546d",
+  "acid": "#7fb4ca",
+  "acidDeep": "#6a93a5",
+  "alert": "#e46876"
+}

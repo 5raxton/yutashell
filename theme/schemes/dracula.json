@@ -1,0 +1,14 @@
+{
+  "name": "dracula",
+  "bg": "#282a36",
+  "bgAlt": "#21222c",
+  "surface": "#44475a",
+  "ink": "#f8f8f2",
+  "muted": "#6272a4",
+  "faint": "#343746",
+  "hairline": "#2f3141",
+  "lineStrong": "#4e5468",
+  "acid": "#bd93f9",
+  "acidDeep": "#9b76d6",
+  "alert": "#ff5555"
+}

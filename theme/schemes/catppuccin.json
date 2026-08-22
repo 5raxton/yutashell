@@ -1,0 +1,14 @@
+{
+  "name": "catppuccin",
+  "bg": "#1e1e2e",
+  "bgAlt": "#181825",
+  "surface": "#313244",
+  "ink": "#cdd6f4",
+  "muted": "#7f849c",
+  "faint": "#45475a",
+  "hairline": "#262637",
+  "lineStrong": "#505068",
+  "acid": "#cba6f7",
+  "acidDeep": "#9d7bd8",
+  "alert": "#f38ba8"
+}

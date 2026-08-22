@@ -26,6 +26,28 @@ Singleton {
     readonly property string fontFamily: "JetBrainsMono Nerd Font"
     readonly property bool jpEnabled: Qt.fontFamilies().some(f => /cjk|jp|japan/i.test(f))
 
+    // ---- type ramp: five roles, nothing outside them ----
+    readonly property int fsDisplay: 16   // page titles, hero text
+    readonly property int fsTitle: 12     // section headers, emphasis
+    readonly property int fsBody: 10      // THE reading size — rows, buttons, inputs
+    readonly property int fsLabel: 9      // secondary labels, chips, meta
+    readonly property int fsMicro: 7      // decorative chrome only (JP accents, watermarks)
+
+    // ---- rhythm scale ----
+    readonly property int sp1: 4          // intra-component
+    readonly property int sp2: 8          // component padding baseline
+    readonly property int sp3: 12         // related elements
+    readonly property int sp4: 16         // sections
+    readonly property int sp5: 24         // page margins
+    readonly property int rowH: 40        // standard setting row
+    readonly property int ctlH: 28        // buttons / fields
+    readonly property int headH: 54       // panel header band
+    readonly property int footH: 32       // panel footer band
+
+    // ---- motion: positional indicators only; hover/focus snap ----
+    readonly property int movFast: 120
+    readonly property int movMed: 160
+
     readonly property int barHeight: 44
     readonly property int outerPad: 14
     readonly property int sectionGap: 16
@@ -33,12 +55,43 @@ Singleton {
     readonly property string version: "0.3.0"
 
     // ======== SCHEME ENGINE ========
-    readonly property var presets: [
-        { id: "acid", label: "ACID" },
-        { id: "crimson", label: "CRIMSON" },
-        { id: "cyan", label: "CYAN" },
-        { id: "amber", label: "AMBER" }
-    ]
+    readonly property var presets: [{
+            id: "acid",
+            label: "ACID"
+        }, {
+            id: "crimson",
+            label: "CRIMSON"
+        }, {
+            id: "cyan",
+            label: "CYAN"
+        }, {
+            id: "amber",
+            label: "AMBER"
+        }, {
+            id: "catppuccin",
+            label: "CATPPUCCIN"
+        }, {
+            id: "cyberpunk",
+            label: "CYBERPUNK"
+        }, {
+            id: "doom",
+            label: "DOOM"
+        }, {
+            id: "gruvbox",
+            label: "GRUVBOX"
+        }, {
+            id: "mono",
+            label: "MONOCHROME"
+        }, {
+            id: "tokyonight",
+            label: "TOKYO NIGHT"
+        }, {
+            id: "kanagawa",
+            label: "KANAGAWA"
+        }, {
+            id: "dracula",
+            label: "DRACULA"
+        }]
 
     property string activeScheme: "acid"
     property bool followWallpaper: false
