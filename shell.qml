@@ -6,6 +6,7 @@ import "modules/bar"
 import "modules/bar/ui"
 import "modules/settings"
 import "modules/picker"
+import "modules/launcher"
 
 ShellRoot {
     Tooltip {
@@ -29,6 +30,23 @@ ShellRoot {
 
     WallpaperPicker {}
 
+    AppLauncher {}
+
+    IpcHandler {
+        target: "launcher"
+
+        function toggle(): void {
+            ShellState.toggleLauncher();
+        }
+
+        function open(): void {
+            ShellState.openLauncher();
+        }
+
+        function close(): void {
+            ShellState.closeLauncher();
+        }
+    }
 
     IpcHandler {
         target: "panel"

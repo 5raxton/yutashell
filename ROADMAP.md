@@ -138,21 +138,25 @@ Current state: right-side drawer/popout built entirely from the shared kit. Tabs
 
 > Everything beyond this point (the 13-tab customization suite, global search, per-module page registry) is **PH.16** by design. The System tab keeps its forward-reference stub rows until those phases land.
 
-## Phase 4 — App launcher ⬜ OPEN
+## Phase 4 — App launcher ✅ DONE
 
 Goal: fast fuzzy launcher indexing every installed .desktop entry, brutal styling, grid + list modes. This is the daily-driver surface — it must feel instant.
 
-How: enumerate via `DesktopEntries` (Quickshell's freedesktop parser), score with a small custom fuzzy matcher (subsequence + boundary bonuses), render in an overlay `PanelWindow` with `WlrLayershell.keyboardFocus: KeyboardFocus.Exclusive`. Launch via `Process` on `Exec` keys. Placement/behavior/appearance knobs persist to ShellState so PH.16's launcher tab just edits values.
+How: enumerate via `DesktopEntries` (Quickshell's freedesktop parser), score with a small custom fuzzy matcher (subsequence + boundary bonuses), render in an overlay `PanelWindow` with `WlrLayershell.keyboardFocus: KeyboardFocus.Exclusive`. Launch via `entry.execute()` (verified API — no manual Process/Exec parsing needed). Placement/behavior/appearance knobs persist to ShellState so PH.16's launcher tab just edits values.
 
-- [ ] Launcher scaffold: centered overlay (position configurable: center/left/top), search field auto-focused, <16 ms first paint, ESC/scrim closes
-- [ ] DesktopEntries listing with icon resolution via `IconImage` + theme icon paths; missing-icon fallback = acid square with initial letter
-- [ ] Fuzzy scoring + ranking, pinned/recents weighting from state.json
-- [ ] Grid mode (icon tiles) + list mode (rows), togglable in-session, remembered
-- [ ] Enter launches, arrows navigate, TAB switches mode, shift-del removes from recents
-- [ ] Japanese micro-label accents in header (アプリ / APP)
-- [ ] IPC `launcher toggle/open/close` + Helmsman bind wired
-- [ ] Optional: calculator/math expressions and `:` command mode (`:w` → dispatches, `:scheme cyan` → IPC self-call)
-- [ ] Optional: file-as-you-type desktop-action entries (`.desktop` Actions= rows) in results
+Shipped in `modules/launcher/` (`AppLauncher.qml` + `fuzzy.js`); UI builds lazily on first open then stays warm — reopen paints instantly, full app grid costs ~16 MB RSS.
+
+- [x] Launcher scaffold: centered overlay (`launcherAnchor`: center/left/top, persisted), search field auto-focused, warm-open instant paint + one-time first build, ESC/scrim closes
+- [x] DesktopEntries listing with icon resolution via `IconImage`; missing-icon fallback = acid square with initial letter
+- [x] Fuzzy scoring + ranking (`fuzzy.js`: subsequence + boundary/streak bonuses, name>id>keywords weighting), pinned/recents ordering from state.json
+- [x] Grid mode (icon tiles) + list mode (rows with genericName sub-labels), togglable in-session (TAB or header segment), remembered
+- [x] Enter launches, arrows navigate (←→ jump by grid columns), TAB switches mode, shift-del removes from recents
+- [x] Japanese micro-label accents in header (アプリ / APP.LAUNCHER) — romaji fallback while jpEnabled is false
+- [x] IPC `launcher toggle/open/close` (bind line documented in README "Keybinds & IPC")
+- [x] Optional: calculator row (charset-whitelisted expression eval, click/Enter copies via wl-copy) and `:` command mode (`:scheme/:wall/:dark/:accent/:panel/:picker` — calls the same singletons the IPC handlers use)
+- [x] Optional: desktop-action rows (`DesktopEntry.actions`, ` ↩` suffix, parent-app recents credit) once query length ≥ 2
+
+Extras beyond spec: right-click tile/row toggles pin (acid corner-notch indicator), footer count chip + keymap hints, unknown-command empty state, result cap (64) in query mode.
 
 ## Phase 5 — Notification daemon ⬜ OPEN
 

@@ -22,7 +22,8 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
 - **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change
 - **Settings panel** (`modules/settings/`): right-side drawer — scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, system/about tabs
 - **Wallpaper picker** (`modules/picker/`): standalone overlay panel with searchable thumbnail grid — bind it to its own key and swap wallpapers without touching settings; picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
-- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll — every panel is composed from these plus Theme tokens only, so both surfaces read as one system
+- **App launcher** (`modules/launcher/`): centered overlay indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, view mode, pins and recents persist.
+- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
 
 ## Requirements
 
@@ -60,6 +61,7 @@ qs ipc call <target> <function> [args...]
 
 | target | function | what it does |
 |---|---|---|
+| `launcher` | `toggle` / `open` / `close` | app launcher overlay (fuzzy search, `:` commands, calc) |
 | `panel` | `toggle` / `open` / `close` | settings drawer |
 | `picker` | `toggle` / `open` / `close` | standalone wallpaper picker panel |
 | `scheme` | `set <name>` | apply a preset — see `scheme list` for all 12 ids |
@@ -82,6 +84,7 @@ qs ipc call <target> <function> [args...]
 Add to your `hyprland.conf` (or Helmsman equivalent):
 
 ```
+bind = SUPER, A, exec, qs ipc call launcher toggle
 bind = SUPER, S, exec, qs ipc call panel toggle
 bind = SUPER, W, exec, qs ipc call wallpaper next
 bind = SUPERSHIFT, W, exec, qs ipc call picker toggle
@@ -109,6 +112,7 @@ yutashell/
 │   │   ├── Wallpaper.qml      # index/apply pipeline, template registry
 │   │   └── ui/                # YButton/YSwitch/YRow/YSection/YField/YChip/YScroll
 │   ├── picker/                # standalone wallpaper picker + ui/
+│   ├── launcher/              # app launcher overlay (AppLauncher + fuzzy.js)
 │   └── settings/              # control-core drawer + ui/
 ```
 
@@ -125,7 +129,7 @@ Everything the shell writes lives under `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry |
+| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/pins/recents) |
 | `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
 | `matugen.toml` | generated matugen config assembled from the template registry |
 

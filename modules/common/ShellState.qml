@@ -9,6 +9,7 @@ Singleton {
     // ---- runtime shell state (never persisted) ----
     property bool panelOpen: false
     property bool pickerOpen: false
+    property bool launcherOpen: false
 
     function togglePanel() {
         root.panelOpen = !root.panelOpen;
@@ -34,6 +35,18 @@ Singleton {
         root.pickerOpen = false;
     }
 
+    function toggleLauncher() {
+        root.launcherOpen = !root.launcherOpen;
+    }
+
+    function openLauncher() {
+        root.launcherOpen = true;
+    }
+
+    function closeLauncher() {
+        root.launcherOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -50,6 +63,12 @@ Singleton {
     // control-core presentation
     readonly property alias panelW: adapter.panelW
     readonly property alias panelPopout: adapter.panelPopout
+
+    // launcher
+    readonly property alias launcherMode: adapter.launcherMode
+    readonly property alias launcherAnchor: adapter.launcherAnchor
+    readonly property alias launcherPins: adapter.launcherPins
+    readonly property alias launcherRecents: adapter.launcherRecents
 
     function set(key, value) {
         adapter[key] = value;
@@ -99,6 +118,13 @@ Singleton {
             // and popout mode (centered card instead of right drawer)
             property int panelW: 464
             property bool panelPopout: false
+
+            // launcher: view mode (grid|list), placement (center|left|top),
+            // pinned + recent app ids as JSON arrays
+            property string launcherMode: "grid"
+            property string launcherAnchor: "center"
+            property string launcherPins: "[]"
+            property string launcherRecents: "[]"
         }
     }
 
