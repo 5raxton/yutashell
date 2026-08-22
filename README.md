@@ -3,7 +3,7 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** WIP — Phases 0–3 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen incl. light mode, settings control core). See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
+> **Status:** WIP — Phases 0–6 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen incl. light mode, settings control core, notification daemon, connectivity suite). See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
 
 ![screenshot placeholder — add one when the shell stabilizes]
 
@@ -23,7 +23,20 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
 - **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — bar-style tab strip with sliding acid underline, scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, placement (center/left/right) + width customization, system/about tabs; remembers your last visited tab
 - **Wallpaper picker** (`modules/picker/`): the ARCHIVE, a centered rectangle a step larger than the launcher (~1000×600) — a numbered index spine on the left (pure type, no thumbnail decoding) and a huge framed preview stage on the right showing one wallpaper at full quality. The always-focused filter field drives everything: type to filter, arrows to walk the index, enter or APPLY to commit; random/rescan in the spine, current wallpaper marked with an acid dot. Picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
 - **App launcher**: small centered card (~640×460) dropping from beneath the bar, indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
-- **One surface at a time**: opening any popup (settings / launcher / picker) closes the others; every surface arrives with the house entrance ritual — drop from behind the bar with a soft socket landing, one acid scanline sweep, border burn, family tick draw- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll / YSurface / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
+- **One surface at a time**: opening any popup (settings / launcher / picker / network / bluetooth / notification center) closes the others; every surface arrives with the house entrance ritual — drop from behind the bar with a soft socket landing, one acid scanline sweep, border burn, family tick draw
+- **Notification daemon** (`modules/notify/`): a full themed replacement for mako/dunst built on `Quickshell.Services.Notifications` — the shell *is* `org.freedesktop.Notifications`
+  - Toast cards drop from behind the bar in a configurable corner (top-right/top-left), max N visible (1–6), flat black with a 1px urgency border (critical = alert red + CRITICAL tag), and a shrinking acid underline as the timeout progress; hovering a card pauses its countdown, criticals persist until dismissed
+  - Inline action buttons rendered straight from each notification's actions; a global switch hides them all
+  - **History ring**: every notification is recorded (50 in memory, 30 persisted to state.json) into the notification center — browsable card with per-row REPLAY / dismiss, CLEAR ALL, DND row with suppressed-counter chip
+  - **Do not disturb**: IPC (`dnd on/off/toggle/status`) + bar-independent; normals/lows are held to history while criticals break through; a counter chip shows how many were silenced
+  - Per-app overrides: match by app-name/desktop-entry substring → QUIET (history only) or BLOCK (drop entirely); edited in settings → NOTIFY tab along with default timeout, max visible, corner, and display-field toggles (app name / body / icon)
+- **Connectivity suite** (`modules/net/`): native NetworkManager + BlueZ panels — no nm-applet
+  - Bar segments: NET glyph with 4-tier wifi signal bars (or wired link bars, red × when wifi is off) and BT glyph when the adapter is powered; clicking opens their panels. Both toggleable in settings → MODULES
+  - **Network panel**: wireless network list sorted by signal with lock glyphs + SAVED/CONN chips, inline passphrase join dialog (masked field), connect/forget for known networks, wired link speed + address, airplane mode master switch (wifi + BT radios down together), Wi-Fi radio/hard-block awareness
+  - VPN tunnels: wireguard/vpn profiles listed from NetworkManager with UP/DOWN toggles
+  - DNS: current resolvers readout + quick-set override applied to the active connection profile, REVERT back to DHCP
+  - **Bluetooth panel**: adapter power/scanning/discoverable switches, device list with theme icons + battery % chips, PAIR / CONNECT / DISCONNECT / FORGET, and a trust switch (BlueZ trust doubles as the autoconnect flag)
+- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll / YSurface / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
 - **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit) and never dims the desktop — input is masked to the card so the rest of the screen stays live
 
 ## Requirements
@@ -79,6 +92,13 @@ qs ipc call <target> <function> [args...]
 | `templates` | `on <id>` / `off <id>` | enable/disable a template (rewrites matugen.toml, injects/strips app-config snippet, re-applies; refuses absent apps) |
 | `templates` | `add <id> <input> <output>` | register a custom matugen template |
 | `templates` | `remove <id>` | remove one |
+| `dnd` | `on` / `off` / `toggle` | do-not-disturb: normals/lows held to history, criticals break through |
+| `dnd` | `status` | print dnd state + suppressed count + history size |
+| `notifycenter` | `toggle` / `open` / `close` | notification history center |
+| `notifycenter` | `clear` | dismiss all live toasts + wipe history |
+| `notifycenter` | `test <urgency>` | send a test toast (`normal`/`low`/`critical`) |
+| `network` | `toggle` / `open` / `close` | network panel (wifi/wired/vpn/dns) |
+| `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
 
 ### Hyprland binds (standard setup)
 
@@ -90,6 +110,10 @@ bind = SUPER, S, exec, qs ipc call panel toggle
 bind = SUPER, W, exec, qs ipc call wallpaper next
 bind = SUPERSHIFT, W, exec, qs ipc call picker toggle
 bind = SUPERSHIFT, C, exec, qs ipc call scheme set crimson
+bind = SUPER, N, exec, qs ipc call notifycenter toggle
+bind = SUPERSHIFT, N, exec, qs ipc call dnd toggle
+bind = SUPER, G, exec, qs ipc call network toggle
+bind = SUPER, B, exec, qs ipc call bluetooth toggle
 ```
 
 If your config wraps dispatches in a dispatcher layer (e.g. this machine's Helmsman Lua dispatcher), route the command through that layer's exec wrapper instead — the shell side is plain `exec`, no special dispatch strings needed.
@@ -114,6 +138,10 @@ yutashell/
 │   │   └── ui/                # YButton/YSwitch/YRow/YSection/YField/YChip/YScroll
 │   ├── picker/                # standalone wallpaper picker + ui/
 │   ├── launcher/              # app launcher overlay (AppLauncher + fuzzy.js)
+│   ├── notify/                # notification daemon: Notify singleton,
+│   │                          # toast stack, history center + ui/
+│   ├── net/                   # connectivity: NetBlock/BtBlock bar segments,
+│   │                          # NetworkPanel, BluetoothPanel
 │   └── settings/              # control-core drawer + ui/
 ```
 

@@ -5,6 +5,7 @@ import QtQuick
 import qs.theme
 import qs.modules.common
 import "ui"
+import "../net"
 
 PanelWindow {
     id: root
@@ -81,7 +82,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: ShellState.barTray && mediaModule.visible
+                visible: ShellState.barTray && ((mediaModule.visible && ShellState.barMedia) || (ShellState.barNet) || (ShellState.barBt && btModule.present))
             }
 
             MediaBlock {
@@ -91,7 +92,27 @@ PanelWindow {
             }
 
             DividerV {
-                visible: mediaModule.visible && ShellState.barStats
+                visible: mediaModule.visible && ((ShellState.barStats) || ShellState.barNet || (ShellState.barBt && btModule.present))
+            }
+
+            NetBlock {
+                id: netModule
+                tip: root.tip
+                visible: ShellState.barNet
+            }
+
+            DividerV {
+                visible: ShellState.barNet && (ShellState.barBt && btModule.present)
+            }
+
+            BtBlock {
+                id: btModule
+                tip: root.tip
+                visible: ShellState.barBt && btModule.present
+            }
+
+            DividerV {
+                visible: (ShellState.barNet || (ShellState.barBt && btModule.present)) && ShellState.barStats
             }
 
             StatsCluster {
@@ -101,7 +122,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: (ShellState.barTray || mediaModule.visible || ShellState.barStats) && ShellState.barClock
+                visible: (ShellState.barTray || mediaModule.visible || ShellState.barStats || ShellState.barNet || (ShellState.barBt && btModule.present)) && ShellState.barClock
             }
 
             ClockBlock {

@@ -10,12 +10,18 @@ Singleton {
     property bool panelOpen: false
     property bool pickerOpen: false
     property bool launcherOpen: false
+    property bool netOpen: false
+    property bool btOpen: false
+    property bool notifyCenterOpen: false
 
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
         root.panelOpen = name === "panel";
         root.pickerOpen = name === "picker";
         root.launcherOpen = name === "launcher";
+        root.netOpen = name === "net";
+        root.btOpen = name === "bt";
+        root.notifyCenterOpen = name === "notifycenter";
     }
 
     function togglePanel() {
@@ -54,6 +60,30 @@ Singleton {
         root.launcherOpen = false;
     }
 
+    function toggleNet() {
+        root._exclusive(root.netOpen ? "" : "net");
+    }
+
+    function closeNet() {
+        root.netOpen = false;
+    }
+
+    function toggleBt() {
+        root._exclusive(root.btOpen ? "" : "bt");
+    }
+
+    function closeBt() {
+        root.btOpen = false;
+    }
+
+    function toggleNotifyCenter() {
+        root._exclusive(root.notifyCenterOpen ? "" : "notifycenter");
+    }
+
+    function closeNotifyCenter() {
+        root.notifyCenterOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -66,6 +96,18 @@ Singleton {
     readonly property alias barStats: adapter.barStats
     readonly property alias barClock: adapter.barClock
     readonly property alias barMedia: adapter.barMedia
+    readonly property alias barNet: adapter.barNet
+    readonly property alias barBt: adapter.barBt
+
+    // notifications
+    readonly property alias notifyDnd: adapter.notifyDnd
+    readonly property alias notifyTimeout: adapter.notifyTimeout
+    readonly property alias notifyMaxVisible: adapter.notifyMaxVisible
+    readonly property alias notifyActions: adapter.notifyActions
+    readonly property alias notifyFields: adapter.notifyFields
+    readonly property alias notifyPerApp: adapter.notifyPerApp
+    readonly property alias notifyHistory: adapter.notifyHistory
+    readonly property alias notifyCorner: adapter.notifyCorner
 
     // control-core presentation
     readonly property alias panelW: adapter.panelW
@@ -124,6 +166,20 @@ Singleton {
             property bool barStats: true
             property bool barClock: true
             property bool barMedia: true
+            property bool barNet: true
+            property bool barBt: true
+
+            // notifications: timeout seconds (0 = honor client), fields JSON,
+            // per-app overrides JSON [{"match","mode"}], history dump JSON,
+            // toast corner (tr|tl)
+            property bool notifyDnd: false
+            property int notifyTimeout: 6
+            property int notifyMaxVisible: 3
+            property bool notifyActions: true
+            property string notifyFields: "{\"app\":true,\"body\":true,\"icon\":true,\"time\":true}"
+            property string notifyPerApp: "[]"
+            property string notifyHistory: "[]"
+            property string notifyCorner: "tr"
 
             // control-core presentation: card width (px, clamped by consumer),
             // horizontal placement (center|left|right) and last visited page

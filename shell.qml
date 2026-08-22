@@ -7,6 +7,8 @@ import "modules/bar/ui"
 import "modules/settings"
 import "modules/picker"
 import "modules/launcher"
+import "modules/notify"
+import "modules/net"
 
 ShellRoot {
     Tooltip {
@@ -31,6 +33,14 @@ ShellRoot {
     WallpaperPicker {}
 
     AppLauncher {}
+
+    ToastStack {}
+
+    NotificationCenter {}
+
+    NetworkPanel {}
+
+    BluetoothPanel {}
 
     IpcHandler {
         target: "launcher"
@@ -119,6 +129,85 @@ ShellRoot {
 
         function close(): void {
             ShellState.closePicker();
+        }
+    }
+
+    IpcHandler {
+        target: "dnd"
+
+        function toggle(): void {
+            Notify.toggleDnd();
+        }
+
+        function on(): void {
+            Notify.setDnd(true);
+        }
+
+        function off(): void {
+            Notify.setDnd(false);
+        }
+
+        function status(): string {
+            return (Notify.dnd ? "on" : "off") + " · suppressed " + Notify.suppressedCount + " · history " + Notify.history.length;
+        }
+    }
+
+    IpcHandler {
+        target: "notifycenter"
+
+        function toggle(): void {
+            ShellState.toggleNotifyCenter();
+        }
+
+        function open(): void {
+            ShellState._exclusive("notifycenter");
+        }
+
+        function close(): void {
+            ShellState.closeNotifyCenter();
+        }
+
+        function clear(): void {
+            Notify.clearAll();
+            Notify.clearHistory();
+        }
+
+        function test(urgency: string): void {
+            const u = String(urgency).toLowerCase();
+            const lvl = u === "critical" ? "critical" : u === "low" ? "low" : "normal";
+            Quickshell.execDetached(["notify-send", "-a", "yutashell", "-u", lvl, u === "critical" ? "CRITICAL TEST" : "test toast", "body line for the " + u + " test notification"]);
+        }
+    }
+
+    IpcHandler {
+        target: "network"
+
+        function toggle(): void {
+            ShellState.toggleNet();
+        }
+
+        function open(): void {
+            ShellState._exclusive("net");
+        }
+
+        function close(): void {
+            ShellState.closeNet();
+        }
+    }
+
+    IpcHandler {
+        target: "bluetooth"
+
+        function toggle(): void {
+            ShellState.toggleBt();
+        }
+
+        function open(): void {
+            ShellState._exclusive("bt");
+        }
+
+        function close(): void {
+            ShellState.closeBt();
         }
     }
 

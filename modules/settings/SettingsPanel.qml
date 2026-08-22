@@ -4,6 +4,7 @@ import QtQuick
 import qs.theme
 import qs.modules.common
 import "../common/ui"
+import "../notify"
 import "ui"
 
 // Control core v3 — right drawer built entirely from the shared kit
@@ -57,6 +58,10 @@ PanelWindow {
             id: "modules",
             label: "MODULES",
             jp: "部品"
+        }, {
+            id: "notifications",
+            label: "NOTIFY",
+            jp: "通知"
         }, {
             id: "system",
             label: "SYSTEM",
@@ -421,6 +426,8 @@ PanelWindow {
                             return templatesPage;
                         case "modules":
                             return modulesPage;
+                        case "notifications":
+                            return notificationsPage;
                         case "system":
                             return systemPage;
                         case "about":
@@ -938,6 +945,16 @@ PanelWindow {
                                 sub: "mpris now-playing ticker"
                             },
                             {
+                                key: "barNet",
+                                title: "Network segment",
+                                sub: "wifi tiers · wired link · vpn dot"
+                            },
+                            {
+                                key: "barBt",
+                                title: "Bluetooth segment",
+                                sub: "adapter glyph, hidden when off"
+                            },
+                            {
                                 key: "barClock",
                                 title: "Clock block",
                                 sub: "time · date" + (Theme.jpEnabled ? " · kanji weekday" : "")
@@ -979,6 +996,275 @@ PanelWindow {
             }
 
             Component {
+                id: notificationsPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Behavior"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Do not disturb"
+                        sub: Notify.dnd ? Notify.suppressedCount + " suppressed since on" : "normal/low urgency held back; critical breaks through"
+                        note: "DND"
+                        on_: Notify.dnd
+
+                        YSwitch {
+                            checked: Notify.dnd
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: Notify.toggleDnd()
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Show action buttons"
+                        sub: "inline actions from apps on toast cards"
+                        note: "ACT"
+                        on_: ShellState.notifyActions
+
+                        YSwitch {
+                            checked: ShellState.notifyActions
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("notifyActions", !ShellState.notifyActions)
+                        }
+                    }
+
+                    // corner picker
+                    Item {
+                        width: root.contentW
+                        height: Theme.rowH
+
+                        Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Toast corner"
+                            color: Theme.ink
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsBody
+                        }
+
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.sp1
+
+                            Repeater {
+                                model: [{
+                                        id: "tr",
+                                        label: "TOP-R"
+                                    }, {
+                                        id: "tl",
+                                        label: "TOP-L"
+                                    }]
+
+                                delegate: YButton {
+                                    required property var modelData
+
+                                    readonly property bool activeCorner: ShellState.notifyCorner === modelData.id
+
+                                    label: modelData.label
+                                    tone: activeCorner ? "acid" : "default"
+                                    onClicked: Notify.setCorner(modelData.id)
+                                }
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Timeouts"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        interactive: false
+                        title: "Default timeout"
+                        sub: ShellState.notifyTimeout === 0 ? "0 — honor each app's own timeout" : ShellState.notifyTimeout + "s (client may ask for less)"
+                        note: "SEC"
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.sp1
+
+                            YButton {
+                                label: "−"
+                                onClicked: Notify.setTimeoutSec(ShellState.notifyTimeout - 1)
+                            }
+
+                            YButton {
+                                label: "+"
+                                onClicked: Notify.setTimeoutSec(ShellState.notifyTimeout + 1)
+                            }
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        interactive: false
+                        title: "Max visible toasts"
+                        sub: String(ShellState.notifyMaxVisible)
+                        note: "MAX"
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.sp1
+
+                            YButton {
+                                label: "−"
+                                onClicked: Notify.setMaxVisible(ShellState.notifyMaxVisible - 1)
+                            }
+
+                            YButton {
+                                label: "+"
+                                onClicked: Notify.setMaxVisible(ShellState.notifyMaxVisible + 1)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Card fields"
+                    }
+
+                    Repeater {
+                        model: [{
+                                key: "app",
+                                title: "App name",
+                                sub: "sender identity line"
+                            }, {
+                                key: "body",
+                                title: "Body text",
+                                sub: "message content under the summary"
+                            }, {
+                                key: "icon",
+                                title: "App icon",
+                                sub: "theme icon, acid initial as fallback"
+                            }, {
+                                key: "time",
+                                title: "Timestamp",
+                                sub: "history rows only"
+                            }]
+
+                        delegate: YRow {
+                            id: fieldRow
+
+                            required property var modelData
+
+                            width: root.contentW
+                            title: modelData.title
+                            sub: modelData.sub
+                            on_: Notify.fields[modelData.key]
+
+                            YSwitch {
+                                checked: Notify.fields[fieldRow.modelData.key]
+                                anchors.verticalCenter: parent.verticalCenter
+                                onToggled: {
+                                    const p = {};
+                                    p[fieldRow.modelData.key] = !Notify.fields[fieldRow.modelData.key];
+                                    Notify.setFields(p);
+                                }
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "04"
+                        label: "Per-app overrides"
+                        chip: Notify.overrides.length > 0 ? Notify.overrides.length + "" : ""
+                    }
+
+                    Repeater {
+                        model: Notify.overrides
+
+                        delegate: YRow {
+                            id: ovRow
+
+                            required property int index
+                            required property var modelData
+
+                            width: root.contentW
+                            interactive: false
+                            title: modelData.match
+                            sub: modelData.mode === "block" ? "drop entirely — no toast, no history" : "quiet — history only unless critical"
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Theme.sp1
+
+                                YButton {
+                                    label: ovRow.modelData.mode === "block" ? "QUIET" : "BLOCK"
+                                    onClicked: Notify.setOverrideMode(ovRow.index, ovRow.modelData.mode === "block" ? "quiet" : "block")
+                                }
+
+                                YButton {
+                                    label: "×"
+                                    tone: "danger"
+                                    onClicked: Notify.removeOverride(ovRow.index)
+                                }
+                            }
+                        }
+                    }
+
+                    YField {
+                        id: ovAdd
+
+                        width: root.contentW
+                        placeholder: "match app name substring… (enter to add as QUIET)"
+
+                        onAccepted: {
+                            if (Notify.addOverride(text, "quiet"))
+                                text = "";
+                        }
+                    }
+
+                    Row {
+                        spacing: Theme.sp1
+
+                        YButton {
+                            label: "ADD QUIET RULE"
+                            onClicked: {
+                                if (Notify.addOverride(ovAdd.text, "quiet"))
+                                    ovAdd.text = "";
+                            }
+                        }
+
+                        YButton {
+                            label: "ADD BLOCK RULE"
+                            tone: "danger"
+                            onClicked: {
+                                if (Notify.addOverride(ovAdd.text, "block"))
+                                    ovAdd.text = "";
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: root.width
+                        text: "matching is case-insensitive against app name and desktop entry."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
                 id: systemPage
 
                 Column {
@@ -994,14 +1280,6 @@ PanelWindow {
 
                     Repeater {
                         model: [{
-                                title: "Notifications",
-                                jp: "通知",
-                                phase: "PH.05"
-                            }, {
-                                title: "Network suite",
-                                jp: "網",
-                                phase: "PH.06"
-                            }, {
                                 title: "Audio & media",
                                 jp: "音",
                                 phase: "PH.07"

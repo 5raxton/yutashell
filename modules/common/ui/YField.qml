@@ -7,6 +7,7 @@ Rectangle {
 
     property alias text: input.text
     property string placeholder: ""
+    property int echoMode: TextInput.Normal
     signal accepted()
 
     // Nav-keys model for surfaces driving a list from the field (launcher):
@@ -40,6 +41,7 @@ Rectangle {
         anchors.leftMargin: Theme.sp2 + 2
         anchors.rightMargin: Theme.sp2
         verticalAlignment: TextInput.AlignVCenter
+        echoMode: root.echoMode
         color: Theme.ink
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fsBody
