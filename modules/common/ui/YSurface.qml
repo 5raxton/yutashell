@@ -203,17 +203,19 @@ Rectangle {
             strokeWidth: -1
             fillColor: root.color
 
-            startX: root.flareS
+            // Right shoulder, local box [0..S]x[0..S]:
+            //   (0,0) = card top corner, (S,0) = on the bar line,
+            //   (0,S) = on the card edge, arc center at the far corner (S,S).
+            // Fill = bar segment + concave quarter-arc + card-edge segment —
+            // the classic inside-fillet (area S²−πS²/4, NOT the complement).
+            startX: 0
             startY: 0
             PathLine {
-                x: 0
+                x: root.flareS
                 y: 0
             }
-            // Counterclockwise selects the arc bowed toward the outer corner
-            // (concave socket); Clockwise would fill the complement and read
-            // as a convex fang beside the card.
             PathArc {
-                x: root.flareS
+                x: 0
                 y: root.flareS
                 radiusX: root.flareS
                 radiusY: root.flareS
