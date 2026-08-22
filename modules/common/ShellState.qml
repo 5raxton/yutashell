@@ -11,12 +11,19 @@ Singleton {
     property bool pickerOpen: false
     property bool launcherOpen: false
 
+    // one surface at a time — opening any popup closes the others
+    function _exclusive(name) {
+        root.panelOpen = name === "panel";
+        root.pickerOpen = name === "picker";
+        root.launcherOpen = name === "launcher";
+    }
+
     function togglePanel() {
-        root.panelOpen = !root.panelOpen;
+        root._exclusive(root.panelOpen ? "" : "panel");
     }
 
     function openPanel() {
-        root.panelOpen = true;
+        root._exclusive("panel");
     }
 
     function closePanel() {
@@ -24,11 +31,11 @@ Singleton {
     }
 
     function togglePicker() {
-        root.pickerOpen = !root.pickerOpen;
+        root._exclusive(root.pickerOpen ? "" : "picker");
     }
 
     function openPicker() {
-        root.pickerOpen = true;
+        root._exclusive("picker");
     }
 
     function closePicker() {
@@ -36,11 +43,11 @@ Singleton {
     }
 
     function toggleLauncher() {
-        root.launcherOpen = !root.launcherOpen;
+        root._exclusive(root.launcherOpen ? "" : "launcher");
     }
 
     function openLauncher() {
-        root.launcherOpen = true;
+        root._exclusive("launcher");
     }
 
     function closeLauncher() {

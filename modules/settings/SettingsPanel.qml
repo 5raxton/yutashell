@@ -716,7 +716,17 @@ PanelWindow {
                                 required property int index
                                 required property string modelData
 
-                                readonly property bool active: !modelData ? false : (Theme.accentOverride.length === 0 && modelData.length === 0) || Theme.accentOverride.toLowerCase() === modelData.toLowerCase()
+                                readonly property bool active: {
+                                    try {
+                                        const ao = Theme.accentOverride;
+                                        if (!ao || !modelData)
+                                            return ao ? ao.length === 0 && modelData === "" : false;
+                                        return (ao.length === 0 && modelData.length === 0) || ao.toLowerCase() === modelData.toLowerCase();
+                                    } catch (err) {
+                                        console.warn("[panel] swatch debug: model=", JSON.stringify(modelData), "override=", JSON.stringify(Theme.accentOverride), "err=", err);
+                                        return false;
+                                    }
+                                }
 
                                 width: 24
                                 height: 24

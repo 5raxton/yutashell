@@ -31,16 +31,18 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: root.open || hideDelay.running
+    // target the YSurface itself — the Loader's filler Item is fullscreen
+    // (Loaders stretch their loaded root) and must never be the input region
     mask: Region {
-        item: root.open && uiLoader.item ? uiLoader.item : null
+        item: root.open && uiLoader.item && uiLoader.item.surface ? uiLoader.item.surface : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    // card geometry — big stage, clamped by the screen
-    readonly property int cardW: Math.min(1120, Math.round(contentRoot.width * 0.72), contentRoot.width - Theme.outerPad * 2)
-    readonly property int cardH: Math.min(680, contentRoot.height - Theme.barHeight - 40)
+    // card geometry — a step larger than the launcher, still just a rectangle
+    readonly property int cardW: Math.min(1000, Math.round(contentRoot.width * 0.55))
+    readonly property int cardH: Math.min(600, contentRoot.height - Theme.barHeight - 40)
 
     readonly property int spineW: 300
     readonly property int padX: Theme.sp4
@@ -73,14 +75,24 @@ PanelWindow {
             return;
         everOpened = true;
         if (uiLoader.item)
-            uiLoader.item.resetForOpen();
+            uiLoader.item.surface.resetForOpen();
     }
+
 
     Component {
         id: cardComponent
 
-        YSurface {
-            id: card
+        // filler absorbs the Loader's stretch so YSurface keeps card geometry
+        Item {
+            id: filler
+
+            anchors.fill: parent
+
+            readonly property alias surface: card
+
+            YSurface {
+                id: card
+
 
             open: root.open
             anchorX: "center"
@@ -636,6 +648,7 @@ PanelWindow {
                     font.letterSpacing: 1.5
                 }
             }
+        }
         }
     }
 }

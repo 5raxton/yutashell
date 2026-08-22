@@ -28,9 +28,12 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: root.open || hideDelay.running
-    // input lands ONLY on the card — desktop around it stays live
+    // input lands ONLY on the card — desktop around it stays live.
+    // NOTE: target the YSurface itself; the Loader's filler Item is
+    // fullscreen (Loaders stretch their loaded root) and must never
+    // become the input region.
     mask: Region {
-        item: root.open && uiLoader.item ? uiLoader.item : null
+        item: root.open && uiLoader.item && uiLoader.item.surface ? uiLoader.item.surface : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -69,20 +72,30 @@ PanelWindow {
             return;
         everOpened = true;
         if (uiLoader.item)
-            uiLoader.item.resetForOpen();
+            uiLoader.item.surface.resetForOpen();
     }
 
     Component {
         id: cardComponent
 
-        YSurface {
-            id: card
+        // filler absorbs the Loader's stretch (Loaders resize their loaded
+        // root to the Loader's own size) so YSurface below keeps its card
+        // geometry instead of going fullscreen
+        Item {
+            id: filler
 
-            open: root.open
-            anchorX: root.anchorMode
-            // compact center box — never a fullscreen feel
-            cardW: Math.max(460, Math.min(820, ShellState.launcherW, Math.round(parent.width * 0.46)))
-            cardH: Math.min(500, Math.round(parent.height * 0.55), parent.height - Theme.barHeight - 48)
+            anchors.fill: parent
+
+            readonly property alias surface: card
+
+            YSurface {
+                id: card
+
+                open: root.open
+                anchorX: root.anchorMode
+                // compact center box — never a fullscreen feel
+                cardW: Math.min(Math.max(480, ShellState.launcherW), Math.round(parent.width * 0.38))
+                cardH: Math.min(460, Math.round(parent.height * 0.42))
 
             function resetForOpen() {
                 searchField.text = "";
@@ -136,7 +149,9 @@ PanelWindow {
             // ---- data ----
             readonly property var allApps: DesktopEntries.applications.values.filter(e => !e.noDisplay)
             readonly property string query: searchField.text
-            readonly property bool commandMode: query.trimStart().startsWith(":")
+            // this Qt build's JS engine has no String.trimStart — lstrip by regex
+            readonly property string queryLs: query.replace(/^\s+/, "")
+            readonly property bool commandMode: queryLs.startsWith(":")
             readonly property int mode: ShellState.launcherMode === "list" ? 1 : 0
 
             function byName(a, b) {
@@ -237,7 +252,7 @@ PanelWindow {
             readonly property var cmdMatches: {
                 if (!commandMode)
                     return [];
-                const body = query.trimStart().slice(1);
+                const body = queryLs.slice(1);
                 const sp = body.indexOf(" ");
                 const head = (sp === -1 ? body : body.slice(0, sp)).toLowerCase();
                 const args = sp === -1 ? "" : body.slice(sp + 1).trim();
@@ -832,6 +847,7 @@ PanelWindow {
                     font.pixelSize: Theme.fsLabel
                     font.letterSpacing: 0.8
                 }
+            }
             }
         }
     }

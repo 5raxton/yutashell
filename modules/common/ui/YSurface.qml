@@ -11,6 +11,11 @@ import qs.theme
 // sweep outward from the top corners into the bar line — a socket, not a
 // floating tile. Every popup uses this so they all read as the same object.
 //
+// Entrance ritual (kept quiet, but always there): the card lands with a
+// soft overshoot into its socket, an acid scanline sweeps down the face
+// once, the border burns acid before settling to hairline, and the family
+// tick draws itself down the left edge. One compound gesture, ~400ms.
+//
 // Consumers set open/anchorX/cardW/cardH and anchor content INSIDE; the
 // parent window stays fullscreen-transparent and masks input to this item.
 Rectangle {
@@ -31,6 +36,9 @@ Rectangle {
     readonly property real restY: Theme.barHeight + restGap
     readonly property real hiddenY: -height - 12 - (flareTop ? flareS : 0)
 
+    // intro state — driven once per open
+    property bool _landed: false
+
     x: {
         if (anchorX === "left")
             return Theme.outerPad * 2;
@@ -45,7 +53,10 @@ Rectangle {
     Behavior on y {
         NumberAnimation {
             duration: root.open ? Theme.movSlow : Theme.movMed
-            easing.type: Easing.OutCubic
+            // entering: dip a touch past the socket so the bar lip visually
+            // swallows the card edge, then click back flush
+            easing.type: root.open ? Easing.OutBack : Easing.OutCubic
+            easing.overshoot: 0.12
         }
     }
 
@@ -60,7 +71,112 @@ Rectangle {
     height: cardH
     color: Theme.bgAlt
     border.width: 1
-    border.color: Theme.lineStrong
+    // burn acid on arrival, cool to hairline once landed
+    border.color: root._landed ? Theme.lineStrong : Theme.acid
+
+    Behavior on border.color {
+        ColorAnimation {
+            duration: Theme.movMed
+        }
+    }
+
+    Timer {
+        id: landTimer
+
+        interval: 230
+        onTriggered: root._landed = true
+    }
+
+    // ---- entrance ritual --------------------------------------------------
+    Rectangle {
+        id: scanline
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        y: -2
+        height: 2
+        color: Theme.acid
+        opacity: 0
+    }
+
+    Rectangle {
+        id: familyTick
+
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: 2
+        height: 0
+        color: Theme.acid
+
+        Behavior on height {
+            enabled: root.open
+
+            NumberAnimation {
+                duration: Theme.movMed
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
+    SequentialAnimation {
+        id: intro
+
+        running: false
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: scanline
+                property: "y"
+                from: -2
+                to: root.height + 2
+                duration: 380
+                easing.type: Easing.OutCubic
+            }
+            SequentialAnimation {
+                PauseAnimation {
+                    duration: 280
+                }
+                NumberAnimation {
+                    target: scanline
+                    property: "opacity"
+                    from: 0.85
+                    to: 0
+                    duration: 110
+                    easing.type: Easing.OutCubic
+                }
+            }
+            SequentialAnimation {
+                PauseAnimation {
+                    duration: 110
+                }
+                NumberAnimation {
+                    target: familyTick
+                    property: "height"
+                    from: 0
+                    to: 26
+                    duration: Theme.movMed
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+    }
+
+    onOpenChanged: {
+        if (open) {
+            root._landed = false;
+            familyTick.height = 0;
+            scanline.y = -2;
+            scanline.opacity = 0.85;
+            landTimer.restart();
+            intro.restart();
+        } else {
+            intro.stop();
+            landTimer.stop();
+            root._landed = false;
+            scanline.opacity = 0;
+            familyTick.height = 0;
+        }
+    }
 
     // swallow clicks inside so they never reach windows under the card area
     MouseArea {
@@ -71,51 +187,15 @@ Rectangle {
 
     // ---- flare shoulders -------------------------------------------------
     // Concave fillets filling the square just OUTSIDE each top corner:
-    // square minus the quarter-disc hugging the corner, so the silhouette
-    // flares from card-width out to the full bar line.
+    // square minus the quarter-disc hugging the outer-top corner, so the
+    // silhouette flares from card-width out to the full bar line.
     //
-    // Left path (local coords, item spans [-S..0] × [0..S]):
-    //   (0,0) → (S,0) → (S,S) → minor arc back to (0,0), center at (S,S)
-    // Right path mirrors it.
-    Shape {
-        id: flareL
-
-        visible: root.flareTop && root.open
-        x: -root.flareS
-        y: 0
-        width: root.flareS
-        height: root.flareS
-
-        ShapePath {
-            strokeWidth: -1
-            fillColor: root.color
-
-            startX: 0
-            startY: 0
-            PathLine {
-                x: root.flareS
-                y: 0
-            }
-            PathLine {
-                x: root.flareS
-                y: root.flareS
-            }
-            PathArc {
-                x: 0
-                y: 0
-                radiusX: root.flareS
-                radiusY: root.flareS
-                direction: PathArc.Clockwise
-            }
-        }
-    }
-
-    Shape {
-        id: flareR
-
-        visible: root.flareTop && root.open
-        x: root.width
-        y: 0
+    // ONE geometry, defined once, mirrored for the far side — the two
+    // shoulders cannot disagree. Path spans local [0..S]x[0..S]:
+    //   M(S,0) -> L(0,0)  along the bar line
+    //   arc centered (S,0), radius S, down to (S,S)  — the concave bite
+    //   close along the outer edge
+    component FlareShape: Shape {
         width: root.flareS
         height: root.flareS
 
@@ -129,26 +209,34 @@ Rectangle {
                 x: 0
                 y: 0
             }
-            PathLine {
-                x: 0
-                y: root.flareS
-            }
             PathArc {
                 x: root.flareS
-                y: 0
+                y: root.flareS
                 radiusX: root.flareS
                 radiusY: root.flareS
-                direction: PathArc.Counterclockwise
+                direction: PathArc.Clockwise
             }
         }
     }
 
-    // corner tick motif — the family mark
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        width: 2
-        height: 26
-        color: Theme.acid
+    FlareShape {
+        id: flareR
+
+        visible: root.flareTop && root.open
+        x: root.width
+        y: 0
+    }
+
+    FlareShape {
+        id: flareL
+
+        visible: root.flareTop && root.open
+        x: -root.flareS
+        y: 0
+        transform: Scale {
+            xScale: -1
+            origin.x: root.flareS / 2
+            origin.y: root.flareS / 2
+        }
     }
 }
