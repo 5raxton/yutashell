@@ -377,6 +377,11 @@ PanelWindow {
             }
 
             // ===== PAGE HOST =====
+            // contentHeight is driven IMPERATIVELY: a plain binding on
+            // pageLoader.item.height latches onto a dying item during page
+            // switches and goes permanently stale (scroll dead). The
+            // retargeted Connections below re-syncs on every real geometry
+            // change of whichever page is alive.
             Flickable {
                 id: pageScroll
 
@@ -389,7 +394,18 @@ PanelWindow {
                 boundsBehavior: Flickable.StopAtBounds
                 flickDeceleration: 4000
                 maximumFlickVelocity: 4200
-                contentHeight: Math.max(height, pageLoader.item ? pageLoader.item.height + Theme.sp3 : 0)
+                contentHeight: height
+
+                function syncContentH() {
+                    const it = pageLoader.item;
+                    const h = it ? Math.max(it.height ?? 0, it.childrenRect?.height ?? 0) : 0;
+                    contentHeight = Math.max(height, h + Theme.sp3);
+                    if (Quickshell.env("YUTA_DEBUG_SCROLL") === "1")
+                        console.log("[scroll-debug]", root.activePageId, "viewport", height, "content", contentHeight);
+                }
+
+                Component.onCompleted: syncContentH()
+                onHeightChanged: syncContentH()
 
                 FastWheel {
                 }
@@ -411,6 +427,23 @@ PanelWindow {
                             return aboutPage;
                         default:
                             return appearancePage;
+                        }
+                    }
+
+                    onItemChanged: {
+                        geoWatch.target = item;
+                        pageScroll.syncContentH();
+                    }
+
+                    Connections {
+                        id: geoWatch
+
+                        ignoreUnknownSignals: true
+                        function onHeightChanged() {
+                            pageScroll.syncContentH();
+                        }
+                        function onChildrenRectChanged() {
+                            pageScroll.syncContentH();
                         }
                     }
                 }
@@ -683,7 +716,7 @@ PanelWindow {
                                 required property int index
                                 required property string modelData
 
-                                readonly property bool active: (Theme.accentOverride.length === 0 && modelData.length === 0) || Theme.accentOverride.toLowerCase() === modelData.toLowerCase()
+                                readonly property bool active: !modelData ? false : (Theme.accentOverride.length === 0 && modelData.length === 0) || Theme.accentOverride.toLowerCase() === modelData.toLowerCase()
 
                                 width: 24
                                 height: 24
@@ -693,7 +726,7 @@ PanelWindow {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: parent.modelData.length === 0
+                                    visible: !parent.modelData || parent.modelData.length === 0
                                     text: "/"
                                     color: Theme.muted
                                     font.family: Theme.fontFamily

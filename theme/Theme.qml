@@ -27,11 +27,11 @@ Singleton {
     readonly property bool jpEnabled: Qt.fontFamilies().some(f => /cjk|jp|japan/i.test(f))
 
     // ---- type ramp: five roles, nothing outside them ----
-    readonly property int fsDisplay: 16   // page titles, hero text
-    readonly property int fsTitle: 12     // section headers, emphasis
-    readonly property int fsBody: 10      // THE reading size — rows, buttons, inputs
-    readonly property int fsLabel: 9      // secondary labels, chips, meta
-    readonly property int fsMicro: 7      // decorative chrome only (JP accents, watermarks)
+    readonly property int fsDisplay: 20   // page titles, hero text
+    readonly property int fsTitle: 14     // section headers, emphasis
+    readonly property int fsBody: 12      // THE reading size — rows, buttons, inputs
+    readonly property int fsLabel: 10     // secondary labels, chips, meta
+    readonly property int fsMicro: 8      // decorative chrome only (JP accents, watermarks)
 
     // ---- rhythm scale ----
     readonly property int sp1: 4          // intra-component

@@ -39,7 +39,7 @@ Rectangle {
         anchors.fill: parent
         anchors.leftMargin: Theme.sp2 + 2
         anchors.rightMargin: Theme.sp2
-        anchors.verticalCenter: parent.verticalCenter
+        verticalAlignment: TextInput.AlignVCenter
         color: Theme.ink
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fsBody
@@ -82,9 +82,9 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: input.text.length === 0 && !input.activeFocus
             text: root.placeholder
-            color: Theme.faint
+            color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsLabel
+            font.pixelSize: Theme.fsBody
             font.letterSpacing: 0.5
         }
     }

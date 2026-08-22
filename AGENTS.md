@@ -58,12 +58,26 @@ A fixed `sleep 0.4` after spawning the daemon raced daemon startup and dropped p
 - Host items whose default property aliases children elsewhere (YRow's `trailingHost`) must NEVER size themselves from `childrenRect` while children anchor to them — instant binding loop. Give the host an explicit consumer-set width (`YRow.trailingW`).
 - **`IconImage` needs `implicitSize`, not width/height** — it wraps an inner Image and only sizes via `implicitSize`; width/height alone renders blank. `status` is aliased, so `status === Image.Error || Image.Null` drives the acid-initials fallback for apps with no theme icon. Missing icons still WARN in the log (`Cannot open: qrc:/.../<app-id>`) — that noise is expected fallback behavior, not a bug.
 - Quickshell single-window components (no explicit `screen`) map on the primary monitor; a second instance's bars get exclusive-zone-pushed to y=44 under the first instance's bar — don't misread stacked test-instance layers as a bug.
+- **Assigning `Process.command` does NOT start it** — unlike the one-shot patterns where we set both, a Process only runs when `running: true` is set (before or after command). Symptom: silent no-op, no stderr, nothing.
+- **`StdioWriter` does not exist** in Quickshell 0.3.1. To write a file from QML and then move it with shell: FileView (`setText` + `atomicWrites`/`blockWrites`) → `onSaved:` → Process `cp`. See snipStage/snipCopier in Wallpaper.qml.
+- **A duplicate property assignment anywhere in a file kills the WHOLE config load** ("Property value set multiple times" + cascading `Type unavailable` up the whole import tree) and the instance **exits instantly** — which makes `pgrep -n` silently fall through to the user's live instance. Always capture the spawn PID explicitly; never pgrep for test driving.
+- `console.log` emitted during Singleton boot (`Component.onCompleted`) does not reach nohup-captured stderr; `console.warn` does. Use warn for boot-phase diagnostics.
+- **Singletons instantiate lazily on first access.** An IPC call right after spawn can race the singleton's `Component.onCompleted` (e.g. the binary probe). Warm up with an innocent list/read call before asserting on state.
+- QtQuick.Shapes arc direction is `PathArc.Clockwise` / `PathArc.Counterclockwise` — there is no global `ArcDirection`.
+- `IconImage.source` needs real URLs; desktop-entry icon *names* render as blank qrc misses. Resolve via **`Quickshell.iconPath(name)`** (variants `(icon)`, `(icon,checkExists)`, `(icon,fallback)`); keep the status-driven initials fallback for apps without theme icons.
+- Binding `contentHeight` to `loader.item.height` can **latch onto a dying item** across `sourceComponent` switches and go permanently stale (scroll dead until restart). Sync imperatively in one function called from page switches AND a retargetable `Connections { target: loader.item }` watching height changes.
+- A row-level MouseArea that spans the full row **eats clicks meant for trailing slots** (switches/buttons anchored into a host item). Constrain its right edge to `trailingHost.left`.
 
 ### 4b. Surface architecture (layer sandwich + YSurface)
 - **Bar → `WlrLayershell.layer: WlrLayer.Overlay`** (topmost); ALL popup windows (settings/picker/launcher) → `WlrLayer.Top`. Anything sliding from negative-y emerges from behind the bar — this is the shell's signature entrance.
 - **No scrims anywhere by default**: popups are fullscreen transparent PanelWindows; input is confined to the card via `mask: Region { item: open ? <cardItem> : null }`. Desktop around the card stays visible AND clickable. Closing is ESC / keybind / IPC only.
 - **YSurface kit component owns the choreography** (`modules/common/ui/YSurface.qml`): restY = barHeight + outerPad + 6, hiddenY = −height−12, enter movSlow(260)/exit movMed OutCubic + movFast fade, bgAlt card + lineStrong border + acid corner tick + swallow MouseArea. Every new floating surface composes YSurface instead of re-animating by hand.
 - **FastWheel** (`modules/common/ui/FastWheel.qml`) is the standard wheel handler for every Flickable/GridView/ListView — drop-in child, notchStep 132, clamped. Plain Flickables scroll too slowly without it.
+
+### 4c. Template snippet engine (Wallpaper.qml)
+- Toggling an include-style template edits the TARGET APP's config itself (managed `# >>> yutashell-matugen` blocks), serialized through `_snipQueue` → reader Process → staged FileView → copier Process.
+- **TOML configs cannot take appended include lines**: duplicate top-level keys are invalid, and bare keys appended after table headers land inside the LAST table (alacritty's `import` ended up in `[cursor]`). The alacritty rule uses `mode: "toml-import"` — merge our path into the existing single-line `import = [...]`, else insert after `[general]`, else append a managed `[general]` block. OFF reverses all three byte-exactly.
+- Startup binary probe (`binProbe`) maps catalog ids → installed apps; absent apps refuse to enable and are auto-pruned from stale enabled state.
 
 ### 5. Quickshell FileView drops overlapping operations
 Back-to-back `writeAdapter()` / `setText()` / `reload()` calls within a few hundred ms overlap internally and get **silently dropped** (warning: `got operation finished from dropped operation`). Symptoms seen: IPC bursts losing writes, template toggles never landing. Fixes shipped:
@@ -83,6 +97,7 @@ Back-to-back `writeAdapter()` / `setText()` / `reload()` calls within a few hund
 - Template ids are catalog ids (`kitty`, not `kitty.conf`).
 - **`qs ipc` without `--pid`/`--id` targets exactly ONE instance per config path (the first found — usually the user's live shell), it does NOT broadcast.** Discovered when a spawned test instance never reacted to path-targeted calls while the live instance did all the work. To drive a specific instance: `qs ipc --pid <pid> call <target> <fn>` (or `-i <id-substring>`). Consequence: mutating verification calls via bare `-p` targeting DO hit the user's live session — note their prefs from logs first and restore after, or target the test PID directly.
 - **NEVER `pkill -f "quickshell -p <path>"`** — that pattern matches the user's live instance too (it runs the same `-p`). Record the test instance's PID at spawn time (`$!` from the setsid call) and kill that exact PID. This actually bit once: a pattern-kill took down the live session's shell mid-test; it was restarted manually.
+- Failed-config instances exit instantly — `pgrep -n` then returns the USER'S live shell and your IPC hits it instead. Capture the spawn PID at spawn time and pass `--pid <that>` everywhere.
 - Editing QML while an instance runs triggers hot-reload mid-edit-sequence: saving a caller before its callee produces transient `ReferenceError`s in the running shell's log. Don't chase those in log captures — they're edit-order artifacts, not code bugs. Verify against a freshly spawned instance instead.
 
 ## Conventions (enforced)

@@ -1,18 +1,25 @@
 import Quickshell
+import Quickshell.Io
+import Quickshell.Widgets
 import Quickshell.Wayland
 import QtQuick
 import qs.theme
 import qs.modules.common
 import "../common/ui"
-import "ui"
 
-// WALLPAPER.DECK — default view is a Hearthstone-style carousel: one large
-// hero tile flanked by dimmed, scaled-down neighbors you flip through with
-// wheel/arrows/drag; clicking the hero applies it (awww paint -> matugen ->
-// templates -> live recolor). A contact-sheet GRID mode remains available;
-// the choice persists. Both modes live on the same drop-from-the-bar card.
+// Wallpaper picker v3 — the ARCHIVE.
+//
+// One strong idea: a numbered index spine on the left (pure mono type, no
+// thumbnails to decode — the archive IS the aesthetic) and a huge framed
+// stage on the right showing exactly one wallpaper at full quality. The
+// search field is always focused and drives everything: type to filter,
+// arrows to walk the index, enter to apply. Drops from behind the bar via
+// YSurface, flush socket + flare shoulders.
 PanelWindow {
     id: root
+
+    readonly property bool open: ShellState.pickerOpen
+    property bool everOpened: false
 
     anchors {
         top: true
@@ -23,54 +30,20 @@ PanelWindow {
 
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
-    visible: ShellState.pickerOpen || hideDelay.running
-    // input lands ONLY on the card — desktop around it stays live
+    visible: root.open || hideDelay.running
     mask: Region {
-        item: ShellState.pickerOpen ? sheet : null
+        item: root.open && uiLoader.item ? uiLoader.item : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.keyboardFocus: ShellState.pickerOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    readonly property bool carousel: ShellState.pickerMode !== "grid"
-    readonly property int pad: Theme.sp4
-    readonly property int cardW: Math.max(760, Math.min(1040, contentRoot.width - Theme.outerPad * 4))
-    readonly property int cardH: Math.min(680, contentRoot.height - Theme.barHeight - Theme.outerPad * 2 - 24)
-    // hero geometry (carousel)
-    readonly property int heroW: Math.min(600, cardW - Theme.sp5 * 3)
-    readonly property int heroImgH: Math.round(heroW * 0.58)
-    // sheet geometry (grid mode)
-    readonly property int gridGap: Theme.sp2
-    readonly property int cols: Math.max(3, Math.floor((cardW - pad * 2 - Theme.sp2) / 200))
-    readonly property string homePrefix: Quickshell.env("HOME")
+    // card geometry — big stage, clamped by the screen
+    readonly property int cardW: Math.min(1120, Math.round(contentRoot.width * 0.72), contentRoot.width - Theme.outerPad * 2)
+    readonly property int cardH: Math.min(680, contentRoot.height - Theme.barHeight - 40)
 
-    property string query: ""
-    property int cursorIdx: 0
-
-    readonly property var filtered: {
-        const q = query.toLowerCase();
-        const all = Wallpaper.entries;
-        if (q.length === 0)
-            return all;
-        return all.filter(e => e.label.toLowerCase().includes(q) || e.path.toLowerCase().includes(q));
-    }
-
-    function syncCursorToCurrent() {
-        const idx = filtered.findIndex(e => e.path === Wallpaper.current);
-        cursorIdx = idx >= 0 ? idx : 0;
-    }
-
-    function moveCursor(delta) {
-        if (filtered.length === 0)
-            return;
-        cursorIdx = Math.max(0, Math.min(filtered.length - 1, cursorIdx + delta));
-    }
-
-    function pick(idx) {
-        if (idx < 0 || idx >= filtered.length)
-            return;
-        Wallpaper.apply(filtered[idx].path);
-    }
+    readonly property int spineW: 300
+    readonly property int padX: Theme.sp4
 
     Timer {
         id: hideDelay
@@ -78,72 +51,133 @@ PanelWindow {
         interval: Theme.movMed
     }
 
-    Timer {
-        id: blinkTimer
-
-        interval: 500
-        running: true
-        repeat: true
-        onTriggered: root.blinkOn = !root.blinkOn
-    }
-
-    property bool blinkOn: true
-
     Item {
         id: contentRoot
 
         anchors.fill: parent
+        focus: root.open
 
-        Keys.onEscapePressed: {
-            if (root.query.length > 0)
-                root.query = "";
-            else
-                ShellState.closePicker();
+        Keys.onEscapePressed: ShellState.closePicker()
+
+        Loader {
+            id: uiLoader
+
+            anchors.fill: parent
+            active: root.everOpened
+            sourceComponent: cardComponent
         }
+    }
+
+    onVisibleChanged: {
+        if (!visible)
+            return;
+        everOpened = true;
+        if (uiLoader.item)
+            uiLoader.item.resetForOpen();
+    }
+
+    Component {
+        id: cardComponent
 
         YSurface {
-            id: sheet
+            id: card
 
-            open: ShellState.pickerOpen
+            open: root.open
             anchorX: "center"
             cardW: root.cardW
             cardH: root.cardH
+
+            function resetForOpen() {
+                filterField.text = "";
+                syncToCurrent();
+                filterField.forceFocus();
+            }
+
+            // ---- selection over the filtered archive ----
+            property int selIdx: 0
+
+            readonly property string query: filterField.text.trim().toLowerCase()
+            readonly property var rows: {
+                const all = Wallpaper.entries;
+                if (query.length === 0)
+                    return all;
+                return all.filter(e => e.label.toLowerCase().includes(query) || e.path.toLowerCase().includes(query));
+            }
+            readonly property var selRow: rows[Math.max(0, Math.min(selIdx, rows.length - 1))] ?? null
+
+            function clampSel() {
+                selIdx = Math.max(0, Math.min(selIdx, rows.length - 1));
+            }
+
+            function moveSel(d) {
+                const n = rows.length;
+                if (n === 0)
+                    return;
+                selIdx = ((selIdx + d) % n + n) % n;
+            }
+
+            function selectCurrent() {
+                const i = rows.findIndex(e => e.path === Wallpaper.current);
+                selIdx = i >= 0 ? i : 0;
+            }
+
+            function syncToCurrent() {
+                clampSel();
+                selectCurrent();
+            }
+
+            function applySel() {
+                if (!selRow || Wallpaper.generating)
+                    return;
+                Wallpaper.apply(selRow.path);
+            }
+
+            Connections {
+                target: Wallpaper
+
+                function onEntriesChanged() {
+                    card.syncToCurrent();
+                }
+            }
+
+            Component.onCompleted: if (root.open)
+                resetForOpen()
 
             // ===== HEADER =====
             Item {
                 id: header
 
-                x: root.pad
+                x: 0
                 y: 0
-                width: parent.width - root.pad * 2 - 1
+                width: parent.width
                 height: Theme.headH
 
                 Rectangle {
                     id: logo
 
-                    anchors.left: parent.left
+                    x: root.padX
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 24
-                    height: 24
+                    width: 26
+                    height: 26
                     color: Theme.acid
 
                     Text {
                         anchors.centerIn: parent
-                        text: "Y"
+                        text: "W"
                         color: Theme.bg
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsBody
+                        font.pixelSize: Theme.fsTitle
                         font.weight: Font.ExtraBold
                     }
                 }
 
                 Text {
-                    id: titleText
+                    id: wordmark
 
+                    anchors.verticalCenter: parent.verticalCenter
                     anchors.left: logo.right
                     anchors.leftMargin: Theme.sp2
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "WALLPAPER.DECK"
+                    text: "WALLPAPER.ARCHIVE"
                     color: Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsBody
@@ -151,57 +185,43 @@ PanelWindow {
                     font.letterSpacing: 1.5
                 }
 
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: wordmark.right
+                    anchors.leftMargin: Theme.sp2
+                    width: 1
+                    height: 14
+                    color: Theme.lineStrong
+                }
+
                 Text {
-                    anchors.baseline: titleText.baseline
-                    anchors.left: titleText.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: wordmark.right
                     anchors.leftMargin: Theme.sp3
-                    text: Theme.jpEnabled ? "// 壁紙" : "// WALLPAPERS"
+                    text: Theme.jpEnabled ? "壁紙 // アーカイブ" : "INDEX"
                     color: Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsMicro
                     font.letterSpacing: 2
                 }
 
-                Row {
-                    anchors.right: modeRow.left
-                    anchors.rightMargin: Theme.sp3
+                Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.sp1
-
-                    YChip {
-                        anchors.verticalCenter: parent.verticalCenter
-                        label: Wallpaper.scanning ? "scanning…" : (root.carousel ? (root.filtered.length > 0 ? (root.cursorIdx + 1) + " / " + root.filtered.length : "0 imgs") : root.filtered.length + " imgs")
-                    }
-                }
-
-                Row {
-                    id: modeRow
-
                     anchors.right: closeBtn.left
                     anchors.rightMargin: Theme.sp2
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.sp1
-
-                    YButton {
-                        width: 84
-                        label: "deck"
-                        tone: root.carousel ? "acid" : "default"
-                        onClicked: ShellState.set("pickerMode", "carousel")
-                    }
-
-                    YButton {
-                        width: 84
-                        label: "sheet"
-                        tone: root.carousel ? "default" : "acid"
-                        onClicked: ShellState.set("pickerMode", "grid")
-                    }
+                    text: String(card.rows.length).padStart(3, "0") + " / " + String(Wallpaper.entries.length).padStart(3, "0")
+                    color: Theme.faint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsLabel
+                    font.weight: Font.Bold
                 }
 
                 YButton {
                     id: closeBtn
 
-                    anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.padX - 6
                     width: 30
                     label: "×"
                     onClicked: ShellState.closePicker()
@@ -211,471 +231,411 @@ PanelWindow {
             Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                y: Theme.headH
+                y: header.height
                 height: 1
                 color: Theme.hairline
             }
 
-            // ===== DECK (carousel) =====
-            ListView {
-                id: deck
+            // ===== BODY =====
+            Item {
+                id: body
 
-                readonly property int cellW: root.heroW + Theme.sp4
+                y: header.height + 1
+                x: 0
+                width: parent.width
+                height: parent.height - header.height - 1 - Theme.footH
 
-                anchors.top: parent.top
-                anchors.topMargin: Theme.headH + Theme.sp4
-                anchors.bottom: footer.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                visible: root.carousel
-                clip: false
-                orientation: ListView.Horizontal
-                spacing: 0
-                model: root.filtered
-                currentIndex: root.cursorIdx
-                onCurrentIndexChanged: if (root.cursorIdx !== currentIndex)
-                    root.cursorIdx = currentIndex
-                preferredHighlightBegin: (width - cellW) / 2
-                preferredHighlightEnd: preferredHighlightBegin + cellW
-                highlightRangeMode: ListView.StrictlyEnforceRange
-                snapMode: ListView.SnapToItem
-                cacheBuffer: width
-                boundsBehavior: Flickable.StopAtBounds
-                flickDeceleration: 6000
+                // ---------- SPINE ----------
+                Item {
+                    id: spine
 
-                WheelHandler {
-                    acceptedModifiers: Qt.NoModifier
-                    activeTimeout: 0.3
+                    x: 0
+                    y: 0
+                    width: root.spineW
+                    height: parent.height
 
-                    onWheel: event => {
-                        const d = Math.abs(event.angleDelta.y) >= Math.abs(event.angleDelta.x) ? event.angleDelta.y : -event.angleDelta.x;
-                        if (d === 0)
-                            return;
-                        root.moveCursor(d > 0 ? -1 : 1);
-                        event.accepted = true;
+                    YField {
+                        id: filterField
+
+                        x: Theme.sp3
+                        y: Theme.sp3
+                        width: parent.width - Theme.sp3 * 2
+                        placeholder: Theme.jpEnabled ? "検索 // FILTER" : "FILTER THE ARCHIVE…"
+                        navKeys: true
+
+                        onAccepted: card.applySel()
+                        onNavUp: card.moveSel(-1)
+                        onNavDown: card.moveSel(1)
+                        onNavLeft: card.moveSel(-1)
+                        onNavRight: card.moveSel(1)
+                        onNavEscape: ShellState.closePicker()
                     }
-                }
 
-                delegate: Item {
-                    id: hero
+                    ListView {
+                        id: spineList
 
-                    required property var modelData
-                    required property int index
+                        x: 0
+                        y: filterField.y + filterField.height + Theme.sp2
+                        width: parent.width
+                        height: parent.height - y - 46 - Theme.sp2
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickDeceleration: 4000
+                        maximumFlickVelocity: 4200
+                        spacing: 0
+                        model: card.rows
+                        currentIndex: card.selIdx
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
 
-                    readonly property bool isCur: ListView.isCurrentItem
+                        FastWheel {
+                        }
 
-                    width: deck.cellW
-                    height: deck.height
+                        delegate: Item {
+                            id: spineRow
 
-                    scale: isCur ? 1 : 0.84
-                    opacity: isCur ? 1 : 0.42
+                            required property var modelData
+                            required property int index
 
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: Theme.movMed
-                            easing.type: Easing.OutCubic
+                            readonly property bool sel: index === card.selIdx
+                            readonly property bool current: modelData.path === Wallpaper.current
+
+                            width: spineList.width
+                            height: 34
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: spineRow.sel ? Theme.surface : spineArea.containsMouse ? Theme.bg : "transparent"
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: 2
+                                    color: spineRow.sel ? Theme.acid : "transparent"
+                                }
+                            }
+
+                            Text {
+                                x: Theme.sp3
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: String(spineRow.index + 1).padStart(3, "0")
+                                color: spineRow.sel ? Theme.acid : Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                font.weight: Font.Bold
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 52
+                                anchors.right: parent.right
+                                anchors.rightMargin: currentDot.visible ? 16 : Theme.sp3
+                                text: spineRow.modelData.label
+                                color: spineRow.sel ? Theme.ink : spineArea.containsMouse ? Theme.ink : Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsBody
+                                elide: Text.ElideMiddle
+                            }
+
+                            Rectangle {
+                                id: currentDot
+
+                                visible: spineRow.current
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.sp3
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 5
+                                height: 5
+                                color: Theme.acid
+                            }
+
+                            MouseArea {
+                                id: spineArea
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+
+                                onClicked: {
+                                    card.selIdx = spineRow.index;
+                                    filterField.forceFocus();
+                                }
+                                onDoubleClicked: card.applySel()
+                            }
                         }
                     }
 
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Theme.movMed
-                            easing.type: Easing.OutCubic
-                        }
+                    YScroll {
+                        target: spineList
+                        anchors.top: spineList.top
+                        anchors.bottom: spineList.bottom
+                        anchors.right: spine.right
+                        width: 3
                     }
 
                     Rectangle {
-                        id: heroCard
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        height: 1
+                        color: Theme.hairline
+                    }
 
-                        x: (parent.width - root.heroW) / 2
-                        y: (parent.height - height) / 2
-                        width: root.heroW
-                        height: root.heroImgH + 34
+                    Row {
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: Theme.sp2
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: Theme.sp2
+
+                        YButton {
+                            width: 96
+                            label: "random"
+                            onClicked: {
+                                Wallpaper.applyRandom();
+                                card.selectCurrent();
+                            }
+                        }
+
+                        YButton {
+                            width: 88
+                            label: "rescan"
+                            onClicked: Wallpaper.rescan()
+                        }
+                    }
+                }
+
+                // divider
+                Rectangle {
+                    x: root.spineW
+                    y: 0
+                    width: 1
+                    height: parent.height
+                    color: Theme.hairline
+                }
+
+                // ---------- STAGE ----------
+                Item {
+                    id: stage
+
+                    x: root.spineW + 1
+                    y: 0
+                    width: parent.width - root.spineW - 1
+                    height: parent.height
+
+                    readonly property int pad: Theme.sp4
+                    readonly property real frameW: width - pad * 2
+                    readonly property real frameH: height - pad * 2 - 34 - 44 - Theme.sp2 * 2
+
+                    Rectangle {
+                        id: frame
+
+                        x: stage.pad
+                        y: stage.pad
+                        width: stage.frameW
+                        height: stage.frameH
                         color: Theme.bg
                         border.width: 1
-                        border.color: hero.isCur ? Theme.acid : Theme.hairline
+                        border.color: Theme.lineStrong
 
                         Image {
+                            id: previewImg
+
                             anchors.fill: parent
-                            anchors.margins: 2
-                            anchors.bottomMargin: 34
-                            source: hero.visible && ShellState.pickerOpen ? "file://" + hero.modelData.path : ""
-                            sourceSize.width: hero.isCur ? 640 : 256
-                            sourceSize.height: hero.isCur ? 400 : 160
-                            fillMode: Image.PreserveAspectCrop
+                            anchors.margins: 6
+                            source: card.selRow && root.open && frame.width > 50 ? "file://" + card.selRow.path : ""
+                            sourceSize.width: Math.min(1024, Math.round(frame.width))
+                            sourceSize.height: Math.min(640, Math.round(frame.height))
+                            fillMode: Image.PreserveAspectFit
                             asynchronous: true
                             cache: false
                         }
 
-                        // label strip
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            height: 32
-                            color: Theme.bgAlt
+                        // registration cross behind an empty preview
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: Theme.sp2
+                            visible: previewImg.status !== Image.Ready
 
-                            Rectangle {
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: 1
-                                color: Theme.hairline
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "+"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsDisplay
                             }
 
                             Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: Theme.sp2
-                                anchors.right: idxLabel.left
-                                anchors.rightMargin: Theme.sp2
-                                text: hero.modelData.label
-                                color: hero.isCur ? Theme.ink : Theme.muted
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                visible: card.rows.length === 0
+                                text: Wallpaper.scanning ? "SCANNING…" : "ARCHIVE EMPTY"
+                                color: Theme.faint
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel
-                                font.letterSpacing: 0.5
-                                elide: Text.ElideMiddle
-                            }
-
-                            Text {
-                                id: idxLabel
-
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.sp2
-                                text: String(hero.index + 1).padStart(3, "0")
-                                color: hero.isCur ? Theme.acid : Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                                font.weight: Font.Bold
+                                font.letterSpacing: 2
                             }
                         }
 
-                        // current-tick motif
+                        // corner ticks — family mark, four of them
                         Rectangle {
-                            visible: hero.isCur
-                            anchors.left: parent.left
-                            anchors.top: parent.top
-                            anchors.margins: 2
-                            width: 9
-                            height: 9
+                            x: -1
+                            y: -1
+                            width: 10
+                            height: 2
+                            color: Theme.acid
+                        }
+
+                        Rectangle {
+                            x: -1
+                            y: -1
+                            width: 2
+                            height: 10
+                            color: Theme.acid
+                        }
+
+                        Rectangle {
+                            anchors.right: parent.right
+                            y: -1
+                            width: 10
+                            height: 2
+                            color: Theme.acid
+                        }
+
+                        Rectangle {
+                            anchors.right: parent.right
+                            y: -1
+                            width: 2
+                            height: 10
                             color: Theme.acid
                         }
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
+                    // caption strip
+                    Item {
+                        id: caption
 
-                        onClicked: {
-                            if (!hero.isCur) {
-                                root.cursorIdx = hero.index;
-                                return;
-                            }
-                            root.pick(hero.index);
-                        }
-                    }
-                }
-            }
-
-            Text {
-                anchors.centerIn: deck
-                visible: root.carousel && root.filtered.length === 0
-                text: Wallpaper.entries.length === 0 ? "index empty — add images to ~/Pictures/Wallpapers" : "no match for \"" + root.query + "\""
-                color: Theme.faint
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsLabel
-                font.letterSpacing: 1
-            }
-
-            // ===== SEARCH ROW (sheet mode) =====
-            Item {
-                id: searchRow
-
-                x: root.pad
-                y: Theme.headH + Theme.sp3
-                width: parent.width - root.pad * 2 - 1
-                height: root.carousel ? 0 : Theme.ctlH
-                visible: !root.carousel
-
-                Rectangle {
-                    id: searchBox
-
-                    anchors.fill: parent
-                    color: Theme.bg
-                    border.width: 1
-                    border.color: queryInput.activeFocus || root.query.length > 0 ? Theme.lineStrong : Theme.hairline
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: 2
-                        color: queryInput.activeFocus ? Theme.acid : "transparent"
-                    }
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: Theme.sp2 + 2
-                        anchors.verticalCenter: parent.verticalCenter
+                        x: stage.pad
+                        y: frame.y + frame.height + Theme.sp2
+                        width: stage.frameW
+                        height: 34
 
                         Text {
-                            visible: root.query.length === 0
-                            text: "type to filter · arrows navigate · enter applies"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsLabel
-                            font.letterSpacing: 0.5
-                        }
-
-                        Text {
-                            visible: root.query.length > 0
-                            text: root.query.toUpperCase()
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - applyChip.width - Theme.sp2 * 2
+                            text: card.selRow ? card.selRow.label : "—"
                             color: Theme.ink
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fsBody
-                            font.weight: Font.DemiBold
+                            font.weight: Font.Bold
+                            elide: Text.ElideMiddle
+                        }
+
+                        Row {
+                            id: applyChip
+
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.sp2
+
+                            YChip {
+                                visible: Wallpaper.generating
+                                label: Theme.jpEnabled ? "生成中…" : "MATUGEN.APPLYING"
+                                tone: "acid"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: card.rows.length > 0 ? String(card.selIdx + 1).padStart(3, "0") + "/" + String(card.rows.length).padStart(3, "0") : "000/000"
+                                color: Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                font.weight: Font.Bold
+                            }
+                        }
+                    }
+
+                    // action row
+                    Row {
+                        x: stage.pad
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: Theme.sp3
+                        spacing: Theme.sp2
+
+                        YButton {
+                            width: 150
+                            tone: "acid"
+                            label: Wallpaper.generating ? "applying…" : "apply"
+                            onClicked: card.applySel()
+                        }
+
+                        YButton {
+                            width: 40
+                            label: "←"
+                            onClicked: card.moveSel(-1)
+                        }
+
+                        YButton {
+                            width: 40
+                            label: "→"
+                            onClicked: card.moveSel(1)
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            leftPadding: Theme.sp2
+                            text: "↵ APPLY · DOUBLE-CLICK INDEX ROW · TYPE TO FILTER"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsLabel
                             font.letterSpacing: 1
                         }
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: root.query.length > 0 && root.blinkOn
-                            width: 5
-                            height: 13
-                            color: Theme.acid
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.IBeamCursor
-                        onClicked: queryInput.forceActiveFocus()
                     }
                 }
-
-                YButton {
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 64
-                    visible: root.query.length > 0
-                    label: "clear"
-                    onClicked: {
-                        queryInput.text = "";
-                        queryInput.forceActiveFocus();
-                    }
-                }
-            }
-
-            // hidden capture input: owns ALL key handling while open
-            TextInput {
-                id: queryInput
-
-                visible: false
-                activeFocusOnPress: false
-                color: Theme.ink
-                onTextChanged: root.query = text
-
-                Keys.onPressed: event => {
-                    if (event.key === Qt.Key_Escape) {
-                        if (root.query.length > 0) {
-                            text = "";
-                            event.accepted = true;
-                        } else {
-                            ShellState.closePicker();
-                        }
-                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                        root.pick(root.cursorIdx);
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Left) {
-                        root.moveCursor(-1);
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Right) {
-                        root.moveCursor(1);
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Up && !root.carousel) {
-                        root.moveCursor(-root.cols);
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Down && !root.carousel) {
-                        root.moveCursor(root.cols);
-                        event.accepted = true;
-                    }
-                }
-            }
-
-            // ===== GRID (contact sheet) =====
-            GridView {
-                id: grid
-
-                readonly property int cellW: Math.floor((width - (root.cols - 1) * root.gridGap) / root.cols)
-                readonly property int cellH: Math.round(cellW * 0.62)
-
-                x: root.pad
-                y: searchRow.y + searchRow.height + Theme.sp3
-                width: parent.width - root.pad * 2 - 1
-                height: parent.height - y - Theme.footH - Theme.sp3
-                clip: true
-                visible: !root.carousel && root.filtered.length > 0
-                boundsBehavior: Flickable.StopAtBounds
-                flickDeceleration: 4000
-                cellWidth: cellW + root.gridGap
-                cellHeight: cellH + root.gridGap
-                model: root.filtered
-
-                FastWheel {
-                }
-
-                delegate: PickerTile {
-                    width: grid.cellW
-                    height: grid.cellH
-                    active: Wallpaper.current === modelData.path
-                    cursor: root.cursorIdx === index
-                    onPicked: path => root.pick(index)
-                    onHoveredIndex: i => root.cursorIdx = i
-                }
-            }
-
-            YScroll {
-                target: grid
-                x: grid.x + grid.width + 3
-                y: grid.y
-                width: 3
-                height: grid.height
-                visible: grid.visible
-            }
-
-            Text {
-                anchors.centerIn: grid
-                visible: !root.carousel && root.filtered.length === 0
-                text: Wallpaper.entries.length === 0 ? "index empty — add images to ~/Pictures/Wallpapers" : "no match for \"" + root.query + "\""
-                color: Theme.faint
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsLabel
-                font.letterSpacing: 1
             }
 
             // ===== FOOTER =====
             Rectangle {
                 id: footer
 
+                anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: Theme.footH + 8
+                height: Theme.footH
                 color: Theme.bg
 
                 Rectangle {
+                    anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: parent.top
                     height: 1
                     color: Theme.hairline
                 }
 
                 Text {
-                    anchors.left: parent.left
-                    anchors.leftMargin: root.pad
-                    anchors.right: actionsRow.left
-                    anchors.rightMargin: Theme.sp2
                     anchors.verticalCenter: parent.verticalCenter
-                    elide: Text.ElideMiddle
-                    text: Wallpaper.current.length > 0 ? "CURRENT " + Wallpaper.current.replace(root.homePrefix, "~") : "NO WALLPAPER SET"
+                    anchors.left: parent.left
+                    anchors.leftMargin: root.padX
+                    width: parent.width * 0.55
+                    text: Wallpaper.current.length > 0 ? Wallpaper.current : "no wallpaper set"
                     color: Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsLabel
-                    font.letterSpacing: 0.5
+                    elide: Text.ElideMiddle
                 }
 
-                Row {
-                    id: actionsRow
-
-                    anchors.right: parent.right
-                    anchors.rightMargin: root.pad
+                Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.sp2
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: !Wallpaper.generating
-                        text: root.carousel ? "wheel/←→ flip · click hero applies" : "type to filter · enter applies"
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
-                        font.letterSpacing: 0.8
-                    }
-
-                    Rectangle {
-                        visible: Wallpaper.generating
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: applyingLabel.width + 18
-                        height: 24
-                        color: Theme.bgAlt
-                        border.width: 1
-                        border.color: Theme.acid
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 6
-                                height: 6
-                                color: Theme.acid
-                                opacity: root.blinkOn ? 1 : 0.25
-                            }
-
-                            Text {
-                                id: applyingLabel
-
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "MATUGEN.APPLYING"
-                                color: Theme.acid
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1.5
-                            }
-                        }
-                    }
-
-                    YButton {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 78
-                        label: "random"
-                        onClicked: Wallpaper.applyRandom()
-                    }
-
-                    YButton {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 78
-                        label: "rescan"
-                        onClicked: Wallpaper.rescan()
-                    }
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.padX
+                    text: "ESC CLOSE"
+                    color: Theme.faint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsLabel
+                    font.letterSpacing: 1.5
                 }
             }
-        }
-    }
-
-    Connections {
-        target: ShellState
-
-        function onPickerOpenChanged() {
-            if (!ShellState.pickerOpen) {
-                hideDelay.restart();
-                return;
-            }
-            queryInput.text = "";
-            root.syncCursorToCurrent();
-            queryInput.forceActiveFocus();
-        }
-    }
-
-    Connections {
-        target: Wallpaper
-
-        function onEntriesChanged() {
-            if (ShellState.pickerOpen)
-                root.syncCursorToCurrent();
         }
     }
 }

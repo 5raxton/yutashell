@@ -80,8 +80,9 @@ PanelWindow {
 
             open: root.open
             anchorX: root.anchorMode
-            cardW: Math.max(480, Math.min(960, ShellState.launcherW, parent.width - 96))
-            cardH: Math.min(520, parent.height - Theme.barHeight - Theme.outerPad * 2 - 24)
+            // compact center box — never a fullscreen feel
+            cardW: Math.max(460, Math.min(820, ShellState.launcherW, Math.round(parent.width * 0.46)))
+            cardH: Math.min(500, Math.round(parent.height * 0.55), parent.height - Theme.barHeight - 48)
 
             function resetForOpen() {
                 searchField.text = "";
@@ -191,9 +192,14 @@ PanelWindow {
                     scored.sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
                     out = scored.slice(0, 64).map(x => x.item);
                 }
-                clampSel();
                 return out;
             }
+
+            // keep selection valid WITHOUT touching it inside the bindings —
+            // clampSel reads selCount -> results, so calling it there loops
+            onResultsChanged: clampSel()
+            onCmdMatchesChanged: if (commandMode)
+                clampSel()
 
             // ---- :command mode ----
             readonly property var commands: [{
@@ -240,7 +246,6 @@ PanelWindow {
                             c: c,
                             args: args
                         }));
-                clampSel();
                 return m;
             }
 
@@ -440,9 +445,9 @@ PanelWindow {
                     anchors.rightMargin: Theme.sp4
                     anchors.verticalCenter: parent.verticalCenter
                     text: Theme.jpEnabled ? "クリックでコピー" : "CLICK TO COPY"
-                    color: Theme.faint
+                    color: Theme.muted
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsMicro
+                    font.pixelSize: Theme.fsLabel
                     font.letterSpacing: 0.8
                 }
             }
@@ -530,7 +535,7 @@ PanelWindow {
                             text: cmdRoot.modelData.c.desc + (cmdRoot.modelData.args !== "" ? "  →  " + cmdRoot.modelData.args : "")
                             color: Theme.muted
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsLabel
+                            font.pixelSize: Theme.fsBody
                             elide: Text.ElideRight
                         }
 
@@ -571,6 +576,7 @@ PanelWindow {
                         readonly property bool sel: index === card.selIdx
                         readonly property bool isAction: modelData.kind === "action"
                         readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
+                        readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
                         readonly property string label: isAction ? modelData.action.name : modelData.entry.name
 
                         Rectangle {
@@ -619,9 +625,9 @@ PanelWindow {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: parent.top
                                 anchors.topMargin: 10
-                                implicitSize: 34
-                                visible: tileRoot.iconSrc !== "" && gTileIcon.status !== Image.Error && gTileIcon.status !== Image.Null
-                                source: tileRoot.iconSrc
+                                implicitSize: 36
+                                visible: tileRoot.iconUrl !== "" && gTileIcon.status !== Image.Error && gTileIcon.status !== Image.Null
+                                source: tileRoot.iconUrl
                                 asynchronous: true
                             }
 
@@ -631,9 +637,9 @@ PanelWindow {
                                 anchors.bottom: parent.bottom
                                 anchors.bottomMargin: 8
                                 text: tileRoot.label + (tileRoot.isAction ? " ↩" : "")
-                                color: tileRoot.sel ? Theme.ink : Theme.muted
+                                color: Theme.ink
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
+                                font.pixelSize: Theme.fsLabel
                                 horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
@@ -685,6 +691,7 @@ PanelWindow {
                         readonly property bool sel: index === card.selIdx
                         readonly property bool isAction: modelData.kind === "action"
                         readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
+                        readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
                         readonly property string label: isAction ? modelData.action.name : modelData.entry.name
                         readonly property string sub: isAction ? modelData.entry.name : (modelData.entry.genericName ?? "")
 
@@ -736,8 +743,8 @@ PanelWindow {
 
                                     anchors.fill: parent
                                     implicitSize: 22
-                                    visible: rowRoot.iconSrc !== "" && rRowIcon.status !== Image.Error && rRowIcon.status !== Image.Null
-                                    source: rowRoot.iconSrc
+                                    visible: rowRoot.iconUrl !== "" && rRowIcon.status !== Image.Error && rRowIcon.status !== Image.Null
+                                    source: rowRoot.iconUrl
                                     asynchronous: true
                                 }
                             }
@@ -747,9 +754,10 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: parent.width - 60 - subLabel.width - Theme.sp3 * 3
                                 text: rowRoot.label + (rowRoot.isAction ? " ↩" : "")
-                                color: rowRoot.sel ? Theme.ink : Theme.muted
+                                color: Theme.ink
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsBody
+                                font.weight: Font.Medium
                                 elide: Text.ElideRight
                             }
 
@@ -760,7 +768,7 @@ PanelWindow {
                                 anchors.rightMargin: Theme.sp3
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: rowRoot.sub
-                                color: Theme.faint
+                                color: Theme.muted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel
                                 horizontalAlignment: Text.AlignRight
@@ -819,9 +827,9 @@ PanelWindow {
                     anchors.rightMargin: Theme.sp4
                     anchors.verticalCenter: parent.verticalCenter
                     text: "↵ RUN · ↑↓ NAV · ←→ GRID · TAB MODE · RCLICK PIN · ⇧DEL FORGET · ESC CLOSE"
-                    color: Theme.faint
+                    color: Theme.muted
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsMicro
+                    font.pixelSize: Theme.fsLabel
                     font.letterSpacing: 0.8
                 }
             }

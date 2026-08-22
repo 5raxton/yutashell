@@ -174,6 +174,21 @@ User-directed pass: make the shell feel like one fluid organism. Bar on top, eve
 
 Verification notes: fresh-instance smoke clean; all three surfaces map Top-layer under Overlay bars via `qs ipc --pid <test-pid>` targeting; RSS 408 MB with panel open.
 
+## Phase 4.6 — Feedback pass ✅ DONE
+
+Second user-directed pass on the same surfaces — fixes where 4.5 fell short, plus a real template engine.
+
+- [x] **Launcher**: compact card (max 46% of screen width/height, never fullscreen feel); caret vertically centered in the search field (was baseline-stuck); type ramp bumped globally for readability (`fsDisplay` 20 / `fsTitle` 14 / `fsBody` 12 / `fsLabel` 10 / `fsMicro` 8); **real app icons** via `Quickshell.iconPath()` with acid-initials fallback
+- [x] **Picker → ARCHIVE rewrite**: carousel deck deleted (`pickerMode` gone from state). Now: numbered index spine left (pure type, always-focused filter field driving nav), huge framed preview stage right with corner ticks + caption + APPLY; keyboard-first (type/arrows/enter/esc)
+- [x] **Settings scroll root-caused**: `contentHeight` binding latched onto dying Loader items during tab switches and went permanently stale — replaced with imperative sync + retargeted Connections on the live page item
+- [x] **Flush-to-bar**: YSurface `restGap` defaults to 0 (cards rest against the bar, no floating gap)
+- [x] **Flare shoulders**: concave fillet curves sweep outward from card top into the bar line (`Shape`+`ShapePath`, bgAlt fill) so popups read as growing out of the bar
+- [x] **YRow switch fix**: row-level MouseArea was covering trailing slots — every embedded switch in every panel had been silently unclickable
+- [x] **Template engine**: startup binary probe maps catalog ids → installed apps; absent apps show ABSENT chips, refuse to enable, and get auto-pruned from stale enabled state; toggles now actually flip state
+- [x] **Auto-snippet injection**: toggling an include-style template writes the include line itself into the app's config inside managed `# >>> yutashell-matugen` blocks (kitty/tmux/fuzzel/rofi/wofi/mako/swaync/hyprland/hyprlock/css apps); alacritty gets TOML-aware import-array merging instead (duplicate keys are invalid TOML); disabling strips everything back out
+
+Verification notes: E2E via IPC on a test instance — alacritty ON merges `colors.toml` into the import array (or appends a managed `[general]` block when none exists), OFF restores the file byte-exact; kitty refused while absent; launcher binding loop (`results` ↔ `clampSel`) removed. Fresh-instance smoke clean.
+
 ## Phase 5 — Notification daemon ⬜ OPEN
 
 Goal: fully themed replacement for mako/dunst with history center. DND lives here and is consumed by the bar (PH.14) and control center HOME (PH.15).

@@ -3,10 +3,18 @@ import QtQuick
 // Drop-in child of any Flickable/GridView/ListView: snappy mouse-wheel
 // scrolling. The default Flickable wheel handling crawls; this steps ~3 rows
 // per notch with hard clamping and stays out of touchpad pixel gestures.
+//
+// Flickable reparents declared children into contentItem, so `parent` is NOT
+// necessarily the scrollable — walk up until one is found.
 WheelHandler {
     id: handler
 
-    readonly property var flick: parent
+    readonly property var flick: {
+        let p = handler.parent;
+        while (p && !(p instanceof Flickable))
+            p = p.parent;
+        return p;
+    }
     property real notchStep: 132
 
     acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad

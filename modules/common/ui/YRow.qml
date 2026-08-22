@@ -86,10 +86,16 @@ Item {
 
     default property alias trailing: trailingHost.data
 
+    // Row-wide click/hover surface. STOPS at the trailing slot — switches and
+    // buttons living there must receive their own clicks (this used to cover
+    // them and silently ate every toggle).
     MouseArea {
         id: area
 
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.right: trailingHost.left
         hoverEnabled: true
         cursorShape: root.interactive ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: {

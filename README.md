@@ -19,10 +19,10 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed
 - **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. **Light mode** regenerates every palette at runtime (paper surfaces, ink text, contrast-fitted accents); an **accent override** lets any color take the acid slot. Japanese labels auto-degrade to romaji when no CJK font is present.
 - **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
-- **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change
+- **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change. The shell detects which themed apps are actually installed (absent apps show ABSENT and refuse to enable), and for include-style configs it **writes the include line itself** into a managed `# >>> yutashell-matugen` block — toggling a template is zero-friction; disabling strips the block again
 - **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — bar-style tab strip with sliding acid underline, scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, placement (center/left/right) + width customization, system/about tabs; remembers your last visited tab
-- **Wallpaper picker** (`modules/picker/`): standalone surface in two modes — a **carousel deck** (Hearthstone-style: snap-scrolling hero cards, neighbors dimmed, wheel to flip, click to apply) or the classic searchable thumbnail grid ("sheet"); picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
-- **App launcher**: centered card dropping from beneath the bar, indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
+- **Wallpaper picker** (`modules/picker/`): the ARCHIVE — a numbered index spine on the left (pure type, no thumbnail decoding) and a huge framed preview stage on the right showing one wallpaper at full quality. The always-focused filter field drives everything: type to filter, arrows to walk the index, enter or APPLY to commit; random/rescan in the spine, current wallpaper marked with an acid dot. Picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
+- **App launcher**: compact centered card dropping from beneath the bar (never a fullscreen feel), indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
 - **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll / YSurface / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
 - **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit) and never dims the desktop — input is masked to the card so the rest of the screen stays live
 
@@ -76,7 +76,7 @@ qs ipc call <target> <function> [args...]
 | `theme` | `dark on\|off\|toggle` | light/dark mode — light palettes are regenerated live from the active scheme or wallpaper |
 | `theme` | `accent <#hex\|none>` | override the acid accent (persisted; `none` follows the scheme again) |
 | `templates` | `list` | show template catalog with enabled state |
-| `templates` | `on <id>` / `off <id>` | enable/disable a template (rewrites matugen.toml, re-applies) |
+| `templates` | `on <id>` / `off <id>` | enable/disable a template (rewrites matugen.toml, injects/strips app-config snippet, re-applies; refuses absent apps) |
 | `templates` | `add <id> <input> <output>` | register a custom matugen template |
 | `templates` | `remove <id>` | remove one |
 
@@ -130,7 +130,7 @@ Everything the shell writes lives under `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/width/pins/recents), settings panel (placement/width/last page), picker mode |
+| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/width/pins/recents), settings panel (placement/width/last page) |
 | `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
 | `matugen.toml` | generated matugen config assembled from the template registry |
 
@@ -148,3 +148,5 @@ Modules never hardcode colors. Everything reads from the `Theme` singleton so fu
 ## Roadmap
 
 The full phased build plan — launcher, notifications, WiFi/BT panels, audio/media OSDs, dock, lock screen, settings core, matugen theming — lives in [ROADMAP.md](ROADMAP.md).
+
+Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

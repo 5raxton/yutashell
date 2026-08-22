@@ -65,8 +65,7 @@ Singleton {
     readonly property alias panelAnchor: adapter.panelAnchor
     readonly property alias panelLastPage: adapter.panelLastPage
 
-    // picker + launcher
-    readonly property alias pickerMode: adapter.pickerMode
+    // launcher card width
     readonly property alias launcherW: adapter.launcherW
 
     // launcher
@@ -125,8 +124,7 @@ Singleton {
             property string panelAnchor: "center"
             property int panelLastPage: 0
 
-            // picker view mode (carousel|grid); launcher card width
-            property string pickerMode: "carousel"
+            // launcher card width (px, clamped by consumer)
             property int launcherW: 640
 
             // launcher: view mode (grid|list), placement (center|left|top),
