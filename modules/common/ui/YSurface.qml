@@ -209,12 +209,15 @@ Rectangle {
                 x: 0
                 y: 0
             }
+            // Counterclockwise selects the arc bowed toward the outer corner
+            // (concave socket); Clockwise would fill the complement and read
+            // as a convex fang beside the card.
             PathArc {
                 x: root.flareS
                 y: root.flareS
                 radiusX: root.flareS
                 radiusY: root.flareS
-                direction: PathArc.Clockwise
+                direction: PathArc.Counterclockwise
             }
         }
     }
