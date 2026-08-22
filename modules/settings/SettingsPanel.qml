@@ -23,21 +23,26 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.panelOpen || hideDelay.running
     mask: Region {
-        item: ShellState.panelOpen ? contentRoot : null
+        item: ShellState.panelOpen ? drawer : null
     }
 
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: ShellState.panelOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    // user-tunable presentation: width persists via ShellState, mode flips
-    // between right drawer and centered popout card
-    readonly property int drawerW: Math.max(400, Math.min(760, ShellState.panelW))
-    readonly property bool popout: ShellState.panelPopout
-    readonly property int railW: 132
+    // user-tunable presentation: width persists via ShellState; placement
+    // (center|left|right) picks where the card rests below the bar
+    readonly property int cardW: Math.max(640, Math.min(1200, ShellState.panelW, contentRoot.width - Theme.outerPad * 2))
+    readonly property int cardH: Math.min(760, contentRoot.height - Theme.barHeight - Theme.outerPad * 2 - 24)
+    readonly property string anchorX: ShellState.panelAnchor === "left" ? "left" : ShellState.panelAnchor === "right" ? "right" : "center"
     readonly property int padX: Theme.sp4
-    readonly property int navItemH: 44
-    readonly property int titleBlockH: 66
-    readonly property int contentW: drawerW - railW - padX - Theme.sp4
+    readonly property int tabH: Theme.barHeight
+    readonly property int titleBlockH: 56
+    readonly property int contentW: cardW - padX * 2 - 1
+
+    function setPage(i) {
+        tabIndex = i;
+        ShellState.set("panelLastPage", i);
+    }
 
     // ---- page registry (declarative; modules register settings pages here) ----
     readonly property var pages: [{
@@ -72,6 +77,16 @@ PanelWindow {
         interval: 190
     }
 
+    // remember where the user left off across opens
+    Connections {
+        target: ShellState
+
+        function onPanelOpenChanged() {
+            if (ShellState.panelOpen)
+                root.tabIndex = Math.max(0, Math.min(ShellState.panelLastPage, root.pages.length - 1));
+        }
+    }
+
     Timer {
         id: blinkTimer
 
@@ -101,98 +116,17 @@ PanelWindow {
         focus: ShellState.panelOpen
 
         Keys.onEscapePressed: ShellState.closePanel()
-        Keys.onTabPressed: root.tabIndex = (root.tabIndex + 1) % root.pages.length
+        Keys.onTabPressed: root.setPage((root.tabIndex + 1) % root.pages.length)
 
-        // ---- dim scrim ----
-        Rectangle {
-            anchors.fill: parent
-            color: "#000000"
-            opacity: ShellState.panelOpen ? 0.55 : 0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 140
-                    easing.type: Easing.OutCubic
-                }
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            enabled: ShellState.panelOpen
-            onClicked: ShellState.closePanel()
-        }
-
-        // ===== DRAWER / POPOUT BODY =====
-        // layer.enabled rasters the panel once and moves the texture — the
-        // slide animates at compositor cost instead of full repaints (jank fix)
-        Rectangle {
+        // ===== CARD BODY =====
+        // YSurface owns placement + the drop-from-behind-the-bar entrance
+        YSurface {
             id: drawer
 
-            width: root.drawerW
-            height: root.popout ? parent.height - 96 : parent.height
-            x: {
-                if (!ShellState.panelOpen)
-                    return root.popout ? (parent.width - width) / 2 : parent.width;
-                return root.popout ? (parent.width - width) / 2 : parent.width - width;
-            }
-            y: root.popout ? (ShellState.panelOpen ? (parent.height - height) / 2 : parent.height) : 0
-            opacity: ShellState.panelOpen ? 1 : 0
-            color: Theme.bgAlt
-            border.width: root.popout ? 1 : 0
-            border.color: Theme.lineStrong
-            layer.enabled: true
-            layer.smooth: true
-
-            Behavior on x {
-                NumberAnimation {
-                    duration: Theme.movMed
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            Behavior on y {
-                NumberAnimation {
-                    duration: Theme.movMed
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.movFast
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            Behavior on height {
-                NumberAnimation {
-                    duration: Theme.movMed
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: mouse => mouse.accepted = true
-            }
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 1
-                color: Theme.lineStrong
-            }
-
-            // corner tick motif
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                width: 2
-                height: 26
-                color: Theme.acid
-            }
+            open: ShellState.panelOpen
+            anchorX: root.anchorX
+            cardW: root.cardW
+            cardH: root.cardH
 
             // ===== HEADER BAND =====
             Item {
@@ -289,94 +223,92 @@ PanelWindow {
                 color: Theme.hairline
             }
 
-            // ===== NAV RAIL =====
+            // ===== TAB STRIP =====
+            // same language as the bar's workspace blocks: numbered segments,
+            // hover snap, one acid underline that slides between pages
             Item {
-                id: railHost
+                id: tabStrip
 
                 x: 0
                 y: Theme.headH + 1
-                width: root.railW
-                height: root.navItemH * root.pages.length
+                width: parent.width
+                height: root.tabH
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 1
+                    color: Theme.hairline
+                }
 
                 Repeater {
                     model: root.pages
 
                     delegate: Item {
-                        id: navItem
+                        id: tabSeg
 
                         required property int index
                         required property var modelData
 
                         readonly property bool isActive: root.tabIndex === index
 
-                        x: 0
-                        y: index * root.navItemH
-                        width: root.railW
-                        height: root.navItemH
-
-                        Rectangle {
-                            visible: navItem.isActive
-                            anchors.fill: parent
-                            color: Theme.bg
-                        }
+                        x: index * (tabStrip.width / root.pages.length)
+                        width: tabStrip.width / root.pages.length
+                        height: tabStrip.height
 
                         Text {
-                            id: navNum
-
+                            x: root.padX
                             anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: root.padX - 4
-                            text: "0" + (navItem.index + 1)
-                            color: navItem.isActive ? Theme.acid : Theme.faint
+                            text: "0" + (tabSeg.index + 1)
+                            color: tabSeg.isActive ? Theme.acid : Theme.faint
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fsMicro
                             font.weight: Font.Bold
                         }
 
-                        Column {
+                        Text {
+                            x: root.padX + 22
                             anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: navNum.right
-                            anchors.leftMargin: Theme.sp2
-                            spacing: 1
+                            text: tabSeg.modelData.label
+                            color: tabSeg.isActive ? Theme.ink : tabArea.containsMouse ? Theme.ink : Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsLabel
+                            font.weight: tabSeg.isActive ? Font.Bold : Font.Normal
+                            font.letterSpacing: 1.5
+                        }
 
-                            Text {
-                                text: navItem.modelData.label
-                                color: navItem.isActive ? Theme.ink : navArea.containsMouse ? Theme.ink : Theme.muted
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsLabel
-                                font.weight: navItem.isActive ? Font.Bold : Font.Normal
-                                font.letterSpacing: 1.5
-                            }
-
-                            Text {
-                                visible: Theme.jpEnabled
-                                text: navItem.modelData.jp
-                                color: Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                            }
+                        Text {
+                            visible: Theme.jpEnabled
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: root.padX
+                            text: tabSeg.modelData.jp
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
                         }
 
                         MouseArea {
-                            id: navArea
+                            id: tabArea
 
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.tabIndex = navItem.index
+                            onClicked: root.setPage(tabSeg.index)
                         }
                     }
                 }
 
-                // single sliding acid tick (positional — animated)
+                // single sliding acid underline (positional — animated)
                 Rectangle {
-                    x: 0
-                    width: 3
-                    height: root.navItemH
-                    y: root.tabIndex * root.navItemH
+                    y: parent.height - 2
+                    x: root.tabIndex * (parent.width / root.pages.length)
+                    width: parent.width / root.pages.length
+                    height: 2
                     color: Theme.acid
 
-                    Behavior on y {
+                    Behavior on x {
                         NumberAnimation {
                             duration: Theme.movFast
                             easing.type: Easing.OutCubic
@@ -385,23 +317,14 @@ PanelWindow {
                 }
             }
 
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: root.railW
-                width: 1
-                color: Theme.hairline
-            }
-
             // ===== PAGE TITLE FRAME (fixed — doesn't scroll) =====
             Item {
                 id: pageTitleBlock
 
-                x: root.railW + root.padX
-                y: Theme.headH + 1 + Theme.sp3
+                x: root.padX
+                y: Theme.headH + 1 + root.tabH + Theme.sp2
                 width: root.contentW
-                height: root.titleBlockH - Theme.sp3 * 2
+                height: root.titleBlockH - Theme.sp2
 
                 Text {
                     id: pageTitle
@@ -457,15 +380,19 @@ PanelWindow {
             Flickable {
                 id: pageScroll
 
-                x: root.railW + root.padX
-                y: Theme.headH + 1 + root.titleBlockH
+                x: root.padX
+                y: Theme.headH + 1 + root.tabH + root.titleBlockH
                 width: root.contentW
                 height: parent.height - y - Theme.footH - Theme.sp3
                 contentWidth: width
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 flickDeceleration: 4000
+                maximumFlickVelocity: 4200
                 contentHeight: Math.max(height, pageLoader.item ? pageLoader.item.height + Theme.sp3 : 0)
+
+                FastWheel {
+                }
 
                 Loader {
                     id: pageLoader
@@ -808,17 +735,17 @@ PanelWindow {
                         width: parent.width
                         index: "04"
                         label: "Control core"
-                        chip: root.popout ? "popout" : root.drawerW + "px drawer"
+                        chip: root.anchorX + " · " + Math.max(640, Math.min(1200, ShellState.panelW)) + "px"
                     }
 
-                    // presentation mode — segmented
+                    // placement — where the card rests below the bar
                     Item {
                         width: parent.width
                         height: Theme.ctlH + Theme.fsMicro * 2
 
                         Text {
                             anchors.top: parent.top
-                            text: "PRESENTATION"
+                            text: "PLACEMENT"
                             color: Theme.faint
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fsMicro
@@ -830,17 +757,24 @@ PanelWindow {
                             spacing: Theme.sp1
 
                             YButton {
-                                width: (appearanceCol.width - Theme.sp1) / 2
-                                tone: root.popout ? "default" : "acid"
-                                label: "side drawer"
-                                onClicked: ShellState.set("panelPopout", false)
+                                width: 96
+                                tone: root.anchorX === "center" ? "acid" : "default"
+                                label: "center"
+                                onClicked: ShellState.set("panelAnchor", "center")
                             }
 
                             YButton {
-                                width: (appearanceCol.width - Theme.sp1) / 2
-                                tone: root.popout ? "acid" : "default"
-                                label: "popout card"
-                                onClicked: ShellState.set("panelPopout", true)
+                                width: 96
+                                tone: root.anchorX === "left" ? "acid" : "default"
+                                label: "left"
+                                onClicked: ShellState.set("panelAnchor", "left")
+                            }
+
+                            YButton {
+                                width: 96
+                                tone: root.anchorX === "right" ? "acid" : "default"
+                                label: "right"
+                                onClicked: ShellState.set("panelAnchor", "right")
                             }
                         }
                     }
@@ -866,7 +800,7 @@ PanelWindow {
                             YButton {
                                 width: 32
                                 label: "−"
-                                onClicked: ShellState.set("panelW", Math.max(400, ShellState.panelW - 16))
+                                onClicked: ShellState.set("panelW", Math.max(640, ShellState.panelW - 32))
                             }
 
                             Item {
@@ -882,7 +816,7 @@ PanelWindow {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: Math.max(400, Math.min(760, ShellState.panelW)) + " px"
+                                    text: Math.max(640, Math.min(1200, ShellState.panelW)) + " px"
                                     color: Theme.ink
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsBody
@@ -893,12 +827,12 @@ PanelWindow {
                             YButton {
                                 width: 32
                                 label: "+"
-                                onClicked: ShellState.set("panelW", Math.min(760, ShellState.panelW + 16))
+                                onClicked: ShellState.set("panelW", Math.min(1200, ShellState.panelW + 32))
                             }
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "400 – 760"
+                                text: "640 – 1200"
                                 color: Theme.faint
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel

@@ -64,7 +64,7 @@ These rules keep the shell coherent as it grows. Breaking them creates rework la
 - [x] State persistence pattern: JSON config read/written with `FileView` (`JsonAdapter` + `writeAdapter()` to persist, coalesced through the flush timer). One file: `~/.local/state/yutashell/state.json`. Modules never write their own dotfiles.
 - [x] IPC pattern: every user-facing action is exposed through `IpcHandler` so keybinds, CLI, and panels all drive the same functions instead of duplicating logic.
 - [x] Layer policy: bars/docks use plain `PanelWindow`; transient UI uses `PanelWindow` + `WlrLayershell.layer: WlrLayer.Overlay` with keyboard focus `Exclusive` while open, `None` closed. (Settings panel + picker already follow this.)
-- [x] Animation policy: hover/focus snap instantly (brutalist). Only positional indicators animate — 120–180 ms OutCubic (`Theme.movFast`/`movMed`). YButton's hard-shadow press collapse is the one physical flourish.
+- [x] Animation policy: hover/focus snap instantly (brutalist). Only positional indicators animate — 120–180 ms OutCubic (`Theme.movFast`/`movMed`); surface entrances use `Theme.movSlow` 260 via YSurface. YButton's hard-shadow press collapse is the one physical flourish.
 - [x] Japanese labels: kanji/kana always gated behind `Theme.jpEnabled` with a romaji fallback, so nothing ever renders tofu.
 - [x] Compositor dispatches go through small wrapper functions (e.g. `Workspaces.switchTo(id)` sending `hl.dsp.focus({ workspace = "N" })`), never inline strings.
 - [ ] **One poller per datum:** periodic sampling (/proc, hwmon, nvidia-smi) lives ONLY in the PH.13 `SystemStats` singleton. Bar, control center, thresholds and future widgets consume it — no module spins up a second Timer over the same file. (StatsCluster gets migrated onto it.)
@@ -157,6 +157,22 @@ Shipped in `modules/launcher/` (`AppLauncher.qml` + `fuzzy.js`); UI builds lazil
 - [x] Optional: desktop-action rows (`DesktopEntry.actions`, ` ↩` suffix, parent-app recents credit) once query length ≥ 2
 
 Extras beyond spec: right-click tile/row toggles pin (acid corner-notch indicator), footer count chip + keymap hints, unknown-command empty state, result cap (64) in query mode.
+
+## Phase 4.5 — Experience overhaul ✅ DONE
+
+User-directed pass: make the shell feel like one fluid organism. Bar on top, everything drops from behind it, no dimming anywhere, every surface customizable.
+
+- [x] **Layer sandwich**: bar → `WlrLayer.Overlay` (topmost); all popups → `WlrLayer.Top` — surfaces slide out from BEHIND the bar (the shell's signature entrance)
+- [x] **Scrim abolition**: no popup darkens the desktop; input confined to the card via `mask: Region { item }`, desktop stays visible and clickable around it; ESC/keybind/IPC close only
+- [x] `Theme.movSlow: 260` added — reserved for surface entrances (`movFast`/`movMed` stay for indicators/exits)
+- [x] **YSurface kit** (`modules/common/ui/YSurface.qml`): one component owns drop-from-behind-bar choreography + card chrome (bgAlt, lineStrong border, acid corner tick); settings/picker/launcher all compose it
+- [x] **FastWheel kit**: WheelHandler drop-in for every Flickable/GridView/ListView (notchStep 132) — fixes "scrolling slow as fuck"
+- [x] Settings: nav rail → bar-style horizontal TAB STRIP (numbered segments, sliding acid underline, JP accents); page memory (`panelLastPage`) restores last tab on reopen
+- [x] Settings customization: PLACEMENT selector (center/left/right → `panelAnchor`), width stepper 640–1200 (`panelW`, default raised 464→880)
+- [x] Picker rewrite: default **carousel deck** mode — Hearthstone-style horizontal snap ListView, hero card scaled/centered, neighbors dimmed+shrunk, wheel flips, click current applies; grid ("sheet") mode retained behind a DECK/SHEET segment (`pickerMode` persisted)
+- [x] Launcher: real centered card (not fullscreen feel) via YSurface, `launcherW` 480–960 customization, icon rendering fixed (`IconImage.implicitSize` + status-driven initials fallback)
+
+Verification notes: fresh-instance smoke clean; all three surfaces map Top-layer under Overlay bars via `qs ipc --pid <test-pid>` targeting; RSS 408 MB with panel open.
 
 ## Phase 5 — Notification daemon ⬜ OPEN
 
@@ -340,7 +356,7 @@ Goal: turn the bar from a fixed layout into a configurable organism. Taskbar wit
 
 Goal: one themed popup falling from the bar that answers "what's going on / quick toggle / quick adjust" — nothing more. Deep config stays in settings (one-organism rule: read-mostly panels).
 
-How: overlay `PanelWindow` dropping from beneath the bar (anchor: center by default, configurable left/center/right + per-monitor). Slide-down `Theme.movMed` OutCubic with the `layer.enabled` raster trick; dim scrim; ESC/click-out closes; mask region while animating. Tab strip along the top: uppercase micro-labels + JP micro-labels (gated), sliding acid underline (same motif as settings nav). Tabs are lazy Loaders — heavy lists only build when visited. Everything composes from the kit. IPC `cc toggle/open/close`.
+How: overlay `PanelWindow` dropping from beneath the bar (anchor: center by default, configurable left/center/right + per-monitor) via YSurface (`Theme.movSlow` OutCubic with the `layer.enabled` raster trick); NO scrim (mask-input pattern, PH.4.5); ESC/keybind closes; mask region while animating. Tab strip along the top: uppercase micro-labels + JP micro-labels (gated), sliding acid underline (same motif as settings tabs). Tabs are lazy Loaders — heavy lists only build when visited. Everything composes from the kit. IPC `cc toggle/open/close`.
 
 Tabs (11):
 
@@ -373,7 +389,7 @@ The thirteen tabs:
 
 - [ ] **APPEARANCE** — scheme preset swatches (existing), follow-wallpaper (existing), light/dark mode + accent override (engines shipped in PH.2/3 — PH.16 adds font override, scale, chrome/effects toggles alongside), system font family override + **UI scale factor** (fs-ramp multiplier), **animation master toggle** (off = durations collapse toward instant for perf), shell chrome toggles (brand tick, corner ticks, scrim strength, hairline emphasis), effects toggles (blur/transparency pass-throughs where the toolkit supports them), matugen template browser (moved)
 - [ ] **DOCK** — enable/disable, monitor assignment, hide mode (always/dodge/never), size/spacing, click-behavior presets, preview thumbs on/off
-- [ ] **PANELS** — per-panel presentation: settings (drawer/popout — existing controls move here), picker, notifications stack corner, OSD corner, CC anchor/monitor; widths, scrim, open direction
+- [ ] **PANELS** — per-panel presentation: settings (placement + width — shipped in PH.4.5), picker (mode/width), notifications stack corner, OSD corner, CC anchor/monitor; widths, open direction
 - [ ] **LAUNCHER** — anchor position, default mode (grid/list), icon size, pins/recents management (edit + clear)
 - [ ] **CONTROL CENTER** — anchor position (center/left/right), monitor, tab visibility + ordering, quick-toggle set selection for HOME
 - [ ] **NOTIFICATIONS** — master enable/disable (daemon claim on/off), displayed fields, action buttons on/off, position, default timeout, critical-timeout, per-app overrides editor (block/quiet list)
@@ -389,7 +405,7 @@ The thirteen tabs:
 
 Goal: the audit that keeps the shell feeling like one machined object after a dozen features land. Run it after PH.14–16, then after any future phase.
 
-- [ ] Motion inventory per surface: open/close curve family identical (OutCubic, movFast/movMed only), scrim opacity uniform, hover snaps EVERYWHERE (grep for stray Behavior-on-hover), focus indicators consistent
+- [ ] Motion inventory per surface: open/close curve family identical (OutCubic; entrances movSlow via YSurface, indicators movFast/movMed), hover snaps EVERYWHERE (grep for stray Behavior-on-hover), focus indicators consistent
 - [ ] Chrome inventory: hairline weight (1 px everywhere), corner ticks, brand notch, registration marks, empty states, loading states (progress = ticking blocks, never spinners-with-color), error states designed not defaulted
 - [ ] Keyboard model uniform: ESC closes the topmost surface, TAB cycles forward within it, arrows navigate lists, Enter commits
 - [ ] Tooltip language: promote the bar Tooltip into the shared kit and reuse for every hoverable (one style, one offset, one delay)

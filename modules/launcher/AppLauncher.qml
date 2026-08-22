@@ -28,16 +28,16 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: root.open || hideDelay.running
+    // input lands ONLY on the card — desktop around it stays live
     mask: Region {
-        item: root.open ? contentRoot : null
+        item: root.open && uiLoader.item ? uiLoader.item : null
     }
 
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     // placement persists so PH.16's launcher tab can just edit values
-    readonly property string anchorMode: ShellState.launcherAnchor
-    readonly property int cardW: 640
+    readonly property string anchorMode: ShellState.launcherAnchor === "left" ? "left" : ShellState.launcherAnchor === "right" ? "right" : "center"
 
     Timer {
         id: hideDelay
@@ -52,25 +52,6 @@ PanelWindow {
         focus: root.open
 
         Keys.onEscapePressed: ShellState.closeLauncher()
-
-        Rectangle {
-            anchors.fill: parent
-            color: "#000000"
-            opacity: root.open ? 0.55 : 0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.movFast
-                    easing.type: Easing.OutCubic
-                }
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            enabled: root.open
-            onClicked: ShellState.closeLauncher()
-        }
 
         // whole UI builds lazily on first open, then stays warm so every
         // later open paints instantly
@@ -94,8 +75,13 @@ PanelWindow {
     Component {
         id: cardComponent
 
-        Rectangle {
+        YSurface {
             id: card
+
+            open: root.open
+            anchorX: root.anchorMode
+            cardW: Math.max(480, Math.min(960, ShellState.launcherW, parent.width - 96))
+            cardH: Math.min(520, parent.height - Theme.barHeight - Theme.outerPad * 2 - 24)
 
             function resetForOpen() {
                 searchField.text = "";
@@ -317,48 +303,8 @@ PanelWindow {
                 ShellState.closeLauncher();
             }
 
-            // ---- placement ----
-            x: root.anchorMode === "left" ? Theme.outerPad * 2 : Math.round((parent.width - width) / 2)
-            y: root.anchorMode === "top" ? Theme.barHeight + Theme.outerPad : Math.round((parent.height - height) / 2 + 8)
-
-            width: Math.min(root.cardW, parent.width - 96)
-            height: Math.min(560, parent.height - 120)
-
-            color: Theme.bgAlt
-            border.width: 1
-            border.color: Theme.lineStrong
-            opacity: root.open ? 1 : 0
-
-            Behavior on y {
-                NumberAnimation {
-                    duration: Theme.movMed
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.movFast
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: mouse => mouse.accepted = true
-            }
-
             Component.onCompleted: if (root.open)
                 resetForOpen()
-
-            // corner tick motif
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                width: 2
-                height: 26
-                color: Theme.acid
-            }
 
             // ===== HEADER =====
             Item {
@@ -647,7 +593,7 @@ PanelWindow {
                                 visible: !tileRoot.isAction && card.pinIds.includes(tileRoot.modelData.entry.id)
                             }
 
-                            // acid square + initial when the entry has no icon
+                            // acid square + initial when no icon resolves
                             Rectangle {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: parent.top
@@ -655,7 +601,7 @@ PanelWindow {
                                 width: 34
                                 height: 34
                                 color: Theme.acid
-                                visible: tileRoot.iconSrc === ""
+                                visible: tileRoot.iconSrc === "" || gTileIcon.status === Image.Error || gTileIcon.status === Image.Null
 
                                 Text {
                                     anchors.centerIn: parent
@@ -668,13 +614,14 @@ PanelWindow {
                             }
 
                             IconImage {
+                                id: gTileIcon
+
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: parent.top
                                 anchors.topMargin: 10
-                                width: 34
-                                height: 34
-                                visible: tileRoot.iconSrc !== ""
-                                source: tileRoot.visible ? tileRoot.iconSrc : ""
+                                implicitSize: 34
+                                visible: tileRoot.iconSrc !== "" && gTileIcon.status !== Image.Error && gTileIcon.status !== Image.Null
+                                source: tileRoot.iconSrc
                                 asynchronous: true
                             }
 
@@ -772,7 +719,7 @@ PanelWindow {
                                 Rectangle {
                                     anchors.fill: parent
                                     color: Theme.acid
-                                    visible: rowRoot.iconSrc === ""
+                                    visible: rowRoot.iconSrc === "" || rRowIcon.status === Image.Error || rRowIcon.status === Image.Null
 
                                     Text {
                                         anchors.centerIn: parent
@@ -785,9 +732,12 @@ PanelWindow {
                                 }
 
                                 IconImage {
+                                    id: rRowIcon
+
                                     anchors.fill: parent
-                                    visible: rowRoot.iconSrc !== ""
-                                    source: rowRoot.visible ? rowRoot.iconSrc : ""
+                                    implicitSize: 22
+                                    visible: rowRoot.iconSrc !== "" && rRowIcon.status !== Image.Error && rRowIcon.status !== Image.Null
+                                    source: rowRoot.iconSrc
                                     asynchronous: true
                                 }
                             }

@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Wayland
 import QtQuick
 import qs.theme
 import qs.modules.common
@@ -9,6 +10,10 @@ PanelWindow {
     id: root
 
     property var tip
+
+    // Overlay: topmost layer. Popups land on Top, so anything sliding down
+    // (settings/picker/launcher) emerges from BEHIND this bar.
+    WlrLayershell.layer: WlrLayer.Overlay
 
     anchors {
         top: true

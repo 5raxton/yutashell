@@ -62,7 +62,12 @@ Singleton {
 
     // control-core presentation
     readonly property alias panelW: adapter.panelW
-    readonly property alias panelPopout: adapter.panelPopout
+    readonly property alias panelAnchor: adapter.panelAnchor
+    readonly property alias panelLastPage: adapter.panelLastPage
+
+    // picker + launcher
+    readonly property alias pickerMode: adapter.pickerMode
+    readonly property alias launcherW: adapter.launcherW
 
     // launcher
     readonly property alias launcherMode: adapter.launcherMode
@@ -114,10 +119,15 @@ Singleton {
             property bool barClock: true
             property bool barMedia: true
 
-            // control-core presentation: drawer width (px, clamped by consumer)
-            // and popout mode (centered card instead of right drawer)
-            property int panelW: 464
-            property bool panelPopout: false
+            // control-core presentation: card width (px, clamped by consumer),
+            // horizontal placement (center|left|right) and last visited page
+            property int panelW: 880
+            property string panelAnchor: "center"
+            property int panelLastPage: 0
+
+            // picker view mode (carousel|grid); launcher card width
+            property string pickerMode: "carousel"
+            property int launcherW: 640
 
             // launcher: view mode (grid|list), placement (center|left|top),
             // pinned + recent app ids as JSON arrays

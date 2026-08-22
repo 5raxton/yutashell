@@ -6,11 +6,11 @@ import qs.modules.common
 import "../common/ui"
 import "ui"
 
-// CONTACT.SHEET — wallpaper browser docked to the right edge, full height.
-// Same header/footer language as the control core so the two panels read as
-// siblings. Columns adapt to available width; typing filters, arrows walk the
-// cursor, enter applies, esc clears/closes. Picking runs the full pipeline:
-// awww paint -> matugen -> every enabled template -> live shell recolor.
+// WALLPAPER.DECK — default view is a Hearthstone-style carousel: one large
+// hero tile flanked by dimmed, scaled-down neighbors you flip through with
+// wheel/arrows/drag; clicking the hero applies it (awww paint -> matugen ->
+// templates -> live recolor). A contact-sheet GRID mode remains available;
+// the choice persists. Both modes live on the same drop-from-the-bar card.
 PanelWindow {
     id: root
 
@@ -24,24 +24,26 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.pickerOpen || hideDelay.running
+    // input lands ONLY on the card — desktop around it stays live
     mask: Region {
-        item: ShellState.pickerOpen ? contentRoot : null
+        item: ShellState.pickerOpen ? sheet : null
     }
 
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: ShellState.pickerOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
+    readonly property bool carousel: ShellState.pickerMode !== "grid"
     readonly property int pad: Theme.sp4
-    readonly property int sheetW: Math.max(560, Math.min(920, contentRoot.width - 140))
-    // adaptive columns — no dead space at any window size
-    readonly property int cols: {
-        const avail = sheetW - pad * 2 - Theme.sp2;
-        return Math.max(3, Math.floor(avail / 200));
-    }
+    readonly property int cardW: Math.max(760, Math.min(1040, contentRoot.width - Theme.outerPad * 4))
+    readonly property int cardH: Math.min(680, contentRoot.height - Theme.barHeight - Theme.outerPad * 2 - 24)
+    // hero geometry (carousel)
+    readonly property int heroW: Math.min(600, cardW - Theme.sp5 * 3)
+    readonly property int heroImgH: Math.round(heroW * 0.58)
+    // sheet geometry (grid mode)
     readonly property int gridGap: Theme.sp2
+    readonly property int cols: Math.max(3, Math.floor((cardW - pad * 2 - Theme.sp2) / 200))
     readonly property string homePrefix: Quickshell.env("HOME")
 
-    // ---- filtered index + keyboard cursor ----
     property string query: ""
     property int cursorIdx: 0
 
@@ -56,37 +58,24 @@ PanelWindow {
     function syncCursorToCurrent() {
         const idx = filtered.findIndex(e => e.path === Wallpaper.current);
         cursorIdx = idx >= 0 ? idx : 0;
-        if (filtered.length > 0 && grid.visible)
-            grid.positionViewAtIndex(cursorIdx, GridView.Contain);
     }
 
     function moveCursor(delta) {
         if (filtered.length === 0)
             return;
-        const next = Math.max(0, Math.min(filtered.length - 1, cursorIdx + delta));
-        if (next !== cursorIdx) {
-            cursorIdx = next;
-            grid.positionViewAtIndex(next, GridView.Contain);
-        }
+        cursorIdx = Math.max(0, Math.min(filtered.length - 1, cursorIdx + delta));
     }
 
     function pick(idx) {
         if (idx < 0 || idx >= filtered.length)
             return;
         Wallpaper.apply(filtered[idx].path);
-        ShellState.closePicker();
-    }
-
-    onQueryChanged: {
-        cursorIdx = 0;
-        if (grid.visible && filtered.length > 0)
-            grid.positionViewAtBeginning();
     }
 
     Timer {
         id: hideDelay
 
-        interval: 170
+        interval: Theme.movMed
     }
 
     Timer {
@@ -105,67 +94,20 @@ PanelWindow {
 
         anchors.fill: parent
 
-        // ---- dim scrim ----
-        Rectangle {
-            anchors.fill: parent
-            color: "#000000"
-            opacity: ShellState.pickerOpen ? 0.55 : 0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.movFast
-                    easing.type: Easing.OutCubic
-                }
-            }
+        Keys.onEscapePressed: {
+            if (root.query.length > 0)
+                root.query = "";
+            else
+                ShellState.closePicker();
         }
 
-        MouseArea {
-            anchors.fill: parent
-            enabled: ShellState.pickerOpen
-            onClicked: ShellState.closePicker()
-        }
-
-        // ===== SHEET =====
-        Rectangle {
+        YSurface {
             id: sheet
 
-            width: root.sheetW
-            height: parent.height
-            x: ShellState.pickerOpen ? parent.width - width : parent.width
-            color: Theme.bgAlt
-            border.width: 1
-            border.color: Theme.lineStrong
-            layer.enabled: true
-            layer.smooth: true
-
-            Behavior on x {
-                NumberAnimation {
-                    duration: Theme.movMed
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: mouse => mouse.accepted = true
-            }
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 1
-                color: Theme.lineStrong
-            }
-
-            // corner tick motif — matches control core
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                width: 2
-                height: 26
-                color: Theme.acid
-            }
+            open: ShellState.pickerOpen
+            anchorX: "center"
+            cardW: root.cardW
+            cardH: root.cardH
 
             // ===== HEADER =====
             Item {
@@ -201,22 +143,12 @@ PanelWindow {
                     anchors.left: logo.right
                     anchors.leftMargin: Theme.sp2
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "CONTACT.SHEET"
+                    text: "WALLPAPER.DECK"
                     color: Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsBody
                     font.weight: Font.ExtraBold
                     font.letterSpacing: 1.5
-                }
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: titleText.right
-                    anchors.leftMargin: 5
-                    width: 4
-                    height: 12
-                    color: Theme.acid
-                    visible: root.blinkOn
                 }
 
                 Text {
@@ -231,14 +163,48 @@ PanelWindow {
                 }
 
                 Row {
-                    anchors.right: parent.right
+                    anchors.right: modeRow.left
+                    anchors.rightMargin: Theme.sp3
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.sp1
 
                     YChip {
                         anchors.verticalCenter: parent.verticalCenter
-                        label: Wallpaper.scanning ? "scanning…" : root.filtered.length + " imgs"
+                        label: Wallpaper.scanning ? "scanning…" : (root.carousel ? (root.filtered.length > 0 ? (root.cursorIdx + 1) + " / " + root.filtered.length : "0 imgs") : root.filtered.length + " imgs")
                     }
+                }
+
+                Row {
+                    id: modeRow
+
+                    anchors.right: closeBtn.left
+                    anchors.rightMargin: Theme.sp2
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.sp1
+
+                    YButton {
+                        width: 84
+                        label: "deck"
+                        tone: root.carousel ? "acid" : "default"
+                        onClicked: ShellState.set("pickerMode", "carousel")
+                    }
+
+                    YButton {
+                        width: 84
+                        label: "sheet"
+                        tone: root.carousel ? "default" : "acid"
+                        onClicked: ShellState.set("pickerMode", "grid")
+                    }
+                }
+
+                YButton {
+                    id: closeBtn
+
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 30
+                    label: "×"
+                    onClicked: ShellState.closePicker()
                 }
             }
 
@@ -250,14 +216,186 @@ PanelWindow {
                 color: Theme.hairline
             }
 
-            // ===== SEARCH ROW =====
+            // ===== DECK (carousel) =====
+            ListView {
+                id: deck
+
+                readonly property int cellW: root.heroW + Theme.sp4
+
+                anchors.top: parent.top
+                anchors.topMargin: Theme.headH + Theme.sp4
+                anchors.bottom: footer.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                visible: root.carousel
+                clip: false
+                orientation: ListView.Horizontal
+                spacing: 0
+                model: root.filtered
+                currentIndex: root.cursorIdx
+                onCurrentIndexChanged: if (root.cursorIdx !== currentIndex)
+                    root.cursorIdx = currentIndex
+                preferredHighlightBegin: (width - cellW) / 2
+                preferredHighlightEnd: preferredHighlightBegin + cellW
+                highlightRangeMode: ListView.StrictlyEnforceRange
+                snapMode: ListView.SnapToItem
+                cacheBuffer: width
+                boundsBehavior: Flickable.StopAtBounds
+                flickDeceleration: 6000
+
+                WheelHandler {
+                    acceptedModifiers: Qt.NoModifier
+                    activeTimeout: 0.3
+
+                    onWheel: event => {
+                        const d = Math.abs(event.angleDelta.y) >= Math.abs(event.angleDelta.x) ? event.angleDelta.y : -event.angleDelta.x;
+                        if (d === 0)
+                            return;
+                        root.moveCursor(d > 0 ? -1 : 1);
+                        event.accepted = true;
+                    }
+                }
+
+                delegate: Item {
+                    id: hero
+
+                    required property var modelData
+                    required property int index
+
+                    readonly property bool isCur: ListView.isCurrentItem
+
+                    width: deck.cellW
+                    height: deck.height
+
+                    scale: isCur ? 1 : 0.84
+                    opacity: isCur ? 1 : 0.42
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Theme.movMed
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.movMed
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Rectangle {
+                        id: heroCard
+
+                        x: (parent.width - root.heroW) / 2
+                        y: (parent.height - height) / 2
+                        width: root.heroW
+                        height: root.heroImgH + 34
+                        color: Theme.bg
+                        border.width: 1
+                        border.color: hero.isCur ? Theme.acid : Theme.hairline
+
+                        Image {
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            anchors.bottomMargin: 34
+                            source: hero.visible && ShellState.pickerOpen ? "file://" + hero.modelData.path : ""
+                            sourceSize.width: hero.isCur ? 640 : 256
+                            sourceSize.height: hero.isCur ? 400 : 160
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: false
+                        }
+
+                        // label strip
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 32
+                            color: Theme.bgAlt
+
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 1
+                                color: Theme.hairline
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.sp2
+                                anchors.right: idxLabel.left
+                                anchors.rightMargin: Theme.sp2
+                                text: hero.modelData.label
+                                color: hero.isCur ? Theme.ink : Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                font.letterSpacing: 0.5
+                                elide: Text.ElideMiddle
+                            }
+
+                            Text {
+                                id: idxLabel
+
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.sp2
+                                text: String(hero.index + 1).padStart(3, "0")
+                                color: hero.isCur ? Theme.acid : Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsMicro
+                                font.weight: Font.Bold
+                            }
+                        }
+
+                        // current-tick motif
+                        Rectangle {
+                            visible: hero.isCur
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.margins: 2
+                            width: 9
+                            height: 9
+                            color: Theme.acid
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: {
+                            if (!hero.isCur) {
+                                root.cursorIdx = hero.index;
+                                return;
+                            }
+                            root.pick(hero.index);
+                        }
+                    }
+                }
+            }
+
+            Text {
+                anchors.centerIn: deck
+                visible: root.carousel && root.filtered.length === 0
+                text: Wallpaper.entries.length === 0 ? "index empty — add images to ~/Pictures/Wallpapers" : "no match for \"" + root.query + "\""
+                color: Theme.faint
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fsLabel
+                font.letterSpacing: 1
+            }
+
+            // ===== SEARCH ROW (sheet mode) =====
             Item {
                 id: searchRow
 
                 x: root.pad
                 y: Theme.headH + Theme.sp3
                 width: parent.width - root.pad * 2 - 1
-                height: Theme.ctlH
+                height: root.carousel ? 0 : Theme.ctlH
+                visible: !root.carousel
 
                 Rectangle {
                     id: searchBox
@@ -267,7 +405,6 @@ PanelWindow {
                     border.width: 1
                     border.color: queryInput.activeFocus || root.query.length > 0 ? Theme.lineStrong : Theme.hairline
 
-                    // acid focus bar
                     Rectangle {
                         anchors.left: parent.left
                         anchors.top: parent.top
@@ -276,49 +413,6 @@ PanelWindow {
                         color: queryInput.activeFocus ? Theme.acid : "transparent"
                     }
 
-                    // hidden capture input: owns ALL key handling while the
-                    // picker is open (printable chars land as text; every
-                    // navigation key is intercepted below)
-                    TextInput {
-                        id: queryInput
-
-                        anchors.fill: parent
-                        visible: false
-                        activeFocusOnPress: false
-                        color: Theme.ink
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsBody
-                        clip: true
-                        onTextChanged: root.query = text
-
-                        Keys.onPressed: event => {
-                            if (event.key === Qt.Key_Escape) {
-                                if (root.query.length > 0) {
-                                    text = "";
-                                    event.accepted = true;
-                                } else {
-                                    ShellState.closePicker();
-                                }
-                            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                root.pick(root.cursorIdx);
-                                event.accepted = true;
-                            } else if (event.key === Qt.Key_Left) {
-                                root.moveCursor(-1);
-                                event.accepted = true;
-                            } else if (event.key === Qt.Key_Right) {
-                                root.moveCursor(1);
-                                event.accepted = true;
-                            } else if (event.key === Qt.Key_Up) {
-                                root.moveCursor(-root.cols);
-                                event.accepted = true;
-                            } else if (event.key === Qt.Key_Down) {
-                                root.moveCursor(root.cols);
-                                event.accepted = true;
-                            }
-                        }
-                    }
-
-                    // rendered query + block cursor
                     Row {
                         anchors.left: parent.left
                         anchors.leftMargin: Theme.sp2 + 2
@@ -372,7 +466,43 @@ PanelWindow {
                 }
             }
 
-            // ===== GRID =====
+            // hidden capture input: owns ALL key handling while open
+            TextInput {
+                id: queryInput
+
+                visible: false
+                activeFocusOnPress: false
+                color: Theme.ink
+                onTextChanged: root.query = text
+
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape) {
+                        if (root.query.length > 0) {
+                            text = "";
+                            event.accepted = true;
+                        } else {
+                            ShellState.closePicker();
+                        }
+                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        root.pick(root.cursorIdx);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Left) {
+                        root.moveCursor(-1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Right) {
+                        root.moveCursor(1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Up && !root.carousel) {
+                        root.moveCursor(-root.cols);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Down && !root.carousel) {
+                        root.moveCursor(root.cols);
+                        event.accepted = true;
+                    }
+                }
+            }
+
+            // ===== GRID (contact sheet) =====
             GridView {
                 id: grid
 
@@ -384,12 +514,15 @@ PanelWindow {
                 width: parent.width - root.pad * 2 - 1
                 height: parent.height - y - Theme.footH - Theme.sp3
                 clip: true
+                visible: !root.carousel && root.filtered.length > 0
                 boundsBehavior: Flickable.StopAtBounds
                 flickDeceleration: 4000
                 cellWidth: cellW + root.gridGap
                 cellHeight: cellH + root.gridGap
                 model: root.filtered
-                visible: root.filtered.length > 0
+
+                FastWheel {
+                }
 
                 delegate: PickerTile {
                     width: grid.cellW
@@ -401,18 +534,18 @@ PanelWindow {
                 }
             }
 
-            // scroll indicator — sibling overlay, never scrolls with content
             YScroll {
                 target: grid
                 x: grid.x + grid.width + 3
                 y: grid.y
                 width: 3
                 height: grid.height
+                visible: grid.visible
             }
 
             Text {
                 anchors.centerIn: grid
-                visible: root.filtered.length === 0
+                visible: !root.carousel && root.filtered.length === 0
                 text: Wallpaper.entries.length === 0 ? "index empty — add images to ~/Pictures/Wallpapers" : "no match for \"" + root.query + "\""
                 color: Theme.faint
                 font.family: Theme.fontFamily
@@ -459,6 +592,16 @@ PanelWindow {
                     anchors.rightMargin: root.pad
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.sp2
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: !Wallpaper.generating
+                        text: root.carousel ? "wheel/←→ flip · click hero applies" : "type to filter · enter applies"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        font.letterSpacing: 0.8
+                    }
 
                     Rectangle {
                         visible: Wallpaper.generating

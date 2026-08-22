@@ -45,8 +45,11 @@ Singleton {
     readonly property int footH: 32       // panel footer band
 
     // ---- motion: positional indicators only; hover/focus snap ----
+    // movFast/movMed: indicators + small moves. movSlow: surface entrances
+    // (the shared drop-from-behind-the-bar choreography).
     readonly property int movFast: 120
     readonly property int movMed: 160
+    readonly property int movSlow: 260
 
     readonly property int barHeight: 44
     readonly property int outerPad: 14

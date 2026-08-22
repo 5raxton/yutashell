@@ -20,10 +20,11 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
 - **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. **Light mode** regenerates every palette at runtime (paper surfaces, ink text, contrast-fitted accents); an **accent override** lets any color take the acid slot. Japanese labels auto-degrade to romaji when no CJK font is present.
 - **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
 - **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change
-- **Settings panel** (`modules/settings/`): right-side drawer — scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, system/about tabs
-- **Wallpaper picker** (`modules/picker/`): standalone overlay panel with searchable thumbnail grid — bind it to its own key and swap wallpapers without touching settings; picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
-- **App launcher** (`modules/launcher/`): centered overlay indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, view mode, pins and recents persist.
-- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
+- **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — bar-style tab strip with sliding acid underline, scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, placement (center/left/right) + width customization, system/about tabs; remembers your last visited tab
+- **Wallpaper picker** (`modules/picker/`): standalone surface in two modes — a **carousel deck** (Hearthstone-style: snap-scrolling hero cards, neighbors dimmed, wheel to flip, click to apply) or the classic searchable thumbnail grid ("sheet"); picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
+- **App launcher**: centered card dropping from beneath the bar, indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
+- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll / YSurface / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
+- **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit) and never dims the desktop — input is masked to the card so the rest of the screen stays live
 
 ## Requirements
 
@@ -129,7 +130,7 @@ Everything the shell writes lives under `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/pins/recents) |
+| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/width/pins/recents), settings panel (placement/width/last page), picker mode |
 | `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
 | `matugen.toml` | generated matugen config assembled from the template registry |
 
