@@ -25,6 +25,7 @@ Singleton {
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
     readonly property alias wallpaperPath: adapter.wallpaperPath
+    readonly property alias templatesJson: adapter.templatesJson
     readonly property alias barTray: adapter.barTray
     readonly property alias barStats: adapter.barStats
     readonly property alias barClock: adapter.barClock
