@@ -70,21 +70,33 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
 
             TrayCluster {
+                id: trayModule
                 tip: root.tip
                 visible: ShellState.barTray
             }
 
             DividerV {
-                visible: ShellState.barTray && ShellState.barStats
+                visible: ShellState.barTray && mediaModule.visible
+            }
+
+            MediaBlock {
+                id: mediaModule
+                tip: root.tip
+                visible: ShellState.barMedia && mediaModule.player !== null
+            }
+
+            DividerV {
+                visible: mediaModule.visible && ShellState.barStats
             }
 
             StatsCluster {
+                id: statsModule
                 tip: root.tip
                 visible: ShellState.barStats
             }
 
             DividerV {
-                visible: (ShellState.barTray || ShellState.barStats) && ShellState.barClock
+                visible: (ShellState.barTray || mediaModule.visible || ShellState.barStats) && ShellState.barClock
             }
 
             ClockBlock {

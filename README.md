@@ -3,17 +3,18 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** WIP — Phase 1 (taskbar), Phase 2 (theme engine + matugen) done, Phase 3 (settings panel) mostly done. See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
+> **Status:** WIP — Phases 0–2 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen), Phase 3 (settings panel) mostly done. See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
 
 ![screenshot placeholder — add one when the shell stabilizes]
 
 ## Features (current)
 
-- **Taskbar** (`modules/bar/`)
+- **Taskbar** (`modules/bar/`) — one bar window per connected screen, hot-plug aware
   - Identity block (`YUTA//OS`) with blinking cursor, hover inversion; **left-click opens the settings panel**
   - Workspace switcher: dynamic slots, occupied/empty/urgent states, acid underline that slides to the focused workspace, red blink on window-urgent events
   - Focused-window title with app class, tracked via Hyprland's event stream
   - System tray (StatusNotifier): left-click menus, middle-click secondary actions, wheel scroll
+  - Media segment: MPRIS now-playing ticker between tray and stats — prefers the playing player, marquee track line while playing, click play/pause, wheel next/prev, hover tooltip; toggleable in settings
   - Live stats cluster: network down/up rates, CPU % + VU meter, memory %, battery % with charging/low states
   - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed
 - **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. Japanese labels auto-degrade to romaji when no CJK font is present.
@@ -91,20 +92,22 @@ If your config wraps dispatches in a dispatcher layer (e.g. this machine's Helms
 
 ```
 yutashell/
-├── shell.qml                  # entry point + IpcHandlers
+├── shell.qml                  # entry point + per-screen Variants + IpcHandlers
 ├── theme/
 │   ├── qmldir                 # singleton registration
 │   ├── Theme.qml              # design tokens + scheme engine + contrast check
 │   ├── schemes/               # static preset palettes (12 schemes)
-│   └── matugen/               # our own matugen template → theme.json
+│   └── matugen/               # our own template + vendored catalog → theme.json
 ├── modules/
-│   ├── bar/                   # taskbar (see Phase 1 in ROADMAP)
+│   ├── bar/                   # taskbar: identity, workspaces, active window,
+│   │                          # tray, media ticker, stats, clock + ui/
 │   ├── common/
 │   │   ├── ShellState.qml     # runtime state + persisted prefs singleton
-│   │   └── Wallpaper.qml      # index/apply pipeline, template registry
-│   └── settings/
-│       ├── SettingsPanel.qml  # right drawer: tabs, pages
-│       └── ui/                # switches, tiles, fields, labels, buttons
+│   │   ├── TemplateCatalog.qml# vendored matugen-themes registry
+│   │   ├── Wallpaper.qml      # index/apply pipeline, template registry
+│   │   └── ui/                # YButton/YSwitch/YRow/YSection/YField/YChip/YScroll
+│   ├── picker/                # standalone wallpaper picker + ui/
+│   └── settings/              # control-core drawer + ui/
 ```
 
 ## Environment notes

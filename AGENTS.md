@@ -18,10 +18,13 @@ Quickshell config for Hyprland. Entry: `shell.qml`. Design tokens in `theme/Them
 ## Verified environment facts (this machine)
 
 - Quickshell 0.3.1. `Hyprland.activeToplevel` never populates — track focused windows via `activewindow`/`activewindowv2` raw events + one-shot `hyprctl -j activewindow` probe.
+- Per-monitor surfaces: `Variants { model: Quickshell.screens; Bar { required property var modelData; screen: modelData } }` — verified working for the bar; instances follow hot-plug. Known limitation: the shared Tooltip window sits on one screen, so tooltips triggered from another monitor's bar can misposition (fine single-monitor; fix when multi-monitor matters).
+- `Quickshell.Services.Mpris` verified: `Mpris.players.values`; player has `identity`, `isPlaying`, `trackArtist`/`trackTitle`, `canTogglePlaying`/`togglePlaying()`, `canGoNext/Previous`/`next()`/`previous()`, `volume`+`volumeSupported`. Used by the bar media segment (`modules/bar/MediaBlock.qml`).
 - Hyprland runs the **Helmsman Lua dispatcher**: raw dispatch strings (`workspace 3`) fail; wrapper functions send Lua-form dispatches like `hl.dsp.focus({ workspace = "N" })`.
 - Wallpaper engine is **awww** (`awww-daemon`, not swww/hyprpaper). matugen installed.
 - No CJK font → `Theme.jpEnabled` false → romaji fallbacks everywhere.
 - `~/.local/state/yutashell/` holds all runtime files: state.json, theme.json, matugen.toml. Nothing else writes dotfiles.
+- Deps present: grim, slurp, wl-copy, cliphist, nvidia-smi (RTX 5080 — GPU stats via batched `nvidia-smi --query-gpu=...`), gpu-screen-recorder 6.x. Absent: cava, hyprsunset, ddcutil (**no `/sys/class/backlight` — desktop box**), powerprofilesctl, hyprpicker. Features needing absent deps must hide gracefully (ROADMAP tracks which phase gates each).
 
 ## Hard-won lessons (do not regress these)
 

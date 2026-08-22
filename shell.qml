@@ -12,8 +12,17 @@ ShellRoot {
         id: tooltip
     }
 
-    Bar {
-        tip: tooltip
+    // one bar window per connected screen; instances appear/disappear with
+    // monitor hot-plug
+    Variants {
+        model: Quickshell.screens
+
+        Bar {
+            required property var modelData
+
+            screen: modelData
+            tip: tooltip
+        }
     }
 
     SettingsPanel {}

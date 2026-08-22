@@ -43,6 +43,7 @@ Singleton {
     readonly property alias barTray: adapter.barTray
     readonly property alias barStats: adapter.barStats
     readonly property alias barClock: adapter.barClock
+    readonly property alias barMedia: adapter.barMedia
 
     // control-core presentation
     readonly property alias panelW: adapter.panelW
@@ -88,6 +89,7 @@ Singleton {
             property bool barTray: true
             property bool barStats: true
             property bool barClock: true
+            property bool barMedia: true
 
             // control-core presentation: drawer width (px, clamped by consumer)
             // and popout mode (centered card instead of right drawer)

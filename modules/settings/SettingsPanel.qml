@@ -852,6 +852,11 @@ PanelWindow {
                                 sub: "network · cpu · memory · battery"
                             },
                             {
+                                key: "barMedia",
+                                title: "Media segment",
+                                sub: "mpris now-playing ticker"
+                            },
+                            {
                                 key: "barClock",
                                 title: "Clock block",
                                 sub: "time · date" + (Theme.jpEnabled ? " · kanji weekday" : "")
