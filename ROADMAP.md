@@ -14,8 +14,8 @@ These rules keep the shell coherent as it grows. Breaking them creates rework la
 - [x] Single source of truth for visuals: everything reads colors/fonts/metrics from the `Theme` singleton (`theme/Theme.qml`, imported as `qs.theme`). No hardcoded colors in modules — this contract is what makes matugen-driven recoloring possible without touching module code.
 - [x] Imports use the quickshell scheme: `import qs.theme` for tokens, `import qs.modules.<name>` style relative imports within a module folder, `import "ui"` for a module's private components.
 - [x] Module folders are self-contained under `modules/<feature>/` with an entry component named after the feature. Cross-module reuse goes into `modules/common/`.
-- [ ] State persistence pattern: JSON config read/written with `Quickshell.Io.FileView` (`watchChanges` to hot-reload, `writeAdapter()` / `setText()` + `save()` to persist). One file: `~/.local/state/yutashell/state.json`. Modules never write their own dotfiles.
-- [ ] IPC pattern: every user-facing action is exposed through `Quickshell.Io.IpcHandler` so keybinds, CLI, and the settings panel all drive the same functions instead of duplicating logic.
+- [x] State persistence pattern: JSON config read/written with `Quickshell.Io.FileView` (`JsonAdapter` + `writeAdapter()` to persist). One file: `~/.local/state/yutashell/state.json`. Modules never write their own dotfiles.
+- [x] IPC pattern: every user-facing action is exposed through `Quickshell.Io.IpcHandler` so keybinds, CLI, and the settings panel all drive the same functions instead of duplicating logic.
 - [ ] Layer policy: bars/docks use `PanelWindow`; transient UI (launchers, notifications, menus) uses `PanelWindow` with `WlrLayershell.layer: WlrLayer.Overlay` + keyboard focus mode `OnDemand`/`Exclusive`.
 - [ ] Animation policy: hover/focus states snap instantly (brutalist). Only positional indicators (active-workspace underline, drawer slides, popup reveals) animate, 120–180 ms, OutCubic.
 - [ ] Japanese labels: always gate kanji/kana strings behind `Theme.jpEnabled` with a romaji fallback, so the shell never renders tofu boxes on a font-less machine.
@@ -50,35 +50,36 @@ Top bar: identity block, workspace switcher, focused-window title, system tray, 
 - [ ] Per-monitor instances once a second monitor exists (bar currently binds to all screens by default)
 - [ ] Optional media segment (MPRIS track ticker) between tray and stats
 
-## Phase 2 — Theme engine & matugen
+## Phase 2 — Theme engine & matugen ✅ DONE (except light mode)
 
 Goal: wallpaper-driven palettes with user-selectable schemes, applied live across the whole shell by rewriting only token values.
 
 How: matugen generates a palette JSON from the wallpaper; `Theme` loads it at startup and watches it with `FileView { watchChanges: true }` so regenerating a scheme repaints every open surface instantly. All modules already consume only `Theme.*`, so no module code changes — ever.
 
-- [ ] Install matugen (`sudo pacman -S matugen`) and pick wallpaper engine (swww or hyprpaper)
-- [ ] matugen config in `~/.config/matugen/`: template that emits `~/.local/state/yutashell/theme.json` mapping material tones → our token names (`bg`, `ink`, `acid`, `alert`, …)
-- [ ] `Theme` gains dynamic token properties loaded from `theme.json` with hardcoded fallbacks equal to today's defaults
-- [ ] Wallpaper set flow: settings panel / IPC picks image → matugen regenerates → swww transitions → theme.json rewritten → shell recolors
-- [ ] Scheme presets: acid (default), plus 2–3 curated alternates (crimson, cyan, amber) stored as static JSONs selectable without a wallpaper
+- [x] Wallpaper engine picked: **awww** (`awww-daemon`, auto-started detached on first paint; swww rejected)
+- [x] matugen wired through a generated registry config: `~/.local/state/yutashell/matugen.toml` is written from the template registry (Wallpaper.qml `writeGenConfig()`); the shell's own template lives at `theme/matugen/yutashell.json` and emits `~/.local/state/yutashell/theme.json`
+- [x] `Theme` dynamic token engine: `_applyTokens()` maps scheme/wallpaper JSON → tokens with hardcoded defaults as fallback; partial maps legal
+- [x] Wallpaper set flow: settings grid / IPC picks image → matugen regenerates all enabled templates → awww paints → theme.json rewritten → shell recolors live (`FileView.watchChanges`)
+- [x] Scheme presets: acid (default), crimson, cyan, amber — static JSONs in `theme/schemes/`
 - [ ] Light-mode variant pass (paper background, ink text) gated behind a `Theme.dark` flag
-- [ ] Export templates for external apps (Hyprland `colorentry`, foot/kitty, fuzzel) so the whole desktop matches
-- [ ] Contrast self-check: assert ink/bg and accent/bg ratios at load, log warnings
+- [x] Export templates for external apps: per-app template registry (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi + custom entries) editable in settings / via `templates` IPC, persisted in state.json
+- [x] Contrast self-check: ink/bg ≥ 4.5, acid/bg ≥ 3.0, alert/bg ≥ 2.5 asserted at load, warnings logged
 
-## Phase 3 — Settings panel (control core)
+## Phase 3 — Settings panel (control core) ✅ MOSTLY DONE
 
 Goal: one right-side drawer panel that controls appearance, toggles services/modules, and exposes shell actions — the hub the README calls for.
 
-How: `PanelWindow` anchored right with `WlrLayershell` overlay layer, exclusive on demand. Tabs rendered from a declarative page registry so new modules register settings pages themselves. Persistence via the state.json pattern. Opened by keybind through IPC or clicking the identity block (which is already reserved as its trigger).
+How: `PanelWindow` anchored right with `WlrLayershell` overlay layer, exclusive on demand. Tabs rendered from a declarative page registry so new modules register settings pages themselves. Persistence via the state.json pattern. Opened by keybind through IPC or clicking the identity block.
 
-- [ ] Drawer scaffold: right-anchored overlay window, slide-in 160 ms OutCubic, dim scrim over desktop, ESC/click-out closes
-- [ ] Tab framework: Appearance / Modules / Integrations / About
-- [ ] Appearance tab: scheme picker (Phase 2 presets + wallpaper picker grid), accent override swatches, light/dark toggle
-- [ ] Modules tab: toggles for each bar segment + future features, stored in state.json, consumed by Bar layout bindings
-- [ ] Integrations tab: WiFi/BT quick status + "open full panel" links, notification DND switch, autostart entries editor
-- [ ] About tab: version, commit, credits, keybind cheatsheet generated from a single keymap definition file
-- [ ] `IpcHandler` exposing `settings toggle/show`, `scheme set <name>`, `panel toggle` etc.
-- [ ] Identity block left-click opens the panel (replacing the reserved no-op)
+- [x] Drawer scaffold: right-anchored overlay window, slide-in 160 ms OutCubic, dim scrim over desktop, ESC/click-out closes
+- [x] Tab framework: Appearance / Modules / System (stub) / About
+- [x] Appearance tab: scheme preset picker (live swatch previews), wallpaper index grid (thumbnail tiles, rescan/random), matugen template manager (add/remove/enable rows), follow-wallpaper toggle
+- [ ] Appearance tab leftovers: accent override swatches, light/dark toggle (needs Phase 2 light mode)
+- [x] Modules tab: bar segment toggles (tray/stats/clock) stored in state.json, consumed live by Bar layout bindings
+- [ ] Integrations tab: currently phase-stub rows only — wire WiFi/BT status, DND switch, autostart editor when those phases land
+- [x] About tab: version, stack info, live scheme source, IPC cheatsheet
+- [x] `IpcHandler`s exposing `panel toggle/open/close`, `scheme set/list/wallpaper`, `wallpaper set/next/list`, `theme generate <image>`, `templates list/on/off/add/remove`
+- [x] Identity block left-click opens the panel
 
 ## Phase 4 — App launcher
 

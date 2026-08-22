@@ -153,7 +153,13 @@ Singleton {
         property string imagePath: ""
         interval: 250
         onTriggered: {
-            daemonProc.command = ["sh", "-c", "pgrep -x awww-daemon >/dev/null || setsid awww-daemon >/dev/null 2>&1 & sleep 0.4; exec awww img '" + imagePath.replace(/'/g, "'\\''") + "'"];
+            // start the daemon detached if missing, then retry the paint until
+            // its socket is up (fixed sleeps raced and dropped wallpapers)
+            const img = imagePath.replace(/'/g, "'\\''");
+            daemonProc.command = ["sh", "-c",
+                "pgrep -x awww-daemon >/dev/null || setsid awww-daemon >/dev/null 2>&1 &\n" +
+                "for i in 1 2 3 4 5 6 7 8; do awww img '" + img + "' && exit 0; sleep 0.25; done\n" +
+                "echo 'awww img failed after retries' >&2; exit 1"];
             daemonProc.running = true;
         }
     }

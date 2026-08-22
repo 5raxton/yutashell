@@ -22,7 +22,12 @@ Item {
         Image {
             anchors.fill: parent
             anchors.margins: 2
-            source: root.path.length > 0 ? "file://" + root.path : ""
+            // decode a small thumbnail only — full-res decode of every indexed
+            // wallpaper OOM'd the session (7+ GB RSS). sourceSize caps the
+            // decode buffer; the visibility gate defers loads until shown.
+            source: root.path.length > 0 && root.visible ? "file://" + root.path : ""
+            sourceSize.width: 256
+            sourceSize.height: 160
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: true

@@ -3,20 +3,23 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** WIP — Phase 1 (taskbar) is functional. See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
+> **Status:** WIP — Phase 1 (taskbar), Phase 2 (theme engine + matugen) done, Phase 3 (settings panel) mostly done. See [ROADMAP.md](ROADMAP.md) for the full build plan and progress.
 
 ![screenshot placeholder — add one when the shell stabilizes]
 
 ## Features (current)
 
 - **Taskbar** (`modules/bar/`)
-  - Identity block (`YUTA//OS`) with blinking cursor and hover inversion
+  - Identity block (`YUTA//OS`) with blinking cursor, hover inversion; **left-click opens the settings panel**
   - Workspace switcher: dynamic slots, occupied/empty/urgent states, acid underline that slides to the focused workspace, red blink on window-urgent events
   - Focused-window title with app class, tracked via Hyprland's event stream
   - System tray (StatusNotifier): left-click menus, middle-click secondary actions, wheel scroll
   - Live stats cluster: network down/up rates, CPU % + VU meter, memory %, battery % with charging/low states
   - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed
-- **Theme system** (`theme/`): every color/font/metric lives in one singleton. Japanese labels auto-degrade to romaji when no CJK font is present — no tofu boxes.
+- **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Four curated scheme presets (acid/crimson/cyan/amber) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. Japanese labels auto-degrade to romaji when no CJK font is present.
+- **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
+- **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change
+- **Settings panel** (`modules/settings/`): right-side drawer — scheme picker with live swatch previews, wallpaper grid with thumbnails, template manager, bar segment toggles, system/about tabs
 
 ## Requirements
 
@@ -28,7 +31,13 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   sudo pacman -S --needed ttf-jetbrains-mono-nerd noto-fonts-cjk
   ```
 
-- Optional: `matugen`, `grim`, `slurp`, `wl-clipboard`, `cliphist`, `brightnessctl` (used by later roadmap phases)
+- Optional (needed for wallpaper theming): `matugen`, `awww` — used by the scheme engine:
+
+  ```
+  sudo pacman -S --needed matugen awww
+  ```
+
+- Later phases will use: `grim`, `slurp`, `wl-clipboard`, `cliphist`, `brightnessctl`
 
 ## Run
 
@@ -38,25 +47,59 @@ quickshell -p ~/.config/quickshell/yutashell
 
 Or set it as your session shell by launching that command from your Hyprland/Helmsman autostart.
 
+## Keybinds & IPC
+
+Every user-facing action is exposed over Quickshell's IPC, so keybinds, CLI, and the settings panel all drive the same functions. The general form is:
+
+```
+qs ipc call <target> <function> [args...]
+```
+
+| target | function | what it does |
+|---|---|---|
+| `panel` | `toggle` / `open` / `close` | settings drawer |
+| `scheme` | `set <name>` | apply a preset: `acid`, `crimson`, `cyan`, `amber` |
+| `scheme` | `list` | print available preset ids |
+| `scheme` | `wallpaper` | re-follow the last applied wallpaper's palette |
+| `wallpaper` | `set <path>` | set + paint + regenerate palette for an image |
+| `wallpaper` | `next` | cycle to the next indexed wallpaper |
+| `wallpaper` | `list` | print every indexed wallpaper path |
+| `theme` | `generate <image>` | same as `wallpaper set` (explicit alias) |
+| `templates` | `list` | show template registry with enabled state |
+| `templates` | `on <id>` / `off <id>` | enable/disable a template |
+| `templates` | `add <id> <input> <output>` | register a custom matugen template |
+| `templates` | `remove <id>` | remove one |
+
+### Hyprland binds (standard setup)
+
+Add to your `hyprland.conf` (or Helmsman equivalent):
+
+```
+bind = SUPER, S, exec, qs ipc call panel toggle
+bind = SUPER, W, exec, qs ipc call wallpaper next
+bind = SUPERSHIFT, C, exec, qs ipc call scheme set crimson
+```
+
+If your config wraps dispatches in a dispatcher layer (e.g. this machine's Helmsman Lua dispatcher), route the command through that layer's exec wrapper instead — the shell side is plain `exec`, no special dispatch strings needed.
+
 ## Project structure
 
 ```
 yutashell/
-├── shell.qml                  # entry point
+├── shell.qml                  # entry point + IpcHandlers
 ├── theme/
 │   ├── qmldir                 # singleton registration
-│   └── Theme.qml              # design tokens: palette, type, metrics, JP detection
-└── modules/
-    └── bar/
-        ├── Bar.qml            # panel window + layout + urgent-event routing
-        ├── IdentityBlock.qml
-        ├── Workspaces.qml
-        ├── ActiveWindow.qml
-        ├── TrayCluster.qml
-        ├── StatsCluster.qml
-        ├── ClockBlock.qml
-        └── ui/
-            └── DividerV.qml   # hairline divider with crosshair marks
+│   ├── Theme.qml              # design tokens + scheme engine + contrast check
+│   ├── schemes/               # static preset palettes (acid/crimson/cyan/amber)
+│   └── matugen/               # our own matugen template → theme.json
+├── modules/
+│   ├── bar/                   # taskbar (see Phase 1 in ROADMAP)
+│   ├── common/
+│   │   ├── ShellState.qml     # runtime state + persisted prefs singleton
+│   │   └── Wallpaper.qml      # index/apply pipeline, template registry
+│   └── settings/
+│       ├── SettingsPanel.qml  # right drawer: tabs, pages
+│       └── ui/                # switches, tiles, fields, labels, buttons
 ```
 
 ## Environment notes
@@ -65,6 +108,16 @@ This shell is tuned to this machine's setup; two quirks are load-bearing:
 
 1. **Helmsman Lua dispatcher.** This system's Hyprland wraps all IPC dispatches in Lua, so plain dispatch strings like `workspace 3` fail. All compositor actions go through wrapper functions using Lua-form dispatches, e.g. `Workspaces.switchTo(id)` sends `hl.dsp.focus({ workspace = "N" })`. If you ever remove Helmsman, change those wrappers back to standard dispatch strings.
 2. **`Hyprland.activeToplevel` stays null** on this Quickshell build, so the focused-window title is derived from `activewindow` / `activewindowv2` raw events plus a one-shot `hyprctl -j activewindow` query at startup.
+
+## Files written at runtime
+
+Everything the shell writes lives under `~/.local/state/yutashell/`:
+
+| file | purpose |
+|---|---|
+| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, bar segment toggles, template registry |
+| `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
+| `matugen.toml` | generated matugen config assembled from the template registry |
 
 ## Theming contract
 
