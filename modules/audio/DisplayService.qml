@@ -2,6 +2,7 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.modules.common
 
 // External-display brightness over ddcutil. This box has no internal
 // backlight; when ddcutil is absent the whole surface degrades to a no-op
@@ -53,6 +54,10 @@ Singleton {
             onStreamFinished: {
                 root._probed = true;
                 root._ddcOk = text.trim() === "yes";
+                if (!root._ddcOk)
+                    Health.report("ddcutil", "monitor brightness unavailable (install ddcutil)");
+                else
+                    Health.clear("ddcutil");
                 if (root._ddcOk) {
                     detectProc.command = ["sh", "-c", "ddcutil detect --terse 2>/dev/null | grep -E '^Display [0-9]+' | sed 's/Display //'"];
                     detectProc.running = true;

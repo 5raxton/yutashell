@@ -1,0 +1,149 @@
+pragma Singleton
+import Quickshell
+import Quickshell.Io
+import QtQuick
+import qs.modules.common
+
+// Weather (PH.11) — open-meteo fetch via curl, cached to
+// ~/.local/state/yutashell/weather.json so a cold boot still shows the last
+// conditions. Location is manual (lat/lon + label in ShellState); units follow
+// ShellState.weatherUnit (celsius|fahrenheit). Refreshes every 30 min.
+Singleton {
+    id: root
+
+    readonly property bool available: _probed && _curlOk
+    property bool _curlOk: false
+    property bool _probed: false
+
+    readonly property bool configured: String(ShellState.weatherLat).length > 0 && String(ShellState.weatherLon).length > 0
+
+    property bool fetching: false
+    property string error: ""
+    property date lastFetch: new Date(0)
+
+    // current conditions
+    property var current: null   // {temp, code, wind, time}
+    property var forecast: []    // [{date, max, min, code}]
+
+    function refresh() {
+        if (!root.configured || !root.available)
+            return;
+        root.fetching = true;
+        fetchProc.command = ["curl", "-s", "--max-time", "10",
+            "https://api.open-meteo.com/v1/forecast?latitude=" + ShellState.weatherLat + "&longitude=" + ShellState.weatherLon + "&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&temperature_unit=" + ShellState.weatherUnit + "&forecast_days=5"];
+        fetchProc.running = true;
+    }
+
+    // WMO weather code → { glyph, label }
+    function codeInfo(code) {
+        const c = Number(code);
+        if (c === 0)
+            return ["☀", "CLEAR"];
+        if (c <= 3)
+            return ["◐", "PARTLY CLOUDY"];
+        if (c === 45 || c === 48)
+            return ["≡", "FOG"];
+        if (c >= 51 && c <= 57)
+            return ["∴", "DRIZZLE"];
+        if (c >= 61 && c <= 67)
+            return ["≋", "RAIN"];
+        if (c >= 71 && c <= 77)
+            return ["❄", "SNOW"];
+        if (c >= 80 && c <= 82)
+            return ["▽", "SHOWERS"];
+        if (c >= 95)
+            return ["⚡", "STORM"];
+        return ["·", "—"];
+    }
+
+    function _parse(raw) {
+        try {
+            const j = JSON.parse(raw);
+            const cw = j.current_weather ?? {};
+            root.current = {
+                temp: Math.round(cw.temperature ?? 0),
+                code: cw.weathercode ?? 0,
+                wind: Math.round(cw.windspeed ?? 0),
+                time: cw.time ?? ""
+            };
+            const d = j.daily ?? {};
+            const times = d.time ?? [];
+            const maxs = d.temperature_2m_max ?? [];
+            const mins = d.temperature_2m_min ?? [];
+            const codes = d.weathercode ?? [];
+            const out = [];
+            for (let i = 0; i < times.length; i++)
+                out.push({
+                    date: times[i],
+                    max: Math.round(maxs[i] ?? 0),
+                    min: Math.round(mins[i] ?? 0),
+                    code: codes[i] ?? 0
+                });
+            root.forecast = out;
+            root.lastFetch = new Date();
+            root.error = "";
+            // cache the raw payload for boot-time
+            cacheFile.setText(raw);
+        } catch (e) {
+            root.error = "parse error";
+        }
+    }
+
+    Component.onCompleted: {
+        binProbe.command = ["sh", "-c", "command -v curl >/dev/null 2>&1 && echo yes || echo no"];
+        binProbe.running = true;
+        // seed from cache if present
+        try {
+            if (cacheFile.text().trim().length > 0)
+                root._parse(cacheFile.text());
+        } catch (e) {
+        }
+    }
+
+    Process {
+        id: binProbe
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root._probed = true;
+                root._curlOk = text.trim() === "yes";
+                if (root._curlOk && root.configured)
+                    root.refresh();
+            }
+        }
+    }
+
+    Process {
+        id: fetchProc
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.fetching = false;
+                root._parse(this.text);
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (this.text.trim().length > 0)
+                    root.error = this.text.trim();
+            }
+        }
+    }
+
+    FileView {
+        id: cacheFile
+
+        path: Quickshell.env("HOME") + "/.local/state/yutashell/weather.json"
+        printErrors: false
+        blockLoading: true
+    }
+
+    // refresh every 30 min
+    Timer {
+        interval: 1800000
+        running: true
+        repeat: true
+        triggeredOnStart: false
+        onTriggered: root.refresh()
+    }
+}

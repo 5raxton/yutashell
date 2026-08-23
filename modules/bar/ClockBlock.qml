@@ -1,5 +1,6 @@
 import QtQuick
 import qs.theme
+import qs.modules.common
 
 Item {
     id: root
@@ -11,6 +12,14 @@ Item {
     property bool colonOn: true
 
     readonly property var weekdayKanji: ["月", "火", "水", "木", "金", "土", "日"]
+
+    // click opens the calendar (PH.11)
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: ShellState.toggleCalendar()
+    }
 
     Timer {
         interval: 1000

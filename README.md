@@ -3,7 +3,7 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** Phases 0–10 complete — foundations, per-monitor taskbar, theme engine + matugen (incl. generated light mode), settings control core, notification daemon, connectivity suite, audio/media/displays/OSDs, session/lock/power, bottom dock, and overview/window management. The shell is a full daily driver.
+> **Status:** Phases 0–13 complete — foundations, per-monitor taskbar, theme engine + matugen (incl. generated light mode), settings control core, notification daemon, connectivity suite, audio/media/displays/OSDs, session/lock/power, bottom dock, overview/window management, the widget suite (calendar/weather/clipboard/screenshot/emoji/updates/recording/color-picker), a unified system data layer, and a polish pass with an in-bar warning chip + install script. The shell is a full daily driver.
 
 ## Showcase
 
@@ -50,8 +50,11 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
 - **Session, power & lock** (`modules/session/`): power menu overlay with hold-to-confirm destructive tiles (lock/suspend/hibernate/reboot/poweroff/logout, tile set + order persisted), a full-screen lock screen on selected monitor(s) with PAM auth (`system-auth`) + wrong-attempt shake, inhibitor-aware idle timer (lock/suspend/shutdown, off by default), power plans via power-profiles-daemon (auto-detected), a themed Polkit privilege dialog, and a bar chip while any app holds the idle/sleep lock
 - **Dock** (`modules/dock/`): optional bottom dock (OFF by default, enable in settings → DOCK) — pinned + running apps merged, active-window tick, click launch/focus/minimize-to-scratchpad cycle, middle-click new instance, scroll cycles an app's windows, right-click context menu (pin/close), intellihide (never/dodge/always), overlay vs exclusive edge, per-monitor instances
 - **Overview** (`modules/overview/`): workspace grid (click to jump), an Alt-Tab style window switcher (MRU ordering, acid selection frame), scratchpad control (`special:magic`), and quick-tile presets (float/fullscreen/pseudo/center/left/right/top/bottom)
+- **Widgets** (`modules/widgets/`): calendar popup (clock click, month grid + nav, shared `CalendarGrid` for the future control center), weather (open-meteo, cached, conditions hero + 5-day strip), clipboard manager (cliphist history, search + re-copy + pin + wipe), screenshot suite (`shot region|full|window` with slurp styled in the live accent + shutter flash), update counter (`checkupdates`), screen-recording bar chip, color picker (hyprpicker, hides when absent), and an emoji/kaomoji picker — every widget degrades to a flat message when its backend is missing
+- **System data layer** (`modules/common/SystemStats.qml`): one sampling engine (CPU per-core, memory, network, disk IO, load, uptime, hwmon temps, nvidia-smi GPU, battery) with FAST/SLOW poll classes and threshold signals — the bar stats cluster is now a thin consumer
 - **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YSlider / YScroll / YSurface / YPulse / YClickAway / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
 - **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit). **Clicking outside any popup closes it** (a fullscreen click-catcher behind the card) and never dims the desktop; ESC closes, and only one surface is open at a time
+- **Error surface**: optional-backend absences (hyprsunset/ddcutil/cliphist/hyprpicker/…) report to a `Health` singleton; the bar shows a `!` chip with a tooltip instead of failing silently
 
 ## Requirements
 
@@ -83,6 +86,8 @@ quickshell -p ~/.config/quickshell/yuta-qs
 ```
 
 Or set it as your session shell by launching that command from your Hyprland/Helmsman autostart (this machine runs it as `qs -c yuta-qs`).
+
+There's also a bootstrap script — `./install.sh` prints the dependency matrix and can install missing packages (`--install`) and symlink the repo into place (`--link`).
 
 ## Keybinds & IPC
 
@@ -141,6 +146,16 @@ qs ipc call <target> <function> [args...]
 | `overview` | `scratchpad` / `scratchsend` | toggle `special:magic` / send focused window to it |
 | `overview` | `tile <float\|fullscreen\|pseudo\|center\|left\|right\|top\|bottom>` | quick-tile the focused window |
 | `overview` | `status` | window + workspace counts |
+| `calendar` | `toggle` / `open` / `close` | calendar popup (also bound to the bar clock click) |
+| `clipboard` | `toggle` / `open` / `close` / `status` | cliphist history manager |
+| `weather` | `toggle` / `open` / `close` / `refresh` / `status` | weather panel |
+| `weather` | `set <lat> <lon> <label>` | configure the location (open-meteo) |
+| `shot` | `region` / `full` / `window` | screenshot (grim/slurp, saved to the configured dir) |
+| `shot` | `copy` / `dir` | re-copy the last shot / print save config |
+| `updates` | `check` / `list` / `open` / `status` | pacman update counter (pacman-contrib) |
+| `recording` | `stop` / `status` | stop gpu-screen-recorder / query its state |
+| `colorpicker` | `pick` | grab a screen color (hyprpicker; hides when absent) |
+| `emoji` | `toggle` / `open` / `close` | emoji / kaomoji picker |
 
 ### Hyprland binds (standard setup)
 
@@ -196,6 +211,8 @@ yutashell/
 │   ├── dock/                  # PH.09: bottom dock (Dock logic + DockBar)
 │   ├── overview/              # PH.10: workspace grid, alt-tab, scratchpad,
 │   │                          # quick-tile presets
+│   ├── widgets/               # PH.11: calendar, clipboard, weather, screenshot,
+│   │                          # emoji, updates, recording, color picker
 │   └── settings/              # control-core drawer + ui/
 ```
 

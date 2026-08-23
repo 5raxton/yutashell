@@ -1,0 +1,12 @@
+singleton Clipboard 1.0 Clipboard.qml
+ClipboardPanel 1.0 ClipboardPanel.qml
+Calendar 1.0 Calendar.qml
+CalendarGrid 1.0 CalendarGrid.qml
+singleton Weather 1.0 Weather.qml
+WeatherPanel 1.0 WeatherPanel.qml
+singleton Screenshot 1.0 Screenshot.qml
+ShotFlash 1.0 ShotFlash.qml
+singleton Updates 1.0 Updates.qml
+singleton Recording 1.0 Recording.qml
+singleton ColorPicker 1.0 ColorPicker.qml
+Emoji 1.0 Emoji.qml

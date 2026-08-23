@@ -29,7 +29,7 @@ Quickshell config for Hyprland. Entry: `shell.qml`. Design tokens in `theme/Them
 - Wallpaper engine is **awww** (`awww-daemon`, not swww/hyprpaper). matugen installed.
 - No CJK font → `Theme.jpEnabled` false → romaji fallbacks everywhere.
 - `~/.local/state/yutashell/` holds all runtime files: state.json, theme.json, matugen.toml. Nothing else writes dotfiles.
-- Deps present: grim, slurp, wl-copy, cliphist, nvidia-smi (RTX 5080 — GPU stats via batched `nvidia-smi --query-gpu=...`), gpu-screen-recorder 6.x, notify-send, pactl, nmcli, bluetoothctl, rfkill. Absent: cava, hyprsunset, ddcutil (**no `/sys/class/backlight` — desktop box**), powerprofilesctl, hyprpicker. Features needing absent deps must hide gracefully (ROADMAP tracks which phase gates each).
+- Deps present: grim, slurp, wl-copy, cliphist (0.7), curl, checkupdates, nvidia-smi (RTX 5080 — GPU stats via batched `nvidia-smi --query-gpu=...`), gpu-screen-recorder 6.x, notify-send, pactl, nmcli, bluetoothctl, rfkill, cava, hyprsunset, ddcutil, powerprofilesctl. Absent: hyprpicker. Features needing absent deps must hide gracefully (ROADMAP tracks which phase gates each).
 - Network reality: **wired ethernet is primary** (enp133s0), wlan0 exists but rfkill soft-blocked + NM wifi disabled (panel shows radio state honestly), `wg0-mullvad` wireguard ACTIVE (externally managed — visible via nmcli, not Quickshell.Networking). Bluetooth controller hci0 present, bluetoothd active.
 - `Quickshell.Services.Notifications` verified: `NotificationServer` claims the bus when no other daemon runs; caps props (`bodySupported`/`actionsSupported`/`imageSupported`/…); `onNotification(n)` → n has appName/appIcon/summary/body/urgency enum/expireTimeout/actions/**`tracked` (set true to hold)**/`expire()`/`dismiss()`; `closed` signal. Used by `modules/notify/`.
 - `Quickshell.Networking`: `Networking.devices.values` → WifiDevice (`networks`, `scannerEnabled`, `mode`) / WiredDevice (`hasLink`, `linkSpeed`, `address`); `wifiEnabled`+`wifiHardwareEnabled` writable-ish; connectivity compares against `NetworkConnectivity.Full`. Enum name is **NetworkConnectivity** (not Connectivity).
@@ -159,6 +159,17 @@ This deliberately supersedes the old "scrim abolition / desktop stays clickable"
 
 ### 12. Settings panel now has 8 tabs (DOCK + SYSTEM are real)
 `SettingsPanel.pages` is the declarative registry; each page is a lazy `Loader` behind a `switch (activePageId)`. New tabs: **DOCK** (enable/mode/hide/monitors) and **SYSTEM** (power plan, idle action+timeout, hold-to-confirm, lock scope, inhibit chip, avatar). Tab labels elide to survive narrow panel widths. The `systemPage` "planned" stub is gone — no placeholders remain in shipped phases.
+
+### 13. SystemStats is the one sampler (PH.13) — never add a second
+`modules/common/SystemStats.qml` owns every periodic read of `/proc`, `/sys/class/hwmon` and `nvidia-smi`. Two poll classes: FAST 2 s (cpu/mem/net/load/uptime via FileView), SLOW 5 s (disk/hwmon-temps/nvidia-smi/battery via Process). `StatsCluster.qml` is now a thin consumer — its old FileViews/Timer are deleted. Rule: **any new stat reader binds to `SystemStats.*`, never opens its own FileView/Timer over those files.** Threshold signals (`warnRaised`/`critRaised`) fire once per crossing per kind. `fmtRate`/`fmtBytes`/`fmtTime`/`fmtTemp` are the shared formatters (move any format drift here).
+
+### 14. Widgets (PH.11) + graceful degradation + Health
+- `modules/widgets/` holds each PH.11 widget as either a **singleton service** (Clipboard/Weather/Screenshot/Updates/Recording/ColorPicker) or a **PanelWindow** (Calendar/ClipboardPanel/WeatherPanel/Emoji/ShotFlash). Each service probes its backend binary once at boot via a `Process command -v` and exposes `available`; every consumer hides or shows a flat "not installed" message when `available` is false — **never a dead button**.
+- Absences report to the `Health` singleton (`modules/common/Health.qml`): `Health.report(module, msg)` / `Health.clear(module)`. The bar shows a `!` chip while `Health.count > 0` (tooltip = `Health.summary`, click opens settings). Add a `Health.report` call in any new backend's probe so degradation is never silent.
+- **Warm lazy singletons at boot.** Services referenced only from IpcHandlers instantiate on first IPC call, which races their async binary probe (first `status` returns "unavailable"). shell.qml has a boot `Timer` that reads each `*.available` + `SystemStats.hostname` to force instantiation at boot.
+- **`shell.qml` needs `import QtQuick`** for `Timer`/`QtObject` — it's the only file that didn't import it (was added for the warm-up timer). Other singletons need `import Quickshell` for the `Singleton` base type (Health.qml hit `Singleton is not a type` without it).
+- cliphist 0.7 `list` output is `id<TAB>preview`; binary (image) entries carry raw bytes in the preview — detect via control chars and surface as IMAGE rows. `cliphist decode <id> | wl-copy` re-copies; `cliphist delete <id>` removes.
+- `qs ipc call <target> show` collides with quickshell's built-in target listing — name list functions `list`, not `show`.
 
 ## Conventions (enforced)
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Braxton
+import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
@@ -16,10 +17,28 @@ import "modules/audio"
 import "modules/session"
 import "modules/dock"
 import "modules/overview"
+import "modules/widgets"
 
 ShellRoot {
     Tooltip {
         id: tooltip
+    }
+
+    // Warm the lazy singleton services at boot so their binary probes run now
+    // rather than on the first IPC call (which would race the async probe and
+    // report "unavailable" for a beat).
+    Timer {
+        interval: 0
+        running: true
+        repeat: false
+        onTriggered: {
+            void Updates.available;
+            void Recording.available;
+            void ColorPicker.available;
+            void Weather.available;
+            void Clipboard.available;
+            void SystemStats.hostname;
+        }
     }
 
     // one bar window per connected screen; instances appear/disappear with
@@ -74,6 +93,17 @@ ShellRoot {
     OverviewGrid {}
 
     AltTab {}
+
+    // PH.11 widgets — each degrades gracefully when its backend is absent
+    Calendar {}
+
+    ClipboardPanel {}
+
+    WeatherPanel {}
+
+    ShotFlash {}
+
+    Emoji {}
 
     IpcHandler {
         target: "launcher"
@@ -575,6 +605,153 @@ ShellRoot {
 
         function remove(name: string): void {
             Wallpaper.removeTemplate(String(name));
+        }
+    }
+
+    IpcHandler {
+        target: "calendar"
+
+        function toggle(): void {
+            ShellState.toggleCalendar();
+        }
+
+        function open(): void {
+            ShellState.openCalendar();
+        }
+
+        function close(): void {
+            ShellState.closeCalendar();
+        }
+    }
+
+    IpcHandler {
+        target: "clipboard"
+
+        function toggle(): void {
+            ShellState.toggleClipboard();
+        }
+
+        function open(): void {
+            ShellState.openClipboard();
+        }
+
+        function close(): void {
+            ShellState.closeClipboard();
+        }
+
+        function status(): string {
+            return Clipboard.available ? Clipboard.entries.length + " entries" : "unavailable (install cliphist)";
+        }
+    }
+
+    IpcHandler {
+        target: "weather"
+
+        function toggle(): void {
+            ShellState.toggleWeather();
+        }
+
+        function open(): void {
+            ShellState.openWeather();
+        }
+
+        function close(): void {
+            ShellState.closeWeather();
+        }
+
+        function set(lat: string, lon: string, label: string): void {
+            ShellState.set("weatherLat", String(lat));
+            ShellState.set("weatherLon", String(lon));
+            ShellState.set("weatherLabel", String(label ?? ""));
+            Weather.refresh();
+        }
+
+        function refresh(): void {
+            Weather.refresh();
+        }
+
+        function status(): string {
+            return Weather.configured ? "configured · " + (Weather.current ? Weather.current.temp + "°" : "no data") : "no location set";
+        }
+    }
+
+    IpcHandler {
+        target: "shot"
+
+        function region(): void {
+            Screenshot.capture("region");
+        }
+
+        function full(): void {
+            Screenshot.capture("full");
+        }
+
+        function window(): void {
+            Screenshot.capture("window");
+        }
+
+        function copy(): void {
+            Screenshot.copyLast();
+        }
+
+        function dir(): string {
+            return Screenshot.status();
+        }
+    }
+
+    IpcHandler {
+        target: "updates"
+
+        function check(): void {
+            Updates.refresh();
+        }
+
+        function list(): string {
+            return Updates.available ? (Updates.packages.length > 0 ? Updates.packages.join("\n") : "up to date") : "unavailable (install pacman-contrib)";
+        }
+
+        function open(): void {
+            Updates.openTerminal();
+        }
+
+        function status(): string {
+            return Updates.status();
+        }
+    }
+
+    IpcHandler {
+        target: "recording"
+
+        function stop(): void {
+            Recording.stop();
+        }
+
+        function status(): string {
+            return Recording.available ? (Recording.active ? "recording" : "idle") : "unavailable (install gpu-screen-recorder)";
+        }
+    }
+
+    IpcHandler {
+        target: "colorpicker"
+
+        function pick(): void {
+            ColorPicker.pick();
+        }
+    }
+
+    IpcHandler {
+        target: "emoji"
+
+        function toggle(): void {
+            ShellState.toggleEmoji();
+        }
+
+        function open(): void {
+            ShellState.openEmoji();
+        }
+
+        function close(): void {
+            ShellState.closeEmoji();
         }
     }
 }

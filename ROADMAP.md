@@ -353,65 +353,65 @@ Cross-cutting cohesion pass: every floating surface now closes on outside-click,
 
 Verification notes: fresh load is clean (only benign FileView-coalescing + missing-icon fallback warnings remain); all 8 settings tabs build; every panel composes the click-away behind its YSurface. The live shell on this machine runs as `qs -c yuta-qs` and hot-reloads edits — note that `quickshell -p . log` attaches to that instance's buffered log rather than spawning a clean one, so transient mid-edit reload failures must not be read as current-state errors.
 
-## Phase 11 — Widgets, utilities & capture suite ⬜ OPEN
+## Phase 11 — Widgets, utilities & capture suite ✅ DONE
 
-Goal: the convenience layer. Each widget is a standalone module that later surfaces get embedded into (CC tabs reuse calendar/weather; bar click-actions reuse everything).
+Goal: the convenience layer. Each widget is a standalone module (`modules/widgets/`) that later surfaces get embedded into (CC tabs reuse calendar/weather; bar click-actions reuse everything).
 
-- [ ] Calendar popup from clock click: month grid, today boxed in acid, month/year nav, JP holiday coloring optional (gated), event stub API. **Shared component** — CC calendar tab embeds the same view
-- [ ] Weather module: open-meteo fetch via `Process curl` → cache file in `~/.local/state/yutashell/weather.json`, manual location setting in state.json (lat/lon + label), refresh interval, units follow the locale formatter (PH.13). Bar temp chip optional + CC weather tab embeds conditions/forecast strip
-- [ ] Update counter: `checkupdates` polled sparsely (pacman-contrib), click → list + terminal launch
-- [ ] **Clipboard manager popup** (cliphist is installed): IPC/keybind opens centered overlay listing history — search-as-you-type, monospace previews elided, enter/wl-copy re-copies + toast, del deletes entry, pin favorites to top (state.json). Themed like the launcher: flat card, hairline rows, acid selection bar, micro-label header 履歴 / CLIPBOARD. Graceful empty state when cliphist store is empty; whole feature hideable (PH.16 shell tab)
-- [ ] **Screenshot suite** (grim + slurp installed): IPC targets `shot region|full|window` —
-  - slurp styled to match: `-b` black fill, `-c` acid border, mono font label for dimensions
-  - flash frame + shutter tick animation on capture (brief white 1px border pulse — instant, no glow)
-  - after-shot action bar (tiny overlay chip, auto-dismiss): save / copy (wl-copy) / annotate-later / discard
-  - save dir + filename template configurable (`~/Pictures/Shots/%Y%m%d-%H%M%S.png` default), persisted
-  - preview thumbnail toast routed through PH.05 notifications with click-to-open
-  - window mode: focused-window geometry via `hyprctl -j activewindow` at=box
-- [ ] Screen-recording state chip in bar when `gpu-screen-recorder` runs, click stops it (installed — detect via process probe / its session control)
-- [ ] Color picker (`hyprpicker`) with hex copy toast (dep absent today — hide gracefully)
-- [ ] Emoji/kaomoji picker (fuzzel-style grid, JP-first categories, recent strip)
+- [x] Calendar popup from clock click: month grid, today boxed in acid, month/year nav, JP weekday glyphs (gated). **Shared component** — `CalendarGrid.qml` so the CC calendar tab embeds the same view. No event API yet (future)
+- [x] Weather module: open-meteo fetch via `Process curl` → cache `~/.local/state/yutashell/weather.json`, manual location in state.json (lat/lon + label), 30-min refresh, units follow `weatherUnit`. Conditions hero + 5-day strip in `WeatherPanel.qml`. Bar temp chip + CC tab are PH.14/15
+- [x] Update counter: `checkupdates` polled sparsely (6 h + manual `updates check`), `updates list` + `updates open` (terminal launch)
+- [x] **Clipboard manager popup** (cliphist): search-as-you-type, monospace previews, click/enter re-copies via wl-copy + toast, DEL deletes, right-click pins to top (state.json), WIPE all, graceful empty + absent states. Themed like the launcher
+- [x] **Screenshot suite** (grim + slurp + wl-copy): IPC `shot region|full|window` —
+  - [x] slurp styled with the live acid accent (`-b` fill, `-c` border, mono font label)
+  - [x] flash frame + shutter tick (`ShotFlash.qml` — 1px border pulse, instant)
+  - [~] after-shot action: shot saves to the configurable dir + toasts the path; `shot copy` re-copies. A full save/copy/annotate/discard action bar is deferred (no annotator installed)
+  - [x] save dir + strftime filename template persisted (`~/Pictures/Shots/%Y%m%d-%H%M%S.png`)
+  - [~] preview toast is a text toast (path); thumbnail-with-click-to-open deferred to the PH.11 capture pipeline revisit
+  - [x] window mode: focused-window geometry via `hyprctl -j activewindow` at=box
+- [x] Screen-recording chip in bar when `gpu-screen-recorder` runs, click stops it (SIGINT); process probed every 5 s
+- [x] Color picker (`hyprpicker`) with hex copy toast — binary absent here, degrades to a toast (`ColorPicker.qml`)
+- [x] Emoji/kaomoji picker: JP-first categories (faces / kaomoji / symbols / hearts), click copies + dismisses (`Emoji.qml`)
 
 ## Phase 12 — Polish, performance & distribution ◐ CONTINUOUS
 
 Goal: ship-quality. Items here get revisited after every big phase lands.
 
-- [ ] Animation audit against the motion policy (snap vs eased inventory per surface)
-- [ ] Perf pass: no per-frame property churn, layer-shell exclusivity correct, idle CPU ≈ 0 when static (profile with `perf`/the shell's own CPU meter)
-- [ ] Multi-monitor parity tests (per-monitor bars/dock, focus correctness)
-- [ ] Accessibility pass: contrast ratios enforced by Theme loader (done), font-scale factor token (feeds PH.16 UI-scale setting)
-- [ ] Graceful degradation matrix: no tray apps, no battery, no network, no CJK font, no cava/grim/cliphist/ddcutil/hyprsunset — all verified non-crashing
-- [ ] Error surface: failed module loads show a minimal in-bar warning chip instead of silence
-- [ ] Install script: deps checklist (quickshell ≥ 0.3.1, JetBrainsMono NF, noto-fonts-cjk, matugen, awww, grim, slurp, wl-clipboard, cliphist; optional: cava, hyprsunset, ddcutil, power-profiles-daemon, hyprpicker, pacman-contrib; gpu-screen-recorder ships in the recording phase)
-- [ ] Wiki: screenshots/GIFs per phase, keybind table, theming guide (token reference)
-- [ ] Version tags aligned to completed phases; changelog discipline (`Theme.version` is the single source — bump it with every tagged release; the identity block renders it)
+- [x] Animation audit against the motion policy (snap vs eased inventory per surface) — reviewed; hover snaps, positional OutCubic, entrances movSlow via YSurface; no stray Behavior-on-hover found
+- [x] Perf pass: no per-frame property churn — SystemStats runs two coarse Timers (2 s / 5 s), pulses are opacity-only and gate on `visible`; idle CPU ≈ 0. RSS ~440 MB with the panel open
+- [~] Multi-monitor parity tests (per-monitor bars/dock, focus correctness) — bars/dock already per-screen via `Variants`; full parity re-test deferred to a multi-monitor machine
+- [~] Accessibility pass: contrast ratios enforced by Theme loader (done); font-scale factor token feeds PH.16
+- [x] Graceful degradation matrix: no battery, no CJK font, no cava/cliphist/ddcutil/hyprsunset/hyprpicker — every surface hides or degrades to a flat message, verified non-crashing
+- [x] Error surface: `Health` singleton + in-bar warning chip — optional-backend absences report a notice and the bar shows a `!` chip with a tooltip instead of failing silently
+- [x] Install script: `install.sh` deps checklist (required + optional) with `--install` / `--link`
+- [~] Wiki: README showcase + keybind table + theming contract; per-phase GIFs deferred
+- [x] Version tags: `Theme.version` bumped to 0.5.0 (single source, rendered by the identity block)
 
-## Phase 13 — Unified system data layer ⬜ NEW
+## Phase 13 — Unified system data layer ✅ DONE
 
-Goal: ONE sampling engine feeding bar, control center, thresholds, and future widgets. Kills the current pattern where StatsCluster privately polls /proc and every future surface would copy it.
+Goal: ONE sampling engine feeding bar, control center, thresholds, and future widgets. Kills the pattern where StatsCluster privately polls /proc and every future surface would copy it.
 
 How: new singleton `modules/common/SystemStats.qml`. Owns all Timers/FileViews/process probes. Consumers bind to properties; nothing else touches /proc.
 
-- [ ] `SystemStats` singleton: CPU % (per-core + aggregate), memory %/used/total, network rates (per-iface + aggregate), disk IO rates (`/proc/diskstats` deltas), load avg, uptime
-- [ ] Temps from `/sys/class/hwmon`: coretemp (CPU package), nvme ×2, RAM (`spd5118`), chipset (`asus`/`acpitz`) — auto-discovered by name, not hardcoded index
-- [ ] GPU stats via batched `nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,power.draw --format=csv,noheader,nounits` on a slower interval (it's a heavyweight binary — one instance, 3–5 s, never per-frame)
-- [ ] Battery: migrate sysfs BAT1→BAT0 fallback logic out of StatsCluster (or swap to `Quickshell.Services.UPower`)
-- [ ] Two poll classes: FAST (cpu/mem/net, 2 s default) and SLOW (temps/gpu/disk/io, 5 s default); intervals configurable via ShellState (PH.16 system tab steppers)
-- [ ] Threshold signals: `warnRaised(kind)`/`critRaised(kind)` for cpu%/temp/mem/bat with configurable limits (defaults: cpu warn 85 crit 95, temp warn 80 crit 90, mem warn 90, bat warn 20 crit 10) — drives bar alert colors, CC system highlighting, optional PH.05 notifications
-- [ ] Units/locale formatter functions in the same singleton or a sibling: byte-rate formatting (exists — migrate `fmtRate`), 12h/24h time strings, metric/imperial temp+wind, weekday/date formats — consumed by clock, weather, stats everywhere (PH.16 shell tab sets the prefs)
-- [ ] Hostname probe: read `/proc/sys/kernel/hostname` once via FileView (fallback `uname -n` Process) → `SystemStats.hostname`
-- [ ] Migrate `StatsCluster.qml` to consume SystemStats; delete its private FileViews/Timer; re-run RSS smoke test
-- [ ] Consumer-count awareness: SLOW-class polling may idle down when no panel is watching (perf guard, keep simple)
+- [x] `SystemStats` singleton: CPU % (per-core + aggregate), memory %/used/total, network rates, disk IO rates (`/proc/diskstats` deltas), load avg, uptime
+- [x] Temps from `/sys/class/hwmon`: coretemp (CPU package), nvme ×2, RAM (`spd5118`), chipset (`acpitz`) — auto-discovered by name, not hardcoded index
+- [x] GPU stats via batched `nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,power.draw --format=csv,noheader,nounits` on the SLOW class (5 s)
+- [x] Battery: migrated the sysfs BAT1→BAT0 fallback into SystemStats (absent on this desktop — reported honestly)
+- [x] Two poll classes: FAST (cpu/mem/net/load/uptime, 2 s) and SLOW (temps/gpu/disk/battery, 5 s)
+- [x] Threshold signals: `warnRaised(kind)`/`critRaised(kind)` for cpu/temp/gpu/mem/bat with configurable limits (cpu warn 85 crit 95, temp warn 80 crit 90, mem warn 90, bat warn 20 crit 10) — the bar CPU/mem cells already tint alert past thresholds
+- [x] Units/locale formatter functions: `fmtRate`, `fmtBytes`, `fmtTime` (12h/24h from `clock24h`), `fmtTemp` — consumed by the bar, weather, and future CC
+- [x] Hostname probe: `/proc/sys/kernel/hostname` via FileView → `SystemStats.hostname`
+- [x] Migrated `StatsCluster.qml` to consume SystemStats — deleted its private FileViews/Timer
+- [~] Consumer-count awareness: SLOW-class polling could idle down when unwatched (perf guard) — deferred, keep simple for now
 
 ## Phase 14 — Bar v2: taskbar, extra stats & full customization ⬜ NEW
 
 Goal: turn the bar from a fixed layout into a configurable organism. Taskbar with real interactions, new stat segments, reorderable/toggleable segments, and per-segment click-actions. Plus the identity-block rename.
 
-### Identity block (quick win — can land any time)
+### Identity block (shipped — see PH.10.5)
 
-- [ ] Line 1: `{HOSTNAME} // 因果` — hostname from SystemStats probe; 因果 gated behind `Theme.jpEnabled`, romaji `INGA` fallback (convention)
-- [ ] Line 2: `YUTA.SHELL // v{Theme.version}` (replaces `SYS.BAR // v…`); keep blinking cursor block + hover inversion behavior
-- [ ] Bump `Theme.version` to match actual release numbering when this lands
+- [x] Line 1: `{HOSTNAME} // 因果` — hostname probed from env; 因果 gated behind `Theme.jpEnabled`, romaji `INGA` fallback
+- [x] Line 2: `YUTA.SHELL // v{Theme.version}` (replaces `SYS.BAR // v…`); blinking cursor block + hover inversion kept
+- [x] Bump `Theme.version` to match actual release numbering (0.5.0 at PH.11-13)
 
 ### Taskbar segment (new)
 

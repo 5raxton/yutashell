@@ -8,6 +8,7 @@ import "ui"
 import "../net"
 import "../audio"
 import "../session"
+import "../widgets"
 import "../common/ui"
 
 PanelWindow {
@@ -57,7 +58,58 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
 
             IdentityBlock {}
+
+            // warning chip — surfaces graceful-degradation notices instead of
+            // failing silently (missing hyprsunset/ddcutil/cliphist/…)
+            Item {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Health.count > 0
+                implicitWidth: warnRow.width + Theme.sp1 * 2
+                implicitHeight: Theme.barHeight
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: ShellState.openPanel()
+                    onContainsMouseChanged: {
+                        if (containsMouse)
+                            root.tip.showFor(this, "warnings · " + Health.summary);
+                        else
+                            root.tip.hide();
+                    }
+                }
+
+                Row {
+                    id: warnRow
+
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Text {
+                        text: "!"
+                        color: Theme.alert
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 11
+                        font.weight: Font.ExtraBold
+                    }
+
+                    Text {
+                        text: String(Health.count)
+                        color: Theme.alert
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10
+                        font.weight: Font.Bold
+                    }
+                }
+            }
+
+            DividerV {
+                visible: Health.count > 0
+            }
+
             DividerV {}
+
             Workspaces {
                 id: workspacesModule
             }
@@ -84,6 +136,7 @@ PanelWindow {
             readonly property bool segAudio: ShellState.barAudio
             readonly property bool segNl: ShellState.barAudio && NightLight.active
             readonly property bool segSess: ShellState.barSession && Session.inhibitCount > 0
+            readonly property bool segRec: Recording.active
             readonly property bool segStats: ShellState.barStats
             readonly property bool segClock: ShellState.barClock
 
@@ -180,7 +233,67 @@ PanelWindow {
             }
 
             DividerV {
-                visible: rightRow.segSess && rightRow.segStats
+                visible: rightRow.segSess && (rightRow.segRec || rightRow.segStats)
+            }
+
+            // recording active chip — gpu-screen-recorder is rolling; click stops
+            Item {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: rightRow.segRec
+                implicitWidth: recRow.width
+                implicitHeight: Theme.barHeight
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Recording.stop()
+                }
+
+                Row {
+                    id: recRow
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 7
+                        height: 7
+                        color: Theme.alert
+
+                        SequentialAnimation on opacity {
+                            running: rightRow.segRec
+                            loops: Animation.Infinite
+
+                            NumberAnimation {
+                                from: 1.0
+                                to: 0.25
+                                duration: 620
+                                easing.type: Easing.InOutSine
+                            }
+                            NumberAnimation {
+                                from: 0.25
+                                to: 1.0
+                                duration: 620
+                                easing.type: Easing.InOutSine
+                            }
+                        }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "REC"
+                        color: Theme.alert
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        font.weight: Font.Bold
+                        font.letterSpacing: 1.5
+                    }
+                }
+            }
+
+            DividerV {
+                visible: rightRow.segRec && rightRow.segStats
             }
 
             StatsCluster {
@@ -190,7 +303,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl || rightRow.segSess) && rightRow.segClock
+                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl || rightRow.segSess || rightRow.segRec) && rightRow.segClock
             }
 
             ClockBlock {

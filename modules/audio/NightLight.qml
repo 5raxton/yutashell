@@ -72,6 +72,10 @@ Singleton {
             onStreamFinished: {
                 root._probed = true;
                 root._binOk = text.trim() === "yes";
+                if (!root._binOk)
+                    Health.report("hyprsunset", "night light unavailable (install hyprsunset)");
+                else
+                    Health.clear("hyprsunset");
                 // resume a persisted session once we know the binary exists
                 if (root.active && root.available)
                     root.restartProc();

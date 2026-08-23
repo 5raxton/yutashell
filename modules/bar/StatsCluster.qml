@@ -1,7 +1,10 @@
-import Quickshell.Io
 import QtQuick
 import qs.theme
+import qs.modules.common
 
+// Bar stats cluster — a pure consumer of the SystemStats singleton (PH.13).
+// No FileViews or Timers here anymore; all sampling lives in SystemStats so
+// the bar, control center and threshold alerts share one source of truth.
 Item {
     id: root
 
@@ -18,148 +21,6 @@ Item {
     function hideCol() {
         if (tip)
             tip.hide();
-    }
-
-    property real cpuPct: -1
-    property real memPct: -1
-    property real downBps: -1
-    property real upBps: -1
-    property int batPct: -1
-    property bool batCharging: false
-    property bool batPresent: false
-    property bool batteryTriedFallback: false
-
-    property double prevCpuTotal: -1
-    property double prevCpuIdle: -1
-    property double prevNetRx: -1
-    property double prevNetTx: -1
-    property date prevStamp: new Date()
-
-    function sampleCpu(t) {
-        const nums = t.split("\n")[0].trim().split(/\s+/).slice(1).map(Number);
-        const total = nums.reduce((a, b) => a + b, 0);
-        const idle = (nums[3] || 0) + (nums[4] || 0);
-        if (prevCpuTotal >= 0 && total > prevCpuTotal)
-            cpuPct = Math.max(0, Math.min(100, Math.round((1 - (idle - prevCpuIdle) / (total - prevCpuTotal)) * 100)));
-        prevCpuTotal = total;
-        prevCpuIdle = idle;
-    }
-
-    function sampleMem(t) {
-        const total = Number((t.match(/MemTotal:\s+(\d+)/) || [])[1]);
-        const avail = Number((t.match(/MemAvailable:\s+(\d+)/) || [])[1]);
-        if (total > 0 && !isNaN(avail))
-            memPct = Math.round((1 - avail / total) * 100);
-    }
-
-    function sampleNet(t) {
-        let rx = 0;
-        let tx = 0;
-        for (const ln of t.split("\n").slice(2)) {
-            const idx = ln.indexOf(":");
-            if (idx < 0)
-                continue;
-            if (ln.slice(0, idx).trim() === "lo")
-                continue;
-            const f = ln.slice(idx + 1).trim().split(/\s+/).map(Number);
-            rx += f[0] || 0;
-            tx += f[8] || 0;
-        }
-        const now = new Date();
-        if (prevNetRx >= 0) {
-            const dt = (now - prevStamp) / 1000;
-            if (dt > 0) {
-                downBps = Math.max(0, (rx - prevNetRx) / dt);
-                upBps = Math.max(0, (tx - prevNetTx) / dt);
-            }
-        }
-        prevNetRx = rx;
-        prevNetTx = tx;
-        prevStamp = now;
-    }
-
-    function fmtRate(v) {
-        if (v < 0)
-            return "--";
-        if (v < 1024)
-            return Math.round(v) + "B";
-        if (v < 1048576)
-            return (v / 1024).toFixed(v < 10240 ? 1 : 0) + "K";
-        if (v < 1073741824)
-            return (v / 1048576).toFixed(v < 10485760 ? 1 : 0) + "M";
-        return (v / 1073741824).toFixed(1) + "G";
-    }
-
-    FileView {
-        id: cpuFile
-        path: "/proc/stat"
-        watchChanges: false
-        onLoaded: root.sampleCpu(cpuFile.text())
-    }
-
-    FileView {
-        id: memFile
-        path: "/proc/meminfo"
-        watchChanges: false
-        onLoaded: root.sampleMem(memFile.text())
-    }
-
-    FileView {
-        id: netFile
-        path: "/proc/net/dev"
-        watchChanges: false
-        onLoaded: root.sampleNet(netFile.text())
-    }
-
-    FileView {
-        id: batCapFile
-        path: "/sys/class/power_supply/BAT1/capacity"
-        watchChanges: false
-        printErrors: false
-        preload: true
-        onLoaded: {
-            root.batPresent = true;
-            const v = parseInt(batCapFile.text());
-            if (!isNaN(v))
-                root.batPct = v;
-        }
-        onLoadFailed: {
-            if (!root.batteryTriedFallback) {
-                root.batteryTriedFallback = true;
-                batCapFile.path = "/sys/class/power_supply/BAT0/capacity";
-                batStatFile.path = "/sys/class/power_supply/BAT0/status";
-            } else {
-                root.batPresent = false;
-            }
-        }
-    }
-
-    FileView {
-        id: batStatFile
-        path: "/sys/class/power_supply/BAT1/status"
-        watchChanges: false
-        printErrors: false
-        preload: true
-        onLoaded: {
-            const s = batStatFile.text().trim();
-            root.batCharging = s.startsWith("Charging") || s.startsWith("Full");
-        }
-    }
-
-    Timer {
-        interval: 2000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: {
-            cpuFile.reload();
-            memFile.reload();
-            netFile.reload();
-            if (root.batPresent || !root.batteryTriedFallback) {
-                batCapFile.reload();
-                batStatFile.reload();
-            }
-        }
     }
 
     component StatColumn: Item {
@@ -201,7 +62,7 @@ Item {
         StatColumn {
             id: netCol
             width: 92
-            tipText: "DOWN " + root.fmtRate(root.downBps) + " / UP " + root.fmtRate(root.upBps)
+            tipText: "DOWN " + SystemStats.fmtRate(SystemStats.netDown) + " / UP " + SystemStats.fmtRate(SystemStats.netUp)
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
 
@@ -221,7 +82,7 @@ Item {
 
                     Text {
                         text: "↓"
-                        color: root.downBps > 2048 ? Theme.acid : Theme.faint
+                        color: SystemStats.netDown > 2048 ? Theme.acid : Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
 
@@ -233,8 +94,8 @@ Item {
                     }
 
                     Text {
-                        text: root.fmtRate(root.downBps)
-                        color: root.downBps > 2048 ? Theme.ink : Theme.muted
+                        text: SystemStats.fmtRate(SystemStats.netDown)
+                        color: SystemStats.netDown > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
 
@@ -251,7 +112,7 @@ Item {
 
                     Text {
                         text: "↑"
-                        color: root.upBps > 2048 ? Theme.acid : Theme.faint
+                        color: SystemStats.netUp > 2048 ? Theme.acid : Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
 
@@ -263,8 +124,8 @@ Item {
                     }
 
                     Text {
-                        text: root.fmtRate(root.upBps)
-                        color: root.upBps > 2048 ? Theme.ink : Theme.muted
+                        text: SystemStats.fmtRate(SystemStats.netUp)
+                        color: SystemStats.netUp > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
 
@@ -281,7 +142,7 @@ Item {
         StatColumn {
             id: cpuCol
             width: 80
-            tipText: "LOAD " + (root.cpuPct < 0 ? "--" : root.cpuPct + "%")
+            tipText: "LOAD " + (SystemStats.cpuPct < 0 ? "--" : SystemStats.cpuPct + "%")
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
 
@@ -298,8 +159,8 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.cpuPct < 0 ? "--" : root.cpuPct + "%"
-                    color: Theme.ink
+                    text: SystemStats.cpuPct < 0 ? "--" : SystemStats.cpuPct + "%"
+                    color: SystemStats.cpuPct >= SystemStats.cpuCrit ? Theme.alert : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
                 }
@@ -319,9 +180,9 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 3
                             height: 9
-                            visible: root.cpuPct >= 0
+                            visible: SystemStats.cpuPct >= 0
                             color: {
-                                const filled = Math.round(root.cpuPct / 100 * 6);
+                                const filled = Math.round(SystemStats.cpuPct / 100 * 6);
                                 if (index >= filled)
                                     return Theme.hairline;
                                 return index === 5 ? Theme.alert : Theme.acid;
@@ -335,7 +196,7 @@ Item {
         StatColumn {
             id: memCol
             width: 46
-            tipText: "USED " + (root.memPct < 0 ? "--" : root.memPct + "%")
+            tipText: "USED " + (SystemStats.memPct < 0 ? "--" : SystemStats.memPct + "% · " + SystemStats.fmtBytes(SystemStats.memUsed))
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
 
@@ -348,8 +209,8 @@ Item {
             }
 
             Text {
-                text: root.memPct < 0 ? "--" : root.memPct + "%"
-                color: Theme.ink
+                text: SystemStats.memPct < 0 ? "--" : SystemStats.memPct + "%"
+                color: SystemStats.memPct >= 90 ? Theme.alert : Theme.ink
                 font.family: Theme.fontFamily
                 font.pixelSize: 10
             }
@@ -357,15 +218,15 @@ Item {
 
         StatColumn {
             id: batCol
-            visible: root.batPresent
+            visible: SystemStats.batPresent
             width: 54
-            tipText: (root.batCharging ? "CHARGING " : "") + (root.batPct < 0 ? "--" : root.batPct + "%")
+            tipText: (SystemStats.batCharging ? "CHARGING " : "") + (SystemStats.batPct < 0 ? "--" : SystemStats.batPct + "%")
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
 
             Text {
                 text: "BAT"
-                color: root.batCharging ? Theme.acid : Theme.muted
+                color: SystemStats.batCharging ? Theme.acid : Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: 7
                 font.letterSpacing: 1.5
@@ -375,7 +236,7 @@ Item {
                 spacing: 4
 
                 Text {
-                    visible: root.batCharging
+                    visible: SystemStats.batCharging
                     anchors.verticalCenter: parent.verticalCenter
                     text: "\uF0E7"
                     color: Theme.acid
@@ -385,8 +246,8 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.batPct < 0 ? "--" : root.batPct + "%"
-                    color: !root.batCharging && root.batPct >= 0 && root.batPct <= 15 ? Theme.alert : Theme.ink
+                    text: SystemStats.batPct < 0 ? "--" : SystemStats.batPct + "%"
+                    color: !SystemStats.batCharging && SystemStats.batPct >= 0 && SystemStats.batPct <= 15 ? Theme.alert : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
                 }

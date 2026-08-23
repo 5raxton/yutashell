@@ -18,6 +18,10 @@ Singleton {
     property bool sessionOpen: false
     property bool overviewOpen: false
     property bool altTabOpen: false
+    property bool calendarOpen: false
+    property bool clipboardOpen: false
+    property bool weatherOpen: false
+    property bool emojiOpen: false
 
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
@@ -32,6 +36,10 @@ Singleton {
         root.sessionOpen = name === "session";
         root.overviewOpen = name === "overview";
         root.altTabOpen = name === "alttab";
+        root.calendarOpen = name === "calendar";
+        root.clipboardOpen = name === "clipboard";
+        root.weatherOpen = name === "weather";
+        root.emojiOpen = name === "emoji";
     }
 
     function togglePanel() {
@@ -134,6 +142,54 @@ Singleton {
         root.altTabOpen = false;
     }
 
+    function toggleCalendar() {
+        root._exclusive(root.calendarOpen ? "" : "calendar");
+    }
+
+    function openCalendar() {
+        root._exclusive("calendar");
+    }
+
+    function closeCalendar() {
+        root.calendarOpen = false;
+    }
+
+    function toggleClipboard() {
+        root._exclusive(root.clipboardOpen ? "" : "clipboard");
+    }
+
+    function openClipboard() {
+        root._exclusive("clipboard");
+    }
+
+    function closeClipboard() {
+        root.clipboardOpen = false;
+    }
+
+    function toggleWeather() {
+        root._exclusive(root.weatherOpen ? "" : "weather");
+    }
+
+    function openWeather() {
+        root._exclusive("weather");
+    }
+
+    function closeWeather() {
+        root.weatherOpen = false;
+    }
+
+    function toggleEmoji() {
+        root._exclusive(root.emojiOpen ? "" : "emoji");
+    }
+
+    function openEmoji() {
+        root._exclusive("emoji");
+    }
+
+    function closeEmoji() {
+        root.emojiOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -198,6 +254,16 @@ Singleton {
     readonly property alias dockHide: adapter.dockHide
     readonly property alias dockMonitors: adapter.dockMonitors
     readonly property alias dockPins: adapter.dockPins
+
+    // system / widgets (PH.11 + PH.13)
+    readonly property alias clock24h: adapter.clock24h
+    readonly property alias shotDir: adapter.shotDir
+    readonly property alias shotName: adapter.shotName
+    readonly property alias weatherLat: adapter.weatherLat
+    readonly property alias weatherLon: adapter.weatherLon
+    readonly property alias weatherLabel: adapter.weatherLabel
+    readonly property alias weatherUnit: adapter.weatherUnit
+    readonly property alias clipboardPins: adapter.clipboardPins
 
     function set(key, value) {
         adapter[key] = value;
@@ -310,6 +376,18 @@ Singleton {
     property string dockHide: "never"
     property string dockMonitors: "all"
     property string dockPins: "[]"
+
+    // system / widgets: clock in 24h (true) or 12h (false); screenshot save
+    // dir + strftime-style filename template; weather location (open-meteo)
+    // + label + unit ("celsius"|"fahrenheit")
+    property bool clock24h: true
+    property string shotDir: "~/Pictures/Shots"
+    property string shotName: "%Y%m%d-%H%M%S"
+    property string weatherLat: ""
+    property string weatherLon: ""
+    property string weatherLabel: ""
+    property string weatherUnit: "celsius"
+    property string clipboardPins: "[]"
         }
     }
 
