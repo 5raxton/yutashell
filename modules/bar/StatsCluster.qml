@@ -221,16 +221,28 @@ Item {
 
                     Text {
                         text: "↓"
-                        color: Theme.faint
+                        color: root.downBps > 2048 ? Theme.acid : Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.movMed
+                            }
+                        }
                     }
 
                     Text {
                         text: root.fmtRate(root.downBps)
-                        color: Theme.ink
+                        color: root.downBps > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.movMed
+                            }
+                        }
                     }
                 }
 
@@ -239,16 +251,28 @@ Item {
 
                     Text {
                         text: "↑"
-                        color: Theme.faint
+                        color: root.upBps > 2048 ? Theme.acid : Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.movMed
+                            }
+                        }
                     }
 
                     Text {
                         text: root.fmtRate(root.upBps)
-                        color: Theme.ink
+                        color: root.upBps > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.movMed
+                            }
+                        }
                     }
                 }
             }

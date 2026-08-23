@@ -6,6 +6,7 @@ import qs.theme
 import qs.modules.common
 import "ui"
 import "../net"
+import "../common/ui"
 
 PanelWindow {
     id: root
@@ -38,12 +39,13 @@ PanelWindow {
             color: Theme.hairline
         }
 
-        Rectangle {
+        YPulse {
             x: Theme.outerPad
             y: 0
             width: 132
             height: 2
             color: Theme.acid
+            lo: 0.55
         }
 
         Row {
@@ -71,6 +73,15 @@ PanelWindow {
 
         Row {
             id: rightRow
+
+            // segment presence — dividers read these instead of long chains
+            readonly property bool segTray: ShellState.barTray
+            readonly property bool segMedia: ShellState.barMedia && mediaModule.player !== null
+            readonly property bool segNet: ShellState.barNet
+            readonly property bool segBt: ShellState.barBt && btModule.present
+            readonly property bool segStats: ShellState.barStats
+            readonly property bool segClock: ShellState.barClock
+
             anchors.right: parent.right
             anchors.rightMargin: Theme.outerPad
             anchors.verticalCenter: parent.verticalCenter
@@ -78,51 +89,51 @@ PanelWindow {
             TrayCluster {
                 id: trayModule
                 tip: root.tip
-                visible: ShellState.barTray
+                visible: rightRow.segTray
             }
 
             DividerV {
-                visible: ShellState.barTray && ((mediaModule.visible && ShellState.barMedia) || (ShellState.barNet) || (ShellState.barBt && btModule.present))
+                visible: rightRow.segTray && (rightRow.segMedia || rightRow.segNet || rightRow.segBt)
             }
 
             MediaBlock {
                 id: mediaModule
                 tip: root.tip
-                visible: ShellState.barMedia && mediaModule.player !== null
+                visible: rightRow.segMedia
             }
 
             DividerV {
-                visible: mediaModule.visible && ((ShellState.barStats) || ShellState.barNet || (ShellState.barBt && btModule.present))
+                visible: rightRow.segMedia && (rightRow.segStats || rightRow.segNet || rightRow.segBt)
             }
 
             NetBlock {
                 id: netModule
                 tip: root.tip
-                visible: ShellState.barNet
+                visible: rightRow.segNet
             }
 
             DividerV {
-                visible: ShellState.barNet && (ShellState.barBt && btModule.present)
+                visible: rightRow.segNet && rightRow.segBt
             }
 
             BtBlock {
                 id: btModule
                 tip: root.tip
-                visible: ShellState.barBt && btModule.present
+                visible: rightRow.segBt
             }
 
             DividerV {
-                visible: (ShellState.barNet || (ShellState.barBt && btModule.present)) && ShellState.barStats
+                visible: (rightRow.segNet || rightRow.segBt) && rightRow.segStats
             }
 
             StatsCluster {
                 id: statsModule
                 tip: root.tip
-                visible: ShellState.barStats
+                visible: rightRow.segStats
             }
 
             DividerV {
-                visible: (ShellState.barTray || mediaModule.visible || ShellState.barStats || ShellState.barNet || (ShellState.barBt && btModule.present)) && ShellState.barClock
+                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt) && rightRow.segClock
             }
 
             ClockBlock {

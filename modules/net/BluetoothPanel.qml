@@ -65,6 +65,7 @@ PanelWindow {
             id: surface
 
             open: ShellState.btOpen
+            cascade: bodyCol
             anchorX: "right"
             cardW: root.cardW
             cardH: Math.max(320, root.cardH)

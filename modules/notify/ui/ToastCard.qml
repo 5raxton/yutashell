@@ -10,8 +10,8 @@ Rectangle {
     id: root
 
     required property var modelData // Notify Entry
+    required property int index
 
-    readonly property var entry: modelData
     readonly property bool critical: modelData.urg === 2
     readonly property color edge: critical ? Theme.alert : Theme.hairline
     readonly property real frac: (modelData.durMs > 0 && !modelData.persistent) ? Math.max(0, Math.min(1, modelData.remainMs / modelData.durMs)) : 1
@@ -23,15 +23,10 @@ Rectangle {
     border.color: edge
     opacity: 0
 
-    Component.onCompleted: {
-        modelData.paused = Qt.binding(() => area.containsMouse);
-        root.opacity = 1;
-        root.y = 0;
-    }
-
-    // entrance: drop from behind the bar line
+    // entrance: drop from behind the bar line, stacked cards trail in
     y: -(root.height + 12)
     Behavior on y {
+        enabled: !root.modelData.leaving
         NumberAnimation {
             duration: Theme.movSlow
             easing.type: Easing.OutCubic
@@ -39,10 +34,54 @@ Rectangle {
     }
 
     Behavior on opacity {
+        enabled: !root.modelData.leaving
         NumberAnimation {
             duration: Theme.movMed
             easing.type: Easing.OutCubic
         }
+    }
+
+    Timer {
+        id: enterT
+
+        interval: Math.min(root.index, 6) * 70
+        onTriggered: {
+            root.opacity = 1;
+            root.y = 0;
+        }
+    }
+
+    ParallelAnimation {
+        id: exitAnim
+
+        NumberAnimation {
+            target: root
+            property: "y"
+            to: -(root.height + 16)
+            duration: 240
+            easing.type: Easing.InCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "opacity"
+            to: 0
+            duration: 200
+            easing.type: Easing.InCubic
+        }
+    }
+
+    Connections {
+        target: root.modelData
+
+        function onLeavingChanged() {
+            if (root.modelData.leaving)
+                exitAnim.start();
+        }
+    }
+
+    Component.onCompleted: {
+        modelData.paused = Qt.binding(() => area.containsMouse);
+        enterT.start();
     }
 
     Column {

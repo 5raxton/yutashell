@@ -50,6 +50,10 @@ Singleton {
     readonly property int movFast: 120
     readonly property int movMed: 160
     readonly property int movSlow: 260
+    // organism layer: movSnap = knob/chip micro-physics; movDrift = idle
+    // breathing period (life runs slow, machine runs fast — never pulse text)
+    readonly property int movSnap: 80
+    readonly property int movDrift: 2600
 
     readonly property int barHeight: 44
     readonly property int outerPad: 14

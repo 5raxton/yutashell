@@ -3,21 +3,24 @@ import QtQuick.Shapes
 import qs.theme
 
 // YSurface — the standard popup card. ONE implementation of the house
-// entrance: the surface drops down from behind the bar (bar renders on the
-// Overlay layer, surfaces land on Top), slides to its resting spot below it,
-// and lifts back up on close.
+// entrance AND exit: the surface drops down from behind the bar (bar renders
+// on the Overlay layer, surfaces land on Top), slides to its resting spot
+// below it, and lifts back up on close — with a reverse scanline as it goes.
 //
-// The card rests FLUSH against the bar bottom, and concave "flare" shoulders
-// sweep outward from the top corners into the bar line — a socket, not a
-// floating tile. Every popup uses this so they all read as the same object.
+// The card rests FLUSH against the bar bottom, concave "flare" shoulders
+// sweep outward from the top corners into the bar line, and a 2px ACID
+// POWER LINE grounds the bottom edge — every card in the shell carries the
+// same live wire. Content can cascade in via `cascade` (staggered rise).
 //
 // Entrance ritual (kept quiet, but always there): the card lands with a
-// soft overshoot into its socket, an acid scanline sweeps down the face
-// once, the border burns acid before settling to hairline, and the family
-// tick draws itself down the left edge. One compound gesture, ~400ms.
+// soft overshoot into its socket, an acid scanline sweeps down the face,
+// the border burns acid before settling to hairline, the power line draws
+// left→right, and the family tick draws itself down the left edge. One
+// compound gesture, ~400ms.
 //
-// Consumers set open/anchorX/cardW/cardH and anchor content INSIDE; the
-// parent window stays fullscreen-transparent and masks input to this item.
+// Consumers set open/anchorX/cardW/cardH (+ optional cascade) and anchor
+// content INSIDE; the parent window stays fullscreen-transparent and masks
+// input to this item.
 Rectangle {
     id: root
 
@@ -30,6 +33,9 @@ Rectangle {
     property int restGap: 0
     // draw the concave outward shoulders that blend the card into the bar
     property bool flareTop: true
+    // Item whose direct children stagger-rise when the surface opens
+    // (pass your main content Column). Runs once per open, never at boot.
+    property Item cascade: null
 
     readonly property int flareS: 22
 
@@ -87,7 +93,7 @@ Rectangle {
         onTriggered: root._landed = true
     }
 
-    // ---- entrance ritual --------------------------------------------------
+    // ---- entrance / exit ritual ------------------------------------------
     Rectangle {
         id: scanline
 
@@ -113,6 +119,24 @@ Rectangle {
 
             NumberAnimation {
                 duration: Theme.movMed
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
+    // the power line — every card is wired to the same current
+    Rectangle {
+        id: powerLine
+
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        width: 0
+        height: 2
+        color: Theme.acid
+
+        Behavior on width {
+            NumberAnimation {
+                duration: 340
                 easing.type: Easing.OutCubic
             }
         }
@@ -161,20 +185,132 @@ Rectangle {
         }
     }
 
+    // exit ceremony: the scanline returns up as the card lifts away
+    ParallelAnimation {
+        id: outro
+
+        running: false
+
+        NumberAnimation {
+            target: scanline
+            property: "y"
+            to: -2
+            from: root.height + 2
+            duration: 170
+            easing.type: Easing.InCubic
+        }
+        SequentialAnimation {
+            PauseAnimation {
+                duration: 60
+            }
+            NumberAnimation {
+                target: scanline
+                property: "opacity"
+                from: 0.85
+                to: 0
+                duration: 110
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
+    function reveal(item) {
+        if (!item || !item.children)
+            return;
+        const kids = item.children;
+        for (let i = 0; i < kids.length; i++) {
+            const kid = kids[i];
+            if (!kid || kid.visible === false)
+                continue;
+            const delay = i * 26;
+            kid.opacity = 0;
+            // layout-safe rise: Translate transform, removed after landing
+            let tr = null;
+            try {
+                tr = Qt.createQmlObject("import QtQuick; Translate { y: 14 }", kid);
+                kid.transform = [tr];
+            } catch (e) {
+                tr = null;
+            }
+            const anim = kidAnim.createObject(root, {
+                    "target": kid,
+                    "delay": delay,
+                    "tr": tr
+                });
+            // sections draw their rules as their row lands
+            if (kid.reveal)
+                anim.started.connect(kid.reveal);
+            anim.start();
+        }
+    }
+
+    Component {
+        id: kidAnim
+
+        SequentialAnimation {
+            id: kidSeq
+
+            property Item target
+            property int delay: 0
+            property var tr: null
+
+            PauseAnimation {
+                duration: kidSeq.delay
+            }
+            ParallelAnimation {
+                NumberAnimation {
+                    target: kidSeq.target
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: Theme.movSlow
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    target: kidSeq.tr
+                    property: "y"
+                    from: 14
+                    to: 0
+                    duration: Theme.movSlow
+                    easing.type: Easing.OutCubic
+                }
+            }
+            onStopped: {
+                if (kidSeq.tr && kidSeq.target) {
+                    kidSeq.target.transform = [];
+                    kidSeq.tr.destroy();
+                }
+                kidSeq.destroy();
+            }
+        }
+    }
+
+    Timer {
+        id: revealDelay
+
+        interval: 140
+        onTriggered: if (root.cascade)
+            root.reveal(root.cascade)
+    }
+
     onOpenChanged: {
         if (open) {
             root._landed = false;
             familyTick.height = 0;
+            powerLine.width = 0;
             scanline.y = -2;
             scanline.opacity = 0.85;
             landTimer.restart();
             intro.restart();
+            powerLine.width = root.width;
+            revealDelay.restart();
         } else {
             intro.stop();
             landTimer.stop();
             root._landed = false;
-            scanline.opacity = 0;
+            outro.restart();
             familyTick.height = 0;
+            powerLine.width = 0;
         }
     }
 

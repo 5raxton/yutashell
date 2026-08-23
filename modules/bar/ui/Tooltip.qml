@@ -62,6 +62,25 @@ PanelWindow {
         color: Theme.bgAlt
         border.width: 1
         border.color: Theme.lineStrong
+        opacity: root.visible ? 1 : 0
+
+        // rise out of the bar line as it appears
+        transform: Translate {
+            y: root.visible ? 0 : -6
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: Theme.movFast
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.movSnap
+            }
+        }
 
         Rectangle {
             x: 1

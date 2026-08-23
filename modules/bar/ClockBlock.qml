@@ -53,6 +53,14 @@ Item {
             font.family: Theme.fontFamily
             font.pixelSize: 15
             font.weight: Font.DemiBold
+
+            // breathe, don't strobe
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 340
+                    easing.type: Easing.InOutSine
+                }
+            }
         }
 
         Text {

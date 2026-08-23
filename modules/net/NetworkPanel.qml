@@ -213,6 +213,7 @@ PanelWindow {
             id: surface
 
             open: ShellState.netOpen
+            cascade: bodyCol
             anchorX: "right"
             cardW: root.cardW
             cardH: Math.max(320, root.cardH)

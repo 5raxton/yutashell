@@ -50,6 +50,7 @@ PanelWindow {
             id: surface
 
             open: ShellState.notifyCenterOpen
+            cascade: listCol
             anchorX: "right"
             cardW: root.cardW
             cardH: Math.max(320, root.cardH)
@@ -189,6 +190,7 @@ PanelWindow {
                             Text {
                                 id: timeText
 
+                                visible: Notify.fields.time
                                 anchors.left: parent.left
                                 anchors.leftMargin: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
@@ -202,8 +204,8 @@ PanelWindow {
                             }
 
                             Rectangle {
-                                anchors.left: timeText.right
-                                anchors.leftMargin: Theme.sp2
+                                anchors.left: timeText.visible ? timeText.right : parent.left
+                                anchors.leftMargin: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 3
                                 height: 14
@@ -260,10 +262,7 @@ PanelWindow {
 
                                 YButton {
                                     label: "REPLAY"
-                                    onClicked: {
-                                        Notify.replay(rowRoot.modelData);
-                                        rowRoot.visible = false;
-                                    }
+                                    onClicked: Notify.replay(rowRoot.modelData)
                                 }
 
                                 YButton {

@@ -27,11 +27,20 @@ Item {
     implicitWidth: 300
     implicitHeight: Theme.rowH
 
+    // hover fill wipes in from the left — the machine acknowledging you
     Rectangle {
+        id: hoverFill
+
         anchors.fill: parent
-        color: root.interactive && hovered ? Theme.surface : "transparent"
-        border.width: 1
-        border.color: root.interactive && hovered ? Theme.lineStrong : "transparent"
+        color: Theme.surface
+        opacity: root.interactive && hovered ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 
     Rectangle {
@@ -39,7 +48,30 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: 2
-        color: root.on_ ? Theme.acid : root.interactive && hovered ? Theme.lineStrong : "transparent"
+        color: root.on_ ? Theme.acid : "transparent"
+
+        // interrogation tick: grows to full height under the cursor
+        Rectangle {
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: root.interactive && hovered ? parent.height : parent.height * 0.35
+            color: root.on_ ? Qt.lighter(Theme.acid, 1.25) : Theme.lineStrong
+            visible: root.interactive || root.on_
+
+            Behavior on height {
+                NumberAnimation {
+                    duration: Theme.movFast
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.movFast
+                }
+            }
+        }
     }
 
     Column {
@@ -58,6 +90,12 @@ Item {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsBody
             font.weight: Font.DemiBold
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.movFast
+                }
+            }
         }
 
         Text {
@@ -71,6 +109,19 @@ Item {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsLabel
             font.letterSpacing: 0.5
+            opacity: hovered ? 1 : 0.85
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.movFast
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.movFast
+                }
+            }
         }
     }
 

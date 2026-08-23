@@ -55,6 +55,23 @@ Rectangle {
         font.letterSpacing: 1.5
     }
 
+    // default tone keeps its fill on hover; this acid underline is the
+    // "acknowledged" cue for idle state — draws in, snaps out
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        height: 2
+        width: !root.isAcid && !root.isDanger && area.containsMouse ? parent.width : 0
+        color: Theme.acid
+
+        Behavior on width {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
     MouseArea {
         id: area
 

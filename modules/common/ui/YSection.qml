@@ -2,6 +2,8 @@ import QtQuick
 import qs.theme
 
 // Section header: index glyph + title + flex rule + optional trailing chip.
+// `reveal()` lets a cascade pass draw the rule left→right after the section
+// fades in — structure assembling itself.
 Item {
     id: root
 
@@ -11,6 +13,26 @@ Item {
 
     implicitWidth: 300
     implicitHeight: 22
+
+    function reveal() {
+        ruleScale.xScale = 0;
+        revealAnim.restart();
+    }
+
+    SequentialAnimation {
+        id: revealAnim
+
+        PauseAnimation {
+            duration: 60
+        }
+        NumberAnimation {
+            target: ruleScale
+            property: "xScale"
+            to: 1
+            duration: Theme.movSlow
+            easing.type: Easing.OutCubic
+        }
+    }
 
     Text {
         id: idx
@@ -40,6 +62,8 @@ Item {
     }
 
     Rectangle {
+        id: rule
+
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: title.right
         anchors.leftMargin: Theme.sp2
@@ -47,6 +71,13 @@ Item {
         anchors.rightMargin: chipText.visible ? Theme.sp2 : 0
         height: 1
         color: Theme.hairline
+        transform: Scale {
+            id: ruleScale
+
+            origin.x: 0
+            origin.y: 0
+            xScale: 1
+        }
     }
 
     Text {

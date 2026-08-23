@@ -2,6 +2,7 @@ import QtQuick
 import qs.theme
 
 // Bordered tag chip. tone: "outline" | "acid" | "alert"
+// Counters tick: a label change snaps the chip through a micro pop.
 Rectangle {
     id: root
 
@@ -16,6 +17,22 @@ Rectangle {
     color: "transparent"
     border.width: 1
     border.color: root.isAcid ? Theme.acid : root.isAlert ? Theme.alert : Theme.lineStrong
+
+    onLabelChanged: tickAnim.restart()
+
+    SequentialAnimation {
+        id: tickAnim
+
+        NumberAnimation {
+            target: root
+            property: "scale"
+            from: 1.18
+            to: 1.0
+            duration: Theme.movSnap
+            easing.type: Easing.OutBack
+            easing.overshoot: 0.6
+        }
+    }
 
     Text {
         id: chipText

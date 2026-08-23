@@ -132,6 +132,7 @@ PanelWindow {
             anchorX: root.anchorX
             cardW: root.cardW
             cardH: root.cardH
+            cascade: pageLoader.item
 
             // ===== HEADER BAND =====
             Item {
@@ -440,6 +441,9 @@ PanelWindow {
                     onItemChanged: {
                         geoWatch.target = item;
                         pageScroll.syncContentH();
+                        // tab switch: new page cascades in
+                        if (ShellState.panelOpen && drawer.cascade)
+                            drawer.reveal(item);
                     }
 
                     Connections {

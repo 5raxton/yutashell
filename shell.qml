@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Braxton
 import Quickshell
 import Quickshell.Io
 import qs.theme

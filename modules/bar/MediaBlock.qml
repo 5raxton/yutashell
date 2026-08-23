@@ -61,6 +61,8 @@ Item {
         loops: Animation.Infinite
     }
 
+    // equalizer bars live inside the transport row above
+
     Column {
         id: col
         anchors.verticalCenter: parent.verticalCenter
@@ -76,6 +78,64 @@ Item {
 
         Row {
             spacing: 7
+
+            Row {
+                id: eqBars
+
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+
+                Repeater {
+                    model: 3
+
+                    Rectangle {
+                        id: eqBar
+
+                        required property int index
+
+                        readonly property int phase: index * 210
+                        property real liveH: 3
+
+                        anchors.bottom: parent.bottom
+                        width: 2
+                        height: root.playing ? liveH : 3
+                        color: Theme.acid
+
+                        SequentialAnimation {
+                            running: root.visible && root.playing
+                            loops: Animation.Infinite
+
+                            PauseAnimation {
+                                duration: eqBar.phase
+                            }
+                            NumberAnimation {
+                                target: eqBar
+                                property: "liveH"
+                                from: 3
+                                to: 13 - eqBar.index * 2
+                                duration: 340 + eqBar.index * 90
+                                easing.type: Easing.InOutSine
+                            }
+                            NumberAnimation {
+                                target: eqBar
+                                property: "liveH"
+                                to: 4
+                                duration: 300 + eqBar.index * 70
+                                easing.type: Easing.InOutSine
+                            }
+                        }
+
+                        Behavior on height {
+                            enabled: !root.playing
+
+                            NumberAnimation {
+                                duration: Theme.movMed
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+                }
+            }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter

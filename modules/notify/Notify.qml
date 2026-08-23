@@ -52,6 +52,7 @@ Singleton {
     component Entry: QtObject {
         property var n: null // live Notification ref (null for replays)
         property bool dead: false // server-side close already happened
+        property bool leaving: false // exit ceremony playing; hard close queued
         property int id: 0
         property string app: ""
         property string icon: ""
@@ -264,6 +265,33 @@ Singleton {
         vm.destroy();
     }
 
+    // visible exit path: flag the card so its delegate plays the send-off,
+    // then hard-close after the animation window
+    function retire(id, expire_) {
+        const vm = root.live.find(v => v.id === id);
+        if (!vm || vm.leaving)
+            return;
+        vm.leaving = true;
+        root._retireQueue.push({
+            "id": id,
+            "expire": expire_ === true
+        });
+        retireTimer.restart();
+    }
+
+    property var _retireQueue: []
+
+    Timer {
+        id: retireTimer
+
+        interval: 280
+        onTriggered: {
+            const q = root._retireQueue;
+            root._retireQueue = [];
+            q.forEach(r => root.dismiss(r.id, r.expire));
+        }
+    }
+
     function invokeAction(id, actId) {
         const vm = root.live.find(v => v.id === id);
         if (!vm)
@@ -271,12 +299,12 @@ Singleton {
         const a = vm.acts.find(x => x.id === actId);
         if (a && a.ref)
             a.ref.invoke();
-        root.dismiss(id);
+        root.retire(id);
     }
 
     function clearAll() {
         const ids = root.live.map(v => v.id);
-        ids.forEach(id => root.dismiss(id));
+        ids.forEach(id => root.retire(id));
     }
 
     function _trimLive() {
@@ -325,8 +353,8 @@ Singleton {
                 if (vm.remainMs <= 0)
                     due.push(vm.id);
             });
-            // close after the scan — dismiss mutates the live array
-            due.forEach(id => root.dismiss(id, true));
+            // retire after the scan — retire mutates state via the queue
+            due.forEach(id => root.retire(id, true));
         }
     }
 

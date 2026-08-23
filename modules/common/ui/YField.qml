@@ -34,6 +34,22 @@ Rectangle {
     border.width: 1
     border.color: root.focused ? Theme.lineStrong : Theme.hairline
 
+    // focus underline draws in — the field is live
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        height: 2
+        width: root.focused ? parent.width : 0
+        color: Theme.acid
+
+        Behavior on width {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
     TextInput {
         id: input
 

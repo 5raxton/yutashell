@@ -64,6 +64,33 @@ Item {
             color: Theme.acid
             font.family: Theme.fontFamily
             font.pixelSize: 10
+
+            // scanning: the glyph hunts — blinks while the radio sweeps
+            SequentialAnimation on opacity {
+                running: root.visible && root.adapter && root.adapter.discovering
+                loops: Animation.Infinite
+
+                NumberAnimation {
+                    from: 1.0
+                    to: 0.25
+                    duration: 420
+                    easing.type: Easing.InOutSine
+                }
+                NumberAnimation {
+                    from: 0.25
+                    to: 1.0
+                    duration: 420
+                    easing.type: Easing.InOutSine
+                }
+            }
+
+            Behavior on opacity {
+                enabled: !(root.adapter && root.adapter.discovering)
+
+                NumberAnimation {
+                    duration: Theme.movMed
+                }
+            }
         }
     }
 
