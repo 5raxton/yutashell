@@ -307,6 +307,95 @@ PanelWindow {
                 width: parent.width
                 spacing: Theme.sp3
 
+                // ---- glance card: wallpaper thumb + time + weather ----
+                Rectangle {
+                    width: parent.width
+                    height: 92
+                    color: Theme.bg
+                    border.width: 1
+                    border.color: Theme.hairline
+
+                    // wallpaper thumb (sourceSize-gated, only while open)
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        source: Wallpaper.current.length > 0 && ShellState.ccOpen ? "file://" + Wallpaper.current : ""
+                        sourceSize.width: 256
+                        sourceSize.height: 160
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        cache: false
+                    }
+
+                    // dim strip so the time reads over any wallpaper
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        gradient: Gradient {
+                            GradientStop { position: 0; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.88) }
+                            GradientStop { position: 0.6; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.55) }
+                            GradientStop { position: 1; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.3) }
+                        }
+                    }
+
+                    // time + weather line
+                    Column {
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.sp3
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+
+                        Text {
+                            id: homeClock
+
+                            text: SystemStats.fmtTime(new Date(), false)
+                            color: Theme.ink
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsDisplay * 1.6
+                            font.weight: Font.ExtraBold
+                            font.letterSpacing: 1
+                        }
+
+                        Text {
+                            text: (Weather.configured && Weather.current ? Weather.current.temp + "° " + Weather.codeInfo(Weather.current.code)[1] : "no weather") + "  ·  " + (SystemStats.hostname.length > 0 ? SystemStats.hostname.toUpperCase() : "")
+                            color: Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 1.5
+                        }
+                    }
+
+                    // ticking clock while the HOME tab is visible
+                    Timer {
+                        interval: 1000
+                        running: root.activePageId === "home" && ShellState.ccOpen
+                        repeat: true
+                        triggeredOnStart: true
+                        onTriggered: homeClock.text = SystemStats.fmtTime(new Date(), false)
+                    }
+
+                    // avatar (initial fallback)
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.sp3
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 40
+                        color: Theme.surface
+                        border.width: 1
+                        border.color: Theme.lineStrong
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: (Quickshell.env("USER") || "u").charAt(0).toUpperCase()
+                            color: Theme.acid
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsTitle
+                            font.weight: Font.ExtraBold
+                        }
+                    }
+                }
+
                 YSection {
                     width: parent.width
                     index: "01"

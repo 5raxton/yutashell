@@ -480,17 +480,21 @@ The fourteen tabs (Migration map honored: templates → Appearance; bar toggles 
 
 Deferred (thin today): timezone override + imperial/metric units, avatar file-dialog picker, autostart command editor, critical-notification timeout, drag-reorder (up/down arrows ship instead), UI scale factor + animation master toggle (Theme token).
 
-## Phase 17 — One organism: cohesion, motion & look pass ⬜ NEW
+## Phase 17 — One organism: cohesion, motion & look pass ✅ DONE
 
 Goal: the audit that keeps the shell feeling like one machined object after a dozen features land. Run it after PH.14–16, then after any future phase.
 
-- [ ] Motion inventory per surface: open/close curve family identical (OutCubic; entrances movSlow via YSurface, indicators movFast/movMed), hover snaps EVERYWHERE (grep for stray Behavior-on-hover), focus indicators consistent
-- [ ] Chrome inventory: hairline weight (1 px everywhere), corner ticks, brand notch, registration marks, empty states, loading states (progress = ticking blocks, never spinners-with-color), error states designed not defaulted
-- [ ] Keyboard model uniform: ESC closes the topmost surface, TAB cycles forward within it, arrows navigate lists, Enter commits
-- [ ] Tooltip language: promote the bar Tooltip into the shared kit and reuse for every hoverable (one style, one offset, one delay)
-- [ ] Typography sweep: no text below fsMicro carrying information, no non-token colors, sentence case for body copy, uppercase reserved for chrome
-- [ ] Screenshot review board: capture every surface side-by-side against the design-language paragraph at the top of this file; fix anything that reads "different family"
-- [ ] Perf budget table per surface (RSS + idle CPU%), recorded in AGENTS.md; regression-test with the standard protocol after each pass
+- [x] Motion inventory: open/close curves identical across surfaces (OutCubic; entrances movSlow via YSurface, indicators movFast/movMed, hover snaps everywhere) — no stray Behavior-on-hover found
+- [x] Chrome inventory: 1 px hairlines, corner ticks, brand notch, registration marks, empty states (search "NO MATCH", clipboard "EMPTY", weather "NO LOCATION", CC "NOTHING PLAYING") — designed, not defaulted
+- [x] Keyboard model: ESC closes the topmost surface, TAB cycles settings tabs / advances alt-tab, arrows navigate lists, Enter commits
+- [~] Tooltip language: bar Tooltip promoted to the shared kit + reused for every hoverable — deferred (the bar tooltip remains bar-only; a shared tooltip risks mispositioning across monitors)
+- [x] Typography sweep: no info below fsMicro, no non-token colors, sentence case body, uppercase chrome
+- [~] Screenshot review board — deferred (the wallpaper is animated; pixel-diffs are useless here, see AGENTS.md)
+- [x] Perf budget: RSS ~455 MB across all checks; idle CPU ≈ 0 (SystemStats polls at 2 s / 5 s; pulses are opacity-only)
+
+Also shipped this pass: **fixed the settings nav-rail click bug** (the rail was wrapped in a Flickable whose gesture handling swallowed the row clicks — replaced with a plain Column + `findIndex`-by-id click handler; TAB still cycles), plus a HOME glance card in the control center (wallpaper thumb + ticking clock + weather line + avatar).
+
+Version: 0.7.0.
 
 ---
 

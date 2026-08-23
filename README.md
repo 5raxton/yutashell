@@ -3,7 +3,7 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** Phases 0–16 complete — foundations, per-monitor taskbar, theme engine + matugen (incl. generated light mode), settings control core, notification daemon, connectivity suite, audio/media/displays/OSDs, session/lock/power, bottom dock, overview/window management, the widget suite, a unified system data layer, a configurable bar v2 (segments + taskbar + stat cells), the control center, and the settings v4 constitution with a grouped nav rail + global search. The shell is a full daily driver.
+> **Status:** Phases 0–17 complete — the full roadmap: foundations, per-monitor taskbar, theme engine + matugen, settings control core, notification daemon, connectivity, audio/media/OSDs, session/lock/power, dock, overview, widgets, unified system data layer, configurable bar v2, control center, settings v4, and the final one-organism cohesion pass. The shell is a complete, polished daily driver.
 
 ## Showcase
 

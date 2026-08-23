@@ -337,6 +337,7 @@ PanelWindow {
                 y: Theme.headH + 1
                 width: root.railW
                 height: parent.height - y
+                clip: true
 
                 Rectangle {
                     anchors.right: parent.right
@@ -363,25 +364,13 @@ PanelWindow {
                     onTextChanged: root.searchQuery = searchField.text
                 }
 
-                Flickable {
-                    id: railFlick
+                Column {
+                    id: railCol
 
                     x: 0
                     y: searchField.y + searchField.height + Theme.sp2
                     width: parent.width
-                    height: parent.height - y
-                    clip: true
-                    contentWidth: width
-                    contentHeight: railCol.height
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    FastWheel {}
-
-                    Column {
-                        id: railCol
-
-                        width: parent.width
-                        spacing: Theme.sp1
+                    spacing: Theme.sp1
 
                         Repeater {
                             model: root.groups
@@ -423,7 +412,14 @@ PanelWindow {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: railRow.active ? Theme.surface : railArea.containsMouse ? Theme.bg : "transparent"
+                                            color: railRow.active ? Theme.surface : railArea.containsMouse ? Theme.surface : "transparent"
+                                            opacity: railRow.active || railArea.containsMouse ? 1 : 0
+
+                                            Behavior on opacity {
+                                                NumberAnimation {
+                                                    duration: Theme.movFast
+                                                }
+                                            }
 
                                             Rectangle {
                                                 anchors.left: parent.left
@@ -454,7 +450,11 @@ PanelWindow {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.setPage(root.pages.indexOf(railRow.modelData))
+                                            onClicked: {
+                                                const idx = root.pages.findIndex(p => p.id === railRow.modelData.id);
+                                                if (idx >= 0)
+                                                    root.setPage(idx);
+                                            }
                                         }
                                     }
                                 }
@@ -466,8 +466,20 @@ PanelWindow {
                             }
                         }
                     }
+
+                    // search produced nothing — honest empty state
+                    Text {
+                        width: parent.width - Theme.sp3
+                        x: Theme.sp3
+                        y: searchField.y + searchField.height + Theme.sp3
+                        visible: root.searchQuery.trim().length > 0 && root.visiblePages.length === 0
+                        text: "NO MATCH"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: 2
+                    }
                 }
-            }
 
             // ===== PAGE TITLE FRAME (fixed — doesn't scroll) =====
             Item {

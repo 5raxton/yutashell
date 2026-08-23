@@ -59,7 +59,7 @@ Singleton {
     readonly property int outerPad: 14
     readonly property int sectionGap: 16
 
-    readonly property string version: "0.6.0"
+    readonly property string version: "0.7.0"
 
     // ======== SCHEME ENGINE ========
     readonly property var presets: [{
