@@ -28,12 +28,10 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: root.open || hideDelay.running
-    // input lands ONLY on the card — desktop around it stays live.
-    // NOTE: target the YSurface itself; the Loader's filler Item is
-    // fullscreen (Loaders stretch their loaded root) and must never
-    // become the input region.
+    // full window accepts input while open; the click-catcher closes on any
+    // press outside the card (the card's own swallow area eats in-card clicks)
     mask: Region {
-        item: root.open && uiLoader.item && uiLoader.item.surface ? uiLoader.item.surface : null
+        item: root.open ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -55,6 +53,12 @@ PanelWindow {
         focus: root.open
 
         Keys.onEscapePressed: ShellState.closeLauncher()
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closeLauncher()
+        }
 
         // whole UI builds lazily on first open, then stays warm so every
         // later open paints instantly

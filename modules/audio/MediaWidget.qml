@@ -23,7 +23,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.mediaOpen || hideDelay.running
     mask: Region {
-        item: ShellState.mediaOpen ? surface : null
+        item: ShellState.mediaOpen ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -84,6 +84,12 @@ PanelWindow {
         focus: true
 
         Keys.onEscapePressed: ShellState.closeMedia()
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closeMedia()
+        }
 
         YSurface {
             id: surface

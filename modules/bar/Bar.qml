@@ -7,6 +7,7 @@ import qs.modules.common
 import "ui"
 import "../net"
 import "../audio"
+import "../session"
 import "../common/ui"
 
 PanelWindow {
@@ -82,6 +83,7 @@ PanelWindow {
             readonly property bool segBt: ShellState.barBt && btModule.present
             readonly property bool segAudio: ShellState.barAudio
             readonly property bool segNl: ShellState.barAudio && NightLight.active
+            readonly property bool segSess: ShellState.barSession && Session.inhibitCount > 0
             readonly property bool segStats: ShellState.barStats
             readonly property bool segClock: ShellState.barClock
 
@@ -164,7 +166,21 @@ PanelWindow {
             }
 
             DividerV {
-                visible: rightRow.segNl && rightRow.segStats
+                visible: rightRow.segNl && (rightRow.segSess || rightRow.segStats)
+            }
+
+            // session inhibitors — some app is holding the idle/sleep lock
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: rightRow.segSess
+                text: "󰤄 " + Session.inhibitCount
+                color: Theme.acid
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+            }
+
+            DividerV {
+                visible: rightRow.segSess && rightRow.segStats
             }
 
             StatsCluster {
@@ -174,7 +190,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl) && rightRow.segClock
+                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl || rightRow.segSess) && rightRow.segClock
             }
 
             ClockBlock {

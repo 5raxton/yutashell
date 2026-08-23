@@ -1,3 +1,4 @@
+import Quickshell
 import QtQuick
 import qs.theme
 import qs.modules.common
@@ -9,6 +10,8 @@ Item {
     implicitHeight: Theme.barHeight
 
     property bool blinkOn: true
+
+    readonly property string hostname: (Quickshell.env("HOSTNAME") || "yuta").toUpperCase()
 
     Timer {
         interval: 600
@@ -53,7 +56,7 @@ Item {
                 spacing: 4
 
                 Text {
-                    text: "YUTA//OS"
+                    text: root.hostname + " // " + (Theme.jpEnabled ? "因果" : "INGA")
                     color: hoverArea.containsMouse ? Theme.acid : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
@@ -71,7 +74,7 @@ Item {
             }
 
             Text {
-                text: "SYS.BAR // v" + Theme.version
+                text: "YUTA.SHELL // v" + Theme.version
                 color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: 7

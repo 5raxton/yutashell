@@ -15,6 +15,9 @@ Singleton {
     property bool notifyCenterOpen: false
     property bool audioOpen: false
     property bool mediaOpen: false
+    property bool sessionOpen: false
+    property bool overviewOpen: false
+    property bool altTabOpen: false
 
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
@@ -26,6 +29,9 @@ Singleton {
         root.notifyCenterOpen = name === "notifycenter";
         root.audioOpen = name === "audio";
         root.mediaOpen = name === "media";
+        root.sessionOpen = name === "session";
+        root.overviewOpen = name === "overview";
+        root.altTabOpen = name === "alttab";
     }
 
     function togglePanel() {
@@ -104,6 +110,30 @@ Singleton {
         root.mediaOpen = false;
     }
 
+    function toggleSession() {
+        root._exclusive(root.sessionOpen ? "" : "session");
+    }
+
+    function closeSession() {
+        root.sessionOpen = false;
+    }
+
+    function toggleOverview() {
+        root._exclusive(root.overviewOpen ? "" : "overview");
+    }
+
+    function closeOverview() {
+        root.overviewOpen = false;
+    }
+
+    function toggleAltTab() {
+        root._exclusive(root.altTabOpen ? "" : "alttab");
+    }
+
+    function closeAltTab() {
+        root.altTabOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -152,11 +182,34 @@ Singleton {
     readonly property alias nlTemp: adapter.nlTemp
     readonly property alias nlActive: adapter.nlActive
 
+    // session/power prefs
+    readonly property alias lockMonitors: adapter.lockMonitors
+    readonly property alias idleAction: adapter.idleAction
+    readonly property alias idleSecs: adapter.idleSecs
+    readonly property alias holdMs: adapter.holdMs
+    readonly property alias sessionTiles: adapter.sessionTiles
+    readonly property alias pamService: adapter.pamService
+    readonly property alias barSession: adapter.barSession
+    readonly property alias lockAvatar: adapter.lockAvatar
+
+    // dock prefs
+    readonly property alias dockEnabled: adapter.dockEnabled
+    readonly property alias dockMode: adapter.dockMode
+    readonly property alias dockHide: adapter.dockHide
+    readonly property alias dockMonitors: adapter.dockMonitors
+    readonly property alias dockPins: adapter.dockPins
+
     function set(key, value) {
         adapter[key] = value;
         // Coalesce bursts into one flush — back-to-back writeAdapter() calls
         // overlap inside FileView and get silently dropped.
         flushTimer.restart();
+    }
+
+    // immediate synchronous-ish flush for session-ending paths (logout)
+    function flushNow() {
+        flushTimer.stop();
+        stateFile.writeAdapter();
     }
 
     Timer {
@@ -235,6 +288,28 @@ Singleton {
     property int osdFadeMs: 1600
     property int nlTemp: 4500
     property bool nlActive: false
+    // session/power: lock-screen monitor selection ("all"|"primary"|JSON name
+    // list), idle action ("none"|"lock"|"suspend"|"shutdown") after idleSecs,
+    // hold-to-confirm duration for destructive tiles (0 disables), power menu
+    // tile order (JSON id array), PAM service for the lock screen, bar
+    // inhibit indicator toggle, lock avatar path override (PH.16 shell tab)
+    property string lockMonitors: "all"
+    property string idleAction: "none"
+    property int idleSecs: 900
+    property int holdMs: 1100
+    property string sessionTiles: "[\"lock\",\"suspend\",\"hibernate\",\"reboot\",\"poweroff\",\"logout\"]"
+    property string pamService: "system-auth"
+    property bool barSession: true
+    property string lockAvatar: ""
+
+    // dock: master switch (OFF by default), layer mode (overlay|exclusive),
+    // hide mode (never|dodge|always), monitor scope (all|primary),
+    // pinned app ids (JSON array of desktop-entry ids)
+    property bool dockEnabled: false
+    property string dockMode: "overlay"
+    property string dockHide: "never"
+    property string dockMonitors: "all"
+    property string dockPins: "[]"
         }
     }
 

@@ -59,7 +59,7 @@ Singleton {
     readonly property int outerPad: 14
     readonly property int sectionGap: 16
 
-    readonly property string version: "0.3.0"
+    readonly property string version: "0.4.0"
 
     // ======== SCHEME ENGINE ========
     readonly property var presets: [{
@@ -216,7 +216,8 @@ Singleton {
     // repaint everything without modules knowing either exists
     function _reapplyCurrent() {
         if (root.followWallpaper && String(ShellState.wallpaperPath ?? "").length > 0) {
-            wallThemeFile.reload();
+            // the palette file is already loaded — re-apply its current tokens
+            // (no reload() here: it would race the read and log "unreadable")
             applyWallpaperTokens();
         } else if (root.activeScheme.length > 0) {
             applyPreset(root.activeScheme);
@@ -244,8 +245,10 @@ Singleton {
         root.followWallpaper = on;
         ShellState.set("followWallpaper", on);
         if (on) {
+            // reload() is async — the onLoaded handler applies the tokens once
+            // the file is actually read (the old synchronous applyWallpaperTokens
+            // here raced the read and logged a spurious "unreadable" every time)
             wallThemeFile.reload();
-            applyWallpaperTokens();
         }
     }
 
@@ -361,8 +364,8 @@ Singleton {
             _applyTokens(defaults);
         root.followWallpaper = ShellState.followWallpaper;
         if (ShellState.followWallpaper) {
+            // reload() is async; the onLoaded handler applies tokens when ready
             wallThemeFile.reload();
-            applyWallpaperTokens();
         } else if (ShellState.scheme.length > 0) {
             applyPreset(ShellState.scheme);
         }

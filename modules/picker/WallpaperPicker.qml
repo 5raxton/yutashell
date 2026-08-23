@@ -31,10 +31,10 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: root.open || hideDelay.running
-    // target the YSurface itself — the Loader's filler Item is fullscreen
-    // (Loaders stretch their loaded root) and must never be the input region
+    // full window accepts input while open; the click-catcher closes on any
+    // press outside the card (the card's own swallow area eats in-card clicks)
     mask: Region {
-        item: root.open && uiLoader.item && uiLoader.item.surface ? uiLoader.item.surface : null
+        item: root.open ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -60,6 +60,12 @@ PanelWindow {
         focus: root.open
 
         Keys.onEscapePressed: ShellState.closePicker()
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closePicker()
+        }
 
         Loader {
             id: uiLoader

@@ -3,14 +3,18 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** WIP — Phases 0–7 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen incl. light mode, settings control core, notification daemon, connectivity suite, audio/media/displays/OSD suite).
+> **Status:** Phases 0–10 complete — foundations, per-monitor taskbar, theme engine + matugen (incl. generated light mode), settings control core, notification daemon, connectivity suite, audio/media/displays/OSDs, session/lock/power, bottom dock, and overview/window management. The shell is a full daily driver.
 
-![screenshot placeholder — add one when the shell stabilizes]
+## Showcase
+
+| desktop | launcher | settings | notifications | wallpaper |
+|---|---|---|---|---|
+| ![desktop](images/showcase/desktop.png) | ![launcher](images/showcase/app-launcher.png) | ![settings](images/showcase/appearance-settings-tab.png) | ![notifications](images/showcase/notification-center.png) | ![picker](images/showcase/wallpaper-selector.png) |
 
 ## Features (current)
 
 - **Taskbar** (`modules/bar/`) — one bar window per connected screen, hot-plug aware
-  - Identity block (`YUTA//OS`) with blinking cursor, hover inversion; **left-click opens the settings panel**
+  - Identity block (`{HOSTNAME} // 因果` + `YUTA.SHELL // v{version}`) with blinking cursor, hover inversion; **left-click opens the settings panel**
   - Workspace switcher: dynamic slots, occupied/empty/urgent states, acid underline that slides to the focused workspace, red blink on window-urgent events
   - Focused-window title with app class, tracked via Hyprland's event stream
   - System tray (StatusNotifier): left-click menus, middle-click secondary actions, wheel scroll
@@ -20,7 +24,7 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
 - **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. **Light mode** regenerates every palette at runtime (paper surfaces, ink text, contrast-fitted accents); an **accent override** lets any color take the acid slot. Japanese labels auto-degrade to romaji when no CJK font is present.
 - **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
 - **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change. The shell detects which themed apps are actually installed (absent apps show ABSENT and refuse to enable), and for include-style configs it **writes the include line itself** into a managed `# >>> yutashell-matugen` block — toggling a template is zero-friction; disabling strips the block again. The Hyprland Lua variant (`hyprland-lua`) goes further: `colors.lua` applies window/group borders via Helmsman's `hl.config` at boot and a post hook re-applies them live after every regeneration — borders follow the wallpaper with no manual wiring.
-- **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — bar-style tab strip with sliding acid underline, scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, placement (center/left/right) + width customization, system/about tabs; remembers your last visited tab
+- **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — bar-style tab strip with sliding acid underline, eight tabs (APPEARANCE · TEMPLATES · MODULES · NOTIFY · AUDIO · DOCK · SYSTEM · ABOUT), scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, placement (center/left/right) + width customization, dock enable/mode/hide/monitors, power plan + idle action + hold-to-confirm + lock-screen settings, and an about/state/IPC-cheatsheet tab; remembers your last visited tab
 - **Wallpaper picker** (`modules/picker/`): the ARCHIVE, a centered rectangle a step larger than the launcher (~1000×600) — a numbered index spine on the left (pure type, no thumbnail decoding) and a huge framed preview stage on the right showing one wallpaper at full quality. The always-focused filter field drives everything: type to filter, arrows to walk the index, enter or APPLY to commit; random/rescan in the spine, current wallpaper marked with an acid dot. Picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
 - **App launcher**: small centered card (~640×460) dropping from beneath the bar, indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
 - **One surface at a time**: opening any popup (settings / launcher / picker / network / bluetooth / notification center) closes the others; every surface arrives with the house entrance ritual — drop from behind the bar with a soft socket landing, one acid scanline sweep, border burn, family tick draw — and leaves with the reverse ceremony (scanline returns up as the card lifts)
@@ -43,8 +47,11 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   - **OSD**: a brutal horizontal gauge stamps the corner on every volume/mic/brightness event — VOL/MIC/BRIGHT tag, big % readout, auto-fade; corner/width/fade persisted in settings → AUDIO
   - **Media widget**: MPRIS expanded — app glyph, track line, seekbar with elapsed/total, play/pause/next/prev transport
   - Night light (`hyprsunset`, temperature 1000–6500 K, IPC + bar chip while active) and DDC/CI brightness (`ddcutil`) both detect their binary at runtime and hide cleanly when absent
-- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll / YSurface / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
-- **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit) and never dims the desktop — input is masked to the card so the rest of the screen stays live
+- **Session, power & lock** (`modules/session/`): power menu overlay with hold-to-confirm destructive tiles (lock/suspend/hibernate/reboot/poweroff/logout, tile set + order persisted), a full-screen lock screen on selected monitor(s) with PAM auth (`system-auth`) + wrong-attempt shake, inhibitor-aware idle timer (lock/suspend/shutdown, off by default), power plans via power-profiles-daemon (auto-detected), a themed Polkit privilege dialog, and a bar chip while any app holds the idle/sleep lock
+- **Dock** (`modules/dock/`): optional bottom dock (OFF by default, enable in settings → DOCK) — pinned + running apps merged, active-window tick, click launch/focus/minimize-to-scratchpad cycle, middle-click new instance, scroll cycles an app's windows, right-click context menu (pin/close), intellihide (never/dodge/always), overlay vs exclusive edge, per-monitor instances
+- **Overview** (`modules/overview/`): workspace grid (click to jump), an Alt-Tab style window switcher (MRU ordering, acid selection frame), scratchpad control (`special:magic`), and quick-tile presets (float/fullscreen/pseudo/center/left/right/top/bottom)
+- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YSlider / YScroll / YSurface / YPulse / YClickAway / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
+- **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit). **Clicking outside any popup closes it** (a fullscreen click-catcher behind the card) and never dims the desktop; ESC closes, and only one surface is open at a time
 
 ## Requirements
 
@@ -62,15 +69,20 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   sudo pacman -S --needed matugen awww
   ```
 
-- Later phases will use: `grim`, `slurp`, `wl-clipboard`, `cliphist`, `brightnessctl`
+- Optional feature backends (each degrades gracefully if absent — the shell hides the surface instead of crashing):
+  - `grim`, `slurp`, `wl-clipboard`, `cliphist` — screenshot + clipboard (future phases)
+  - `hyprsunset` — night light
+  - `ddcutil` — external monitor brightness (DDC/CI)
+  - `power-profiles-daemon` — power plans
+  - `papirus-folders` — papirus icon theming (needs a passwordless sudoers drop-in for its post hook)
 
 ## Run
 
 ```
-quickshell -p ~/.config/quickshell/yutashell
+quickshell -p ~/.config/quickshell/yuta-qs
 ```
 
-Or set it as your session shell by launching that command from your Hyprland/Helmsman autostart.
+Or set it as your session shell by launching that command from your Hyprland/Helmsman autostart (this machine runs it as `qs -c yuta-qs`).
 
 ## Keybinds & IPC
 
@@ -112,6 +124,23 @@ qs ipc call <target> <function> [args...]
 | `audio` | `status` | print sink name + volume + mute state |
 | `audio` | `nl` / `nltemp <K>` | night light toggle / set temperature (hyprsunset; hides when absent) |
 | `display` | `bright <0-100>` | external monitor brightness over DDC/CI (ddcutil; hides when absent) |
+| `session` | `toggle` / `open` / `close` | power menu overlay (hold-to-confirm tiles) |
+| `session` | `lock` | engage the lock screen (PAM auth) |
+| `session` | `logout` / `suspend` / `hibernate` / `reboot` / `poweroff` | end-session actions (logout flushes state first) |
+| `session` | `profile <saver\|balanced\|performance\|cycle>` | set/cycle power profile (power-profiles-daemon) |
+| `session` | `idle <none\|lock\|suspend\|shutdown> <secs>` | idle action + timeout (off by default) |
+| `session` | `status` | lock state, inhibitors, profile, idle config |
+| `notify` | `show <app> <summary> <body>` | post a toast through the shell daemon (for scripts/Helmsman) |
+| `dock` | `toggle` / `enable` / `disable` | master switch for the bottom dock (OFF by default) |
+| `dock` | `pin <id>` / `unpin <id>` | pin/unpin an app by desktop-entry id |
+| `dock` | `hide <never\|dodge\|always>` | intellihide mode |
+| `dock` | `mode <overlay\|exclusive>` | float overlay vs reserve a bottom strip |
+| `dock` | `status` | enabled state, mode, hide mode, pin count |
+| `overview` | `toggle` / `open` / `close` | workspace overview grid |
+| `overview` | `alttab` | open/advance the window switcher (ALT+Tab) |
+| `overview` | `scratchpad` / `scratchsend` | toggle `special:magic` / send focused window to it |
+| `overview` | `tile <float\|fullscreen\|pseudo\|center\|left\|right\|top\|bottom>` | quick-tile the focused window |
+| `overview` | `status` | window + workspace counts |
 
 ### Hyprland binds (standard setup)
 
@@ -162,6 +191,11 @@ yutashell/
 │   ├── audio/                 # PH.07: AudioService (Pipewire), AudioBlock bar
 │   │                          # segment, audio console, MediaWidget, OSDs,
 │   │                          # NightLight (hyprsunset), DisplayService (ddcutil)
+│   ├── session/               # PH.08: power menu, lock screen (PAM), idle,
+│   │                          # power profiles, polkit agent dialog
+│   ├── dock/                  # PH.09: bottom dock (Dock logic + DockBar)
+│   ├── overview/              # PH.10: workspace grid, alt-tab, scratchpad,
+│   │                          # quick-tile presets
 │   └── settings/              # control-core drawer + ui/
 ```
 
@@ -178,13 +212,14 @@ Everything the shell writes lives under `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/width/pins/recents), settings panel (placement/width/last page) |
+| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/width/pins/recents), settings panel (placement/width/last page), notifications, audio/OSD, session/lock/idle/hold, dock (enabled/mode/hide/monitors/pins) |
 | `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
 | `matugen.toml` | generated matugen config assembled from the template registry |
+| `snippet.stage` | transient staging file used to move managed config snippets into app configs |
 
 ## Theming contract
 
-Modules never hardcode colors. Everything reads from the `Theme` singleton so future matugen integration only rewrites token values. Palette today:
+Modules never hardcode colors. Everything reads from the `Theme` singleton so the matugen pipeline only rewrites token values. The `acid` preset baseline:
 
 | token | value | role |
 |---|---|---|
@@ -193,8 +228,10 @@ Modules never hardcode colors. Everything reads from the `Theme` singleton so fu
 | `acid` | `#c8ff3d` | accent |
 | `alert` | `#ff3b52` | urgent/destructive |
 
+Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`, `cyberpunk`, `doom`, `gruvbox`, `mono`, `tokyonight`, `kanagawa`, `dracula`) plus wallpaper-driven palettes from matugen; light mode is regenerated at runtime from any palette. An accent override can swap the acid slot for any hex.
+
 ## Roadmap
 
-The full phased build plan — launcher, notifications, WiFi/BT panels, audio/media OSDs, dock, lock screen, settings core, matugen theming — lives in [ROADMAP.md](ROADMAP.md).
+The full phased build plan — launcher, notifications, WiFi/BT panels, audio/media OSDs, dock, lock screen, settings core, matugen theming, control center, and the PH.16 settings suite — lives in [ROADMAP.md](ROADMAP.md). Phases 0–10 are complete; 11+ are next.
 
 Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

@@ -13,6 +13,9 @@ import "modules/launcher"
 import "modules/notify"
 import "modules/net"
 import "modules/audio"
+import "modules/session"
+import "modules/dock"
+import "modules/overview"
 
 ShellRoot {
     Tooltip {
@@ -51,6 +54,26 @@ ShellRoot {
     MediaWidget {}
 
     Osd {}
+
+    LockScreen {}
+
+    PowerMenu {}
+
+    PolkitDialog {}
+
+    // one dock per connected screen (PH.09 — OFF by default, enables via IPC
+    // or the PH.16 dock tab); each instance shows only its own screen's windows
+    Variants {
+        model: Quickshell.screens
+
+        DockBar {
+            required property var modelData
+        }
+    }
+
+    OverviewGrid {}
+
+    AltTab {}
 
     IpcHandler {
         target: "launcher"
@@ -307,6 +330,160 @@ ShellRoot {
             const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
             if (p && p.canGoPrevious)
                 p.previous();
+        }
+    }
+
+    IpcHandler {
+        target: "overview"
+
+        function toggle(): void {
+            Overview.toggleGrid();
+        }
+
+        function open(): void {
+            Overview.openGrid();
+        }
+
+        function close(): void {
+            Overview.closeGrid();
+            Overview.cancelAltTab();
+        }
+
+        function alttab(): void {
+            Overview.cycleAltTab(1);
+        }
+
+        function scratchpad(): void {
+            Overview.toggleScratchpad();
+        }
+
+        function scratchsend(): void {
+            Overview.sendToScratchpad();
+        }
+
+        function tile(preset: string): void {
+            Overview.tile(String(preset));
+        }
+
+        function status(): string {
+            return "windows " + Overview.windows.length + " · workspaces " + Overview.workspaces.length;
+        }
+    }
+
+    IpcHandler {
+        target: "dock"
+
+        function toggle(): void {
+            Dock.toggleEnabled();
+        }
+
+        function enable(): void {
+            ShellState.set("dockEnabled", true);
+        }
+
+        function disable(): void {
+            ShellState.set("dockEnabled", false);
+        }
+
+        function pin(id: string): void {
+            Dock.pin(String(id));
+        }
+
+        function unpin(id: string): void {
+            Dock.unpin(String(id));
+        }
+
+        function hide(mode: string): string {
+            const m = String(mode).toLowerCase();
+            if (["never", "dodge", "always"].indexOf(m) < 0)
+                return "bad mode: never|dodge|always";
+            ShellState.set("dockHide", m);
+            return "hide " + m;
+        }
+
+        function mode(m: string): string {
+            const m2 = String(m).toLowerCase();
+            if (["overlay", "exclusive"].indexOf(m2) < 0)
+                return "bad mode: overlay|exclusive";
+            ShellState.set("dockMode", m2);
+            return "mode " + m2;
+        }
+
+        function status(): string {
+            return (ShellState.dockEnabled ? "on" : "off") + " · " + ShellState.dockMode + " · hide " + ShellState.dockHide + " · pins " + Dock.pins.length;
+        }
+    }
+
+    IpcHandler {
+        target: "notify"
+
+        function show(app: string, sum: string, body: string): void {
+            Notify.announce(String(sum), String(body), 1);
+            void app;
+        }
+    }
+
+    IpcHandler {
+        target: "session"
+
+        function toggle(): void {
+            ShellState.toggleSession();
+        }
+
+        function open(): void {
+            ShellState._exclusive("session");
+        }
+
+        function close(): void {
+            ShellState.closeSession();
+        }
+
+        function lock(): void {
+            Session.lock();
+        }
+
+        function logout(): void {
+            Session.fire("logout");
+        }
+
+        function suspend(): void {
+            Session.fire("suspend");
+        }
+
+        function hibernate(): void {
+            Session.fire("hibernate");
+        }
+
+        function reboot(): void {
+            Session.fire("reboot");
+        }
+
+        function poweroff(): void {
+            Session.fire("poweroff");
+        }
+
+        function profile(name: string): string {
+            if (!name || String(name).toLowerCase() === "cycle") {
+                Session.cycleProfile();
+            } else {
+                Session.setProfile(String(name));
+            }
+            return Session.ppdAvailable ? Session.profileName : "unavailable (power-profiles-daemon)";
+        }
+
+        function idle(action: string, secs: string): string {
+            const a = String(action).toLowerCase();
+            if (["none", "lock", "suspend", "shutdown"].indexOf(a) < 0)
+                return "bad action: use none|lock|suspend|shutdown";
+            ShellState.set("idleAction", a);
+            const n = parseInt(secs);
+            if (n > 0)
+                ShellState.set("idleSecs", n);
+            return a + " after " + ShellState.idleSecs + "s";
+        }
+
+        function status(): string {
+            return (Session.locked ? "LOCKED" : "unlocked") + " · inhibitors " + Session.inhibitCount + " · profile " + (Session.ppdAvailable ? Session.profileName : "n/a") + " · idle " + ShellState.idleAction + "/" + ShellState.idleSecs + "s";
         }
     }
 

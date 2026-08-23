@@ -65,35 +65,49 @@ Rectangle {
         selectByMouse: true
         cursorVisible: activeFocus
         onAccepted: root.accepted()
-        Keys.onUpPressed: if (root.navKeys) {
-            event.accepted = true;
-            root.navUp();
+        Keys.onUpPressed: event => {
+            if (root.navKeys) {
+                event.accepted = true;
+                root.navUp();
+            }
         }
-        Keys.onDownPressed: if (root.navKeys) {
-            event.accepted = true;
-            root.navDown();
+        Keys.onDownPressed: event => {
+            if (root.navKeys) {
+                event.accepted = true;
+                root.navDown();
+            }
         }
-        Keys.onLeftPressed: if (root.navKeys) {
-            event.accepted = true;
-            root.navLeft();
+        Keys.onLeftPressed: event => {
+            if (root.navKeys) {
+                event.accepted = true;
+                root.navLeft();
+            }
         }
-        Keys.onRightPressed: if (root.navKeys) {
-            event.accepted = true;
-            root.navRight();
+        Keys.onRightPressed: event => {
+            if (root.navKeys) {
+                event.accepted = true;
+                root.navRight();
+            }
         }
-        Keys.onTabPressed: if (root.navKeys) {
-            event.accepted = true;
-            root.navTab();
+        Keys.onTabPressed: event => {
+            if (root.navKeys) {
+                event.accepted = true;
+                root.navTab();
+            }
         }
-        Keys.onEscapePressed: if (root.navKeys) {
-            event.accepted = true;
-            root.navEscape();
-        } else {
-            input.focus = false;
+        Keys.onEscapePressed: event => {
+            if (root.navKeys) {
+                event.accepted = true;
+                root.navEscape();
+            } else {
+                input.focus = false;
+            }
         }
-        Keys.onDeletePressed: if (root.navKeys && (event.modifiers & Qt.ShiftModifier)) {
-            event.accepted = true;
-            root.navShiftDel();
+        Keys.onDeletePressed: event => {
+            if (root.navKeys && (event.modifiers & Qt.ShiftModifier)) {
+                event.accepted = true;
+                root.navShiftDel();
+            }
         }
 
         Text {

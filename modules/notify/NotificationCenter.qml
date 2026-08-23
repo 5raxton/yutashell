@@ -22,7 +22,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.notifyCenterOpen || hideDelay.running
     mask: Region {
-        item: ShellState.notifyCenterOpen ? surface : null
+        item: ShellState.notifyCenterOpen ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -45,6 +45,12 @@ PanelWindow {
         focus: true
 
         Keys.onEscapePressed: ShellState.closeNotifyCenter()
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closeNotifyCenter()
+        }
 
         YSurface {
             id: surface

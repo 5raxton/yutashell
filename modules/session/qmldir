@@ -1,0 +1,4 @@
+singleton Session 1.0 Session.qml
+LockScreen 1.0 LockScreen.qml
+PowerMenu 1.0 PowerMenu.qml
+PolkitDialog 1.0 PolkitDialog.qml

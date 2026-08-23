@@ -26,7 +26,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.netOpen || hideDelay.running
     mask: Region {
-        item: ShellState.netOpen ? surface : null
+        item: ShellState.netOpen ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -143,6 +143,15 @@ PanelWindow {
         Keys.onEscapePressed: {
             root.pendingJoin = "";
             ShellState.closeNet();
+        }
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: {
+                root.pendingJoin = "";
+                ShellState.closeNet();
+            }
         }
 
         YSurface {

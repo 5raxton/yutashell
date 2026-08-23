@@ -23,7 +23,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.audioOpen || hideDelay.running
     mask: Region {
-        item: ShellState.audioOpen ? surface : null
+        item: ShellState.audioOpen ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -50,6 +50,12 @@ PanelWindow {
         focus: true
 
         Keys.onEscapePressed: ShellState.closeAudio()
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closeAudio()
+        }
 
         YSurface {
             id: surface

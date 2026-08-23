@@ -6,6 +6,8 @@ import qs.modules.common
 import "../common/ui"
 import "../notify"
 import "../audio"
+import "../session"
+import "../dock"
 import "ui"
 
 // Control core v3 — right drawer built entirely from the shared kit
@@ -25,7 +27,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.panelOpen || hideDelay.running
     mask: Region {
-        item: ShellState.panelOpen ? drawer : null
+        item: ShellState.panelOpen ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -67,6 +69,10 @@ PanelWindow {
             id: "audio",
             label: "AUDIO",
             jp: "音"
+        }, {
+            id: "dock",
+            label: "DOCK",
+            jp: "埠"
         }, {
             id: "system",
             label: "SYSTEM",
@@ -127,6 +133,14 @@ PanelWindow {
 
         Keys.onEscapePressed: ShellState.closePanel()
         Keys.onTabPressed: root.setPage((root.tabIndex + 1) % root.pages.length)
+
+        // fullscreen click-catcher — a click anywhere outside the card closes
+        // it; the card's own swallow area keeps in-card clicks from reaching it
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closePanel()
+        }
 
         // ===== CARD BODY =====
         // YSurface owns placement + the drop-from-behind-the-bar entrance
@@ -281,6 +295,8 @@ PanelWindow {
                         Text {
                             x: root.padX + 22
                             anchors.verticalCenter: parent.verticalCenter
+                            width: tabSeg.width - (root.padX + 22) - (Theme.jpEnabled ? 40 : 4)
+                            elide: Text.ElideRight
                             text: tabSeg.modelData.label
                             color: tabSeg.isActive ? Theme.ink : tabArea.containsMouse ? Theme.ink : Theme.muted
                             font.family: Theme.fontFamily
@@ -436,6 +452,8 @@ PanelWindow {
                             return notificationsPage;
                         case "audio":
                             return audioPage;
+                        case "dock":
+                            return dockPage;
                         case "system":
                             return systemPage;
                         case "about":
@@ -1600,6 +1618,116 @@ PanelWindow {
             }
 
             Component {
+                id: dockPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Dock"
+                        chip: ShellState.dockEnabled ? "ON" : "OFF"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Enable dock"
+                        sub: "bottom app dock — pinned + running windows"
+                        note: "DOCK"
+                        on_: ShellState.dockEnabled
+
+                        YSwitch {
+                            checked: ShellState.dockEnabled
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: Dock.toggleEnabled()
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        visible: ShellState.dockEnabled
+                        title: "Reserve screen edge"
+                        sub: ShellState.dockMode === "exclusive" ? "windows cannot overlap the dock strip" : "floats over windows"
+                        note: "MODE"
+                        on_: ShellState.dockMode === "exclusive"
+
+                        YSwitch {
+                            checked: ShellState.dockMode === "exclusive"
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("dockMode", ShellState.dockMode === "exclusive" ? "overlay" : "exclusive")
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        visible: ShellState.dockEnabled
+                        index: "02"
+                        label: "Auto-hide"
+                        chip: ShellState.dockHide
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+                        visible: ShellState.dockEnabled
+
+                        Repeater {
+                            model: [{
+                                    id: "never",
+                                    label: "NEVER"
+                                }, {
+                                    id: "dodge",
+                                    label: "DODGE"
+                                }, {
+                                    id: "always",
+                                    label: "ALWAYS"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.dockHide === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("dockHide", modelData.id)
+                            }
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        visible: ShellState.dockEnabled
+                        title: "All monitors"
+                        sub: ShellState.dockMonitors === "all" ? "one dock per screen" : "primary screen only"
+                        note: "MON"
+                        on_: ShellState.dockMonitors === "all"
+
+                        YSwitch {
+                            checked: ShellState.dockMonitors === "all"
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("dockMonitors", ShellState.dockMonitors === "all" ? "primary" : "all")
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        visible: ShellState.dockEnabled
+                        text: "right-click a dock icon to pin or close · middle-click opens a fresh instance · scroll cycles that app's windows."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
                 id: systemPage
 
                 Column {
@@ -1609,43 +1737,243 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "01"
-                        label: "Integrations"
-                        chip: "planned"
+                        label: "Power plan"
+                        chip: Session.ppdAvailable ? Session.profileName.toUpperCase() : "NO PPD"
                     }
 
-                    Repeater {
-                        model: [{
-                                title: "Audio & media",
-                                jp: "音",
-                                phase: "PH.07"
-                            }, {
-                                title: "Session lock",
-                                jp: "錠",
-                                phase: "PH.08"
-                            }]
+                    YRow {
+                        width: root.contentW
+                        title: "Power profile"
+                        sub: Session.ppdAvailable ? "cycles saver → balanced → performance" : "install power-profiles-daemon to enable"
+                        note: "PWR"
+                        interactive: false
 
-                        delegate: YRow {
-                            id: stubRow
+                        YButton {
+                            anchors.verticalCenter: parent.verticalCenter
+                            label: Session.ppdAvailable ? Session.profileName.toUpperCase() : "N/A"
+                            tone: Session.ppdAvailable ? "acid" : "default"
+                            enabled: Session.ppdAvailable
+                            onClicked: Session.cycleProfile()
+                        }
+                    }
 
-                            required property var modelData
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Idle"
+                        chip: ShellState.idleAction === "none" ? "off" : ShellState.idleAction + " · " + ShellState.idleSecs + "s"
+                    }
 
-                            width: root.contentW
-                            interactive: false
-                            title: modelData.title + (Theme.jpEnabled ? "  ·  " + modelData.jp : "")
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
 
-                            YChip {
-                                label: stubRow.modelData.phase
-                                anchors.verticalCenter: parent.verticalCenter
+                        Repeater {
+                            model: [{
+                                    id: "none",
+                                    label: "OFF"
+                                }, {
+                                    id: "lock",
+                                    label: "LOCK"
+                                }, {
+                                    id: "suspend",
+                                    label: "SUSPEND"
+                                }, {
+                                    id: "shutdown",
+                                    label: "SHUTDOWN"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.idleAction === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("idleAction", modelData.id)
                             }
+                        }
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+                        visible: ShellState.idleAction !== "none"
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "IDLE TIMEOUT"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp2
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: ShellState.set("idleSecs", Math.max(30, ShellState.idleSecs - 60))
+                            }
+
+                            Item {
+                                width: 88
+                                height: Theme.ctlH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Theme.bg
+                                    border.width: 1
+                                    border.color: Theme.hairline
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: ShellState.idleSecs + " s"
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: ShellState.set("idleSecs", Math.min(7200, ShellState.idleSecs + 60))
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Power menu"
+                        chip: ShellState.holdMs > 0 ? "hold " + ShellState.holdMs + "ms" : "no hold"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Hold to confirm"
+                        sub: ShellState.holdMs > 0 ? "destructive tiles need a press-and-hold" : "destructive tiles fire immediately"
+                        note: "HOLD"
+                        on_: ShellState.holdMs > 0
+
+                        YSwitch {
+                            checked: ShellState.holdMs > 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("holdMs", ShellState.holdMs > 0 ? 0 : 1100)
+                        }
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+                        visible: ShellState.holdMs > 0
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "HOLD DURATION"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp2
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: ShellState.set("holdMs", Math.max(300, ShellState.holdMs - 200))
+                            }
+
+                            Item {
+                                width: 88
+                                height: Theme.ctlH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Theme.bg
+                                    border.width: 1
+                                    border.color: Theme.hairline
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: ShellState.holdMs + " ms"
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: ShellState.set("holdMs", Math.min(3000, ShellState.holdMs + 200))
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "04"
+                        label: "Lock screen"
+                        chip: "PAM " + ShellState.pamService
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Lock on all monitors"
+                        sub: ShellState.lockMonitors === "all" ? "every screen renders the auth card" : "primary screen only"
+                        note: "MON"
+                        on_: ShellState.lockMonitors === "all"
+
+                        YSwitch {
+                            checked: ShellState.lockMonitors === "all"
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("lockMonitors", ShellState.lockMonitors === "all" ? "primary" : "all")
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Bar inhibit indicator"
+                        sub: "a chip shows when an app holds the idle/sleep lock"
+                        note: "INH"
+                        on_: ShellState.barSession
+
+                        YSwitch {
+                            checked: ShellState.barSession
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("barSession", !ShellState.barSession)
+                        }
+                    }
+
+                    YField {
+                        id: avatarField
+
+                        width: root.contentW
+                        placeholder: "lock avatar path — blank uses ~/.face"
+
+                        onAccepted: {
+                            ShellState.set("lockAvatar", text.trim());
+                            text = "";
                         }
                     }
 
                     Text {
                         width: parent.width
-                        text: "wired in later phases — see ROADMAP.md."
+                        text: "avatar falls back to an initial when the file is missing · lock via IPC: qs ipc call session lock."
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
                     }
 
                     Item {

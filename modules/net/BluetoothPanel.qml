@@ -25,7 +25,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     visible: ShellState.btOpen || hideDelay.running
     mask: Region {
-        item: ShellState.btOpen ? surface : null
+        item: ShellState.btOpen ? clickAway : null
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -60,6 +60,12 @@ PanelWindow {
         focus: true
 
         Keys.onEscapePressed: ShellState.closeBt()
+
+        YClickAway {
+            id: clickAway
+
+            onOutsideClicked: ShellState.closeBt()
+        }
 
         YSurface {
             id: surface
