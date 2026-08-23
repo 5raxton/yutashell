@@ -25,7 +25,7 @@ The shell is a living machine in an art exhibit, not a toolbox. Everything below
 
 **8. One current.** The power line, family ticks, registration marks, flare shoulders, hard-shadow button press — every surface carries the same motifs because they are literally the same kit components (`modules/common/ui`). New UI MUST compose kit primitives; hand-rolled buttons/rows/switches/sections are rejected in review.
 
-Perf guardrails that keep the organism cheap: animations pause when `!visible`; transforms (Translate/Scale) instead of layout-affecting properties where possible; staggered reveals destroy their dynamic objects when done; pulses are opacity-only. RSS budget stays ~250–400 MB.
+Perf guardrails that keep the organism cheap: animations pause when `!visible`; transforms (Translate/Scale) instead of layout-affecting properties where possible; staggered reveals destroy their dynamic objects when done; pulses are opacity-only. RSS budget stays ~250–500 MB (measured ~455 MB with every surface warm).
 
 This file is the master checklist. Work top to bottom within the sequencing given at the bottom. Check items off as they land — nothing here is speculative filler; each item names the concrete API it will use, verified against this machine.
 
@@ -58,13 +58,22 @@ Confirmed on this machine (re-verify after major system updates):
 
 ### CLI dependencies
 
-| present | absent (gates listed phase — install then, not before) |
+All required + optional backends are now installed on this machine (verified 0.7.0):
+
+| present | what it feeds |
 |---|---|
-| `matugen`, `awww` (theme pipeline, live) | `cava` → PH.15 media visualizer (must degrade gracefully without it) |
-| `grim`, `slurp`, `wl-copy`, `cliphist` (capture + clipboard, live) | `ddcutil` → PH.07/PH.16 external-monitor brightness (**no `/sys/class/backlight` exists — this is a desktop**) |
-| `nvidia-smi` (GPU stats source), `gpu-screen-recorder` 6.x (recording) | `hyprsunset` → PH.07 night light |
-| | `powerprofilesctl` (power-profiles-daemon) → PH.08 power plans |
-| | `hyprpicker` → PH.11 color picker |
+| `matugen`, `awww` | theme pipeline (live recolor) |
+| `grim`, `slurp`, `wl-copy`, `cliphist` | screenshot suite + clipboard |
+| `nvidia-smi`, `gpu-screen-recorder` 6.x | GPU stats + recording chip |
+| `cava` | media visualizer colors (template ships; ascii feed deferred) |
+| `ddcutil` | external-monitor brightness (DDC/CI) |
+| `hyprsunset` | night light |
+| `powerprofilesctl` (power-profiles-daemon) | power plans |
+| `hyprpicker` | color picker |
+| `checkupdates` (pacman-contrib) | update counter |
+| `curl` | weather fetch |
+
+No absent deps remain — every widget backend is live. Features still keep their graceful-degradation paths as insurance (never crash on a missing binary).
 
 ### Hardware / compositor quirks
 
@@ -85,15 +94,15 @@ These rules keep the shell coherent as it grows. Breaking them creates rework la
 - [x] Module folders are self-contained under `modules/<feature>/` with an entry component named after the feature. Cross-module reuse goes into `modules/common/`.
 - [x] State persistence pattern: JSON config read/written with `FileView` (`JsonAdapter` + `writeAdapter()` to persist, coalesced through the flush timer). One file: `~/.local/state/yutashell/state.json`. Modules never write their own dotfiles.
 - [x] IPC pattern: every user-facing action is exposed through `IpcHandler` so keybinds, CLI, and panels all drive the same functions instead of duplicating logic.
-- [x] Layer policy: bars/docks use plain `PanelWindow`; transient UI uses `PanelWindow` + `WlrLayershell.layer: WlrLayer.Overlay` with keyboard focus `Exclusive` while open, `None` closed. (Settings panel + picker already follow this.)
+- [x] Layer policy (the signature sandwich): the bar sits on `WlrLayer.Overlay` (topmost); every popup lands on `WlrLayer.Top` so it slides out from BEHIND the bar; the OSD + Polkit + lock overlay use `Overlay`. `keyboardFocus` is `Exclusive` while open, `None` closed.
 - [x] Animation policy: hover/focus snap instantly (brutalist). Only positional indicators animate — 120–180 ms OutCubic (`Theme.movFast`/`movMed`); surface entrances use `Theme.movSlow` 260 via YSurface. YButton's hard-shadow press collapse is the one physical flourish.
 - [x] Japanese labels: kanji/kana always gated behind `Theme.jpEnabled` with a romaji fallback, so nothing ever renders tofu.
 - [x] Compositor dispatches go through small wrapper functions (e.g. `Workspaces.switchTo(id)` sending `hl.dsp.focus({ workspace = "N" })`), never inline strings.
-- [ ] **One poller per datum:** periodic sampling (/proc, hwmon, nvidia-smi) lives ONLY in the PH.13 `SystemStats` singleton. Bar, control center, thresholds and future widgets consume it — no module spins up a second Timer over the same file. (StatsCluster gets migrated onto it.)
-- [ ] **Optional-dep graceful degradation:** any feature backed by an absent CLI (`cava`, `hyprsunset`, `ddcutil`, `hyprpicker`) hides itself or renders a flat fallback. Never crash, never show a dead button.
-- [ ] **Live identity tokens:** hostname and version render from probed sources (`/proc/sys/kernel/hostname`, `Theme.version`) — never hardcoded strings.
-- [ ] **Panels are read-mostly:** popups (control center, OSD, calendar) expose glanceable state + quick actions only. All deep configuration belongs to the settings panel. If a popup starts growing steppers and path pickers, move them.
-- [ ] **Kit-only composition:** every new surface composes from `modules/common/ui` (YButton/YSwitch/YRow/YSection/YField/YChip/YScroll) plus Theme tokens. Hand-rolled buttons/rows inside a feature are a bug.
+- [x] **One poller per datum:** periodic sampling (/proc, hwmon, nvidia-smi) lives ONLY in the PH.13 `SystemStats` singleton. Bar, control center, thresholds and future widgets consume it — no module spins up a second Timer over the same file.
+- [x] **Optional-dep graceful degradation:** any feature backed by an absent CLI hides itself or renders a flat fallback. Never crash, never show a dead button.
+- [x] **Live identity tokens:** hostname and version render from probed sources (`/proc/sys/kernel/hostname`, `Theme.version`) — never hardcoded strings.
+- [x] **Panels are read-mostly:** popups (control center, OSD, calendar) expose glanceable state + quick actions only. All deep configuration belongs to the settings panel. If a popup starts growing steppers and path pickers, move them.
+- [x] **Kit-only composition:** every new surface composes from `modules/common/ui` (YButton/YSwitch/YRow/YSection/YField/YChip/YSlider/YSurface/YPulse/YClickAway/YSpark) plus Theme tokens. Hand-rolled buttons/rows inside a feature are a bug.
 
 ---
 
@@ -143,7 +152,7 @@ How: matugen generates a palette JSON from the wallpaper; `Theme` loads it at st
 
 ## Phase 3 — Settings panel (control core) ✅ DONE
 
-Current state: right-side drawer/popout built entirely from the shared kit. Tabs: Appearance / Templates / Modules / System(stub) / About — lazy Loaders off a declarative page registry. Width stepper (400–760 px), popout-card mode, persisted. IPC `panel toggle/open/close`.
+Current state: right-side drawer/popout built entirely from the shared kit. Originally 5 tabs (Appearance / Templates / Modules / System-stub / About) off a declarative page registry — width stepper (400–760 px), popout-card mode, persisted. IPC `panel toggle/open/close`. **Superseded by the PH.16 v4 rebuild** (grouped nav rail + 14 tabs + global search); this phase closed the "control core".
 
 > The big settings expansion is **PH.16** by design — don't build new tabs here; this phase is closed at "control core complete".
 
@@ -274,17 +283,17 @@ How: `Quickshell.Networking` wraps NetworkManager; `Quickshell.Bluetooth` wraps 
 - [x] Airplane mode master toggle (wifi + BT radios down together via Networking.wifiEnabled / adapter.enabled) — also surfaced in PH.16 security tab later
 
 Verification notes: live machine has wired primary + soft-blocked wlan0 + active wg0-mullvad — panel reflects exactly that (WIRED chip, radio-off state, VPN row UP). Panels open/close via IPC exclusively with every other popup; zero errors across open/close cycles; RSS ~256 MB.
-- [ ] Ethernet/wired status indicator
-- [ ] Connection-change toasts routed through the PH.05 notification system
-- [ ] Shared connectivity data model so CC tabs and panels read one source (no duplicate scans)
+- [x] Ethernet/wired status indicator (bar NET chip shows wired bars; the panel's Wired section shows link speed + address)
+- [x] Connection-change toasts routed through the PH.05 notification system (`NetWatch` singleton)
+- [x] Shared connectivity data model — `Connectivity` is the one source for bar segments, panels and CC tabs (no duplicate scans)
 
-## Phase 7 — Audio, media, displays & OSDs ✅ CORE DONE
+## Phase 7 — Audio, media, displays & OSDs ✅ DONE
 
 Goal: PipeWire volume control, MPRIS media widget, volume/brightness/mic OSDs, night light. Feeds CC media/audio/monitors tabs (PH.15).
 
-How: `Quickshell.Services.Pipewire` (nodes, streams, default device, linear→cubic mapped volumes), `Quickshell.Services.Mpris` (players, metadata, position). Brightness: **this box has no `/sys/class/backlight`** — external monitors go through `ddcutil` (dep install required, detected at runtime per-output).
+How: `Quickshell.Services.Pipewire` (nodes, streams, default device, linear→cubic mapped volumes), `Quickshell.Services.Mpris` (players, metadata, position). Brightness: **this box has no `/sys/class/backlight`** — external monitors go through `ddcutil` (now installed; detected at runtime per-output).
 
-> Landed as the `modules/audio` module: AudioService (Pipewire), DisplayService (ddcutil, degrades to no-op — ddcutil absent here), NightLight (hyprsunset wrapper, degrades — hyprsunset absent here). Settings panel grew an AUDIO tab (master vol, overdrive ceiling stepper, OSD corner/fade pickers, night-light switch + temp stepper, brightness row). Bar segment: icon + 4 level bars + mic slash, wheel = volume ±5, click = audio panel, middle-click = mute. IPC: `audio status/volup/voldown/mute/micmute/nl/nltemp`, `display bright`. Verified live: volume/mute/status/panel/OSD/settings tab; night-light + brightness paths compile and hide cleanly but are **verified-by-degradation only** (deps absent on this machine).
+> Landed as the `modules/audio` module: AudioService (Pipewire), DisplayService (ddcutil), NightLight (hyprsunset). Settings grew an AUDIO tab (master vol, overdrive ceiling, OSD corner/fade, night-light temp, brightness) — later redistributed across OSD/SERVICES in PH.16. Bar segment: icon + level bars + mic slash, wheel = volume ±5, click = audio panel, middle-click = mute. IPC: `audio status/volup/voldown/mute/micmute/nl/nltemp`, `display bright`. Verified live: volume/mute/status/panel/OSD; night light + DDC brightness now both functional (hyprsunset + ddcutil installed).
 
 - [x] Bar audio segment: output device icon + level, wheel steps volume, click → audio panel (PH.14 action binding)
 - [x] Audio panel: sinks/sources list, per-device sliders (cubic taper), per-app streams w/ mute, default-device star
@@ -358,7 +367,7 @@ Verification notes: fresh load is clean (only benign FileView-coalescing + missi
 Goal: the convenience layer. Each widget is a standalone module (`modules/widgets/`) that later surfaces get embedded into (CC tabs reuse calendar/weather; bar click-actions reuse everything).
 
 - [x] Calendar popup from clock click: month grid, today boxed in acid, month/year nav, JP weekday glyphs (gated). **Shared component** — `CalendarGrid.qml` so the CC calendar tab embeds the same view. No event API yet (future)
-- [x] Weather module: open-meteo fetch via `Process curl` → cache `~/.local/state/yutashell/weather.json`, manual location in state.json (lat/lon + label), 30-min refresh, units follow `weatherUnit`. Conditions hero + 5-day strip in `WeatherPanel.qml`. Bar temp chip + CC tab are PH.14/15
+- [x] Weather module: open-meteo fetch via `Process curl` → cache `~/.local/state/yutashell/weather.json`, manual location in state.json (lat/lon + label), 30-min refresh, units follow `weatherUnit`. Conditions hero + 5-day strip in `WeatherPanel.qml` + the CC WEATHER tab
 - [x] Update counter: `checkupdates` polled sparsely (6 h + manual `updates check`), `updates list` + `updates open` (terminal launch)
 - [x] **Clipboard manager popup** (cliphist): search-as-you-type, monospace previews, click/enter re-copies via wl-copy + toast, DEL deletes, right-click pins to top (state.json), WIPE all, graceful empty + absent states. Themed like the launcher
 - [x] **Screenshot suite** (grim + slurp + wl-copy): IPC `shot region|full|window` —
@@ -369,7 +378,7 @@ Goal: the convenience layer. Each widget is a standalone module (`modules/widget
   - [~] preview toast is a text toast (path); thumbnail-with-click-to-open deferred to the PH.11 capture pipeline revisit
   - [x] window mode: focused-window geometry via `hyprctl -j activewindow` at=box
 - [x] Screen-recording chip in bar when `gpu-screen-recorder` runs, click stops it (SIGINT); process probed every 5 s
-- [x] Color picker (`hyprpicker`) with hex copy toast — binary absent here, degrades to a toast (`ColorPicker.qml`)
+- [x] Color picker (`hyprpicker`) with hex copy toast — binary now installed, picks a screen color and copies it (`ColorPicker.qml`); still degrades to a toast if absent
 - [x] Emoji/kaomoji picker: JP-first categories (faces / kaomoji / symbols / hearts), click copies + dismisses (`Emoji.qml`)
 
 ## Phase 12 — Polish, performance & distribution ◐ CONTINUOUS
@@ -411,7 +420,7 @@ Goal: turn the bar from a fixed layout into a configurable organism. Taskbar wit
 
 - [x] Line 1: `{HOSTNAME} // 因果` — hostname probed from env; 因果 gated behind `Theme.jpEnabled`, romaji `INGA` fallback
 - [x] Line 2: `YUTA.SHELL // v{Theme.version}` (replaces `SYS.BAR // v…`); blinking cursor block + hover inversion kept
-- [x] Bump `Theme.version` to match actual release numbering (0.6.0 at PH.14-16)
+- [x] Bump `Theme.version` to match actual release numbering (0.6.0 at PH.14-16, 0.7.0 at PH.17)
 
 ### Taskbar segment (new)
 
