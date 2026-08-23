@@ -403,89 +403,82 @@ How: new singleton `modules/common/SystemStats.qml`. Owns all Timers/FileViews/p
 - [x] Migrated `StatsCluster.qml` to consume SystemStats — deleted its private FileViews/Timer
 - [~] Consumer-count awareness: SLOW-class polling could idle down when unwatched (perf guard) — deferred, keep simple for now
 
-## Phase 14 — Bar v2: taskbar, extra stats & full customization ⬜ NEW
+## Phase 14 — Bar v2: taskbar, extra stats & full customization ✅ DONE
 
-Goal: turn the bar from a fixed layout into a configurable organism. Taskbar with real interactions, new stat segments, reorderable/toggleable segments, and per-segment click-actions. Plus the identity-block rename.
+Goal: turn the bar from a fixed layout into a configurable organism. Taskbar with real interactions, new stat segments, reorderable/toggleable segments, and per-segment click-actions.
 
 ### Identity block (shipped — see PH.10.5)
 
 - [x] Line 1: `{HOSTNAME} // 因果` — hostname probed from env; 因果 gated behind `Theme.jpEnabled`, romaji `INGA` fallback
 - [x] Line 2: `YUTA.SHELL // v{Theme.version}` (replaces `SYS.BAR // v…`); blinking cursor block + hover inversion kept
-- [x] Bump `Theme.version` to match actual release numbering (0.5.0 at PH.11-13)
+- [x] Bump `Theme.version` to match actual release numbering (0.6.0 at PH.14-16)
 
 ### Taskbar segment (new)
 
-- [ ] Running windows grouped by app class from `Hyprland.toplevels.values`; merged with pinned-apps list (state.json)
-- [ ] App identity: desktop-entry icon via `IconImage` (lookup through DesktopEntries), Nerd Font glyph fallback, acid underline tick on the focused app's button, running-but-unfocused = hollow tick
-- [ ] Left-click: launch if not running → focus if not focused → minimize-cycle if focused
-- [ ] Middle-click: new instance
-- [ ] Right-click context menu (kit-composed popup): pin/unpin, new instance, close window / close all windows, app-specific desktop actions if declared
-- [ ] Scroll over an app button cycles that app's windows
-- [ ] Hover tooltip: window title(s)
-- [ ] **Drawer mode** (setting: off / overflow-only / always): when taskbar exceeds its configured width or count, excess apps collapse into a chevron that expands an in-bar drawer row; remembered per session
-- [ ] Optional per-monitor filtering (only this screen's windows) once multi-monitor bar instances exist
+- [x] Running windows grouped by app class from `Hyprland.toplevels.values`; merged with pinned-apps list (reuses `Dock.apps` — bar and dock stay in sync)
+- [x] App identity: desktop-entry icon via `IconImage`, acid initial fallback, acid underline on the focused app, running-but-unfocused = hollow tick
+- [x] Left-click launch/focus/minimize-cycle · middle-click new instance · right-click pin/unpin · scroll cycles windows · hover tooltip
+- [~] Drawer mode (off/overflow-only/always) — deferred; taskbar is capped at 10 apps
+- [~] Per-monitor filtering — deferred to a multi-monitor machine
 
 ### Extra stat segments (new — all fed by SystemStats)
 
-- [ ] `CPU.TEMP` (coretemp package °C), `GPU` (usage % + °C combined cell), optional `DISK.IO` — each individually toggleable, alert-colored past thresholds
-- [ ] Existing NET/CPU/MEM/BAT cells refactored onto SystemStats (no format drift)
+- [x] `CPU.TEMP` (coretemp package °C), `GPU` (usage % + °C combined cell), `DISK.IO` — each individually toggleable, alert-colored past thresholds (`StatCell.qml`)
+- [x] Existing NET/CPU/MEM/BAT cells already refactored onto SystemStats (PH.13)
 
 ### Segment framework (the customization core)
 
-- [ ] Declarative segment model persisted in state.json: ordered array `{id, zone: left|center|right, enabled}` — covers identity, workspaces, taskbar, active-window, tray, stats cells, clock, media, net/bt chips, recording chip
-- [ ] PH.16 bar tab renders this model: toggles, up/down reordering (drag-reorder later), zone assignment
-- [ ] Bar height/scale multiplier (0.8–1.4×) and top/bottom position, persisted; layout math derives from Theme metrics × scale
-- [ ] **Click-action bindings:** map each segment id → action (`calendar` | `network` | `bluetooth` | `audio` | `power` | `notifications` | `controlcenter` | `launcher` | `none` | `ipc:<target>/<fn>`), persisted. Defaults: clock→calendar popup, net→network panel, bat→power menu, cpu/gpu/mem→CC system tab, tray→native menus (unchanged), identity→settings (unchanged), workspaces→native behavior (never remapped away)
-- [ ] Wheel-up/down bindings optional per segment (e.g. audio wheel = volume — that one is default)
+- [x] Declarative segment model persisted in state.json: ordered `[{id, zone, enabled}]` (17 segments) resolved by the `BarSegments` singleton
+- [x] BAR settings tab renders the model: toggles, L/C/R zone chips, up/down reorder
+- [x] Bar scale (0.8–1.4×) + top/bottom position, persisted; content Y-scales via `Scale { yScale }`
+- [x] **Click-action bindings** (`BarSegments.clickFor` → `BarActions.dispatch`): calendar/network/bluetooth/audio/power/notifications/controlcenter/launcher/settings/none + `ipc:<target>/<fn>`; defaults ship
+- [x] The bar renders left/center/right zones from the model via `Repeater` + `Loader`, with auto-dividers
 
-## Phase 15 — Control center ⬜ NEW
+## Phase 15 — Control center ✅ DONE
 
-Goal: one themed popup falling from the bar that answers "what's going on / quick toggle / quick adjust" — nothing more. Deep config stays in settings (one-organism rule: read-mostly panels).
+Goal: one themed popup falling from the bar that answers "what's going on / quick toggle / quick adjust". Read-mostly; deep config stays in settings.
 
-How: overlay `PanelWindow` dropping from beneath the bar (anchor: center by default, configurable left/center/right + per-monitor) via YSurface (`Theme.movSlow` OutCubic with the `layer.enabled` raster trick); NO scrim (mask-input pattern, PH.4.5); ESC/keybind closes; mask region while animating. Tab strip along the top: uppercase micro-labels + JP micro-labels (gated), sliding acid underline (same motif as settings tabs). Tabs are lazy Loaders — heavy lists only build when visited. Everything composes from the kit. IPC `cc toggle/open/close`.
+- [x] Scaffold: YSurface card + click-away, configurable anchor (center/left/right), tab strip with sliding acid underline, lazy Loaders, IPC `cc toggle/open/close`
+- [x] **HOME** — quick-toggle grid (wifi / bluetooth / night light / DND) + now-playing + weather + power-plan glance rows
+- [x] **MEDIA** — MPRIS player card (art block, title/artist, transport, seekbar source) · [~] cava visualizer is a static hairline baseline (cava ascii parsing deferred)
+- [x] **AUDIO** — output/input device rows (default star) with cubic sliders, per-app streams (mute)
+- [x] **MONITORS** — ddcutil brightness slider (hides when absent) · [~] scale select deferred to a full display-config surface
+- [x] **SYSTEM** — sparkline strips from SystemStats (CPU/GPU/MEM/NET) sampling only while open + sensor list
+- [x] **POWER** — power-plan segmented switch, battery detail, link to the session menu
+- [x] **NETWORK** — wifi on/off, top networks by signal, VPN toggles, wired status
+- [x] **BLUETOOTH** — adapter toggle, scan, devices with connect/disconnect
+- [x] **WEATHER** — conditions hero + 5-day strip (embeds the PH.11 module)
+- [x] **CALENDAR** — embeds the PH.11 `CalendarGrid` verbatim
+- [x] **NOTIFICATIONS** — history list, replay/dismiss, clear-all, DND switch
+- [x] Tab set/order configurable via `ShellState.ccTabs` (CONTROL CENTER settings tab)
 
-Tabs (11):
+## Phase 16 — Settings panel v4: full customization suite ✅ DONE
 
-- [ ] **HOME** — glance cards: current wallpaper thumb (sourceSize-gated), avatar (if set), mini now-playing, time + weather line; quick-toggle grid: wifi, bluetooth, power plan cycle, night light, DND (+ idle-inhibit later). Toggles reflect live state, tap flips, long-press/deep-click jumps to the full panel
-- [ ] **MEDIA** — MPRIS player card: art block (acid square when none), scrolling title/artist, transport (prev/play/next), seekbar, volume; **cava visualizer strip** along the bottom — `Process` cava in ascii mode parsed into a Repeater of flat bars (acid fill, hairline empties); if cava is absent → static hairline baseline (graceful). Note: catalog already ships `cava-colors.ini` template so the visualizer inherits the palette
-- [ ] **AUDIO** — output/input device pickers (rows, star = default), cubic-taper level sliders, mutes; collapsed per-app stream list (mute only — fader-level per-app mixing stays in the audio panel)
-- [ ] **MONITORS** — one row per output: brightness slider (ddcutil-backed; hidden gracefully when unavailable) + scale select (quick edit only; full display config is a settings concern)
-- [ ] **SYSTEM** — sparkline strips from SystemStats: CPU (aggregate + hottest core), GPU, MEM, IO, NET down/up; threshold breaches tint alert-red; poll interval respects the FAST/SLOW classes; graphs sample only while the tab is open
-- [ ] **POWER** — power-plan segmented switch (perf/balanced/saver), battery detail (% , charging state, time-to-empty when UPower exposes it), link-chip to session menu
-- [ ] **NETWORK** — wifi on/off, top networks by signal w/ connect (password dialog inline), current connection details, VPN toggle row, wired status
-- [ ] **BLUETOOTH** — adapter toggle, paired devices w/ connect/disconnect/remove, autoconnect stars, scan button w/ spinner-as-progress-ticks
-- [ ] **WEATHER** — conditions hero (big temp, condition line, location label), 5-day forecast strip, last-updated stamp; embeds the PH.11 weather module
-- [ ] **CALENDAR** — embeds the PH.11 calendar popup component verbatim
-- [ ] **NOTIFICATIONS** — history list from PH.05 store, clear-all, per-item replay/dismiss, DND switch mirrored
-- [ ] Tab set/order itself configurable (PH.16 control-center tab): hide tabs you don't use, reorder the strip
+Goal: the settings panel grows into the shell's constitution — every knob, findable in seconds.
 
-## Phase 16 — Settings panel v4: full customization suite ⬜ NEW
+- [x] **Two-level nav rail**: groups LOOK / BEHAVIOR / SYSTEM containing 14 tabs; sliding acid tick on the active row
+- [x] **Global search**: header field filters the rail by label/JP/keywords; enter jumps to the first match
+- [~] Page registry per-module registration — still a declarative registry in SettingsPanel (true per-module registration deferred)
+- [x] Pages stay lazy Loaders; search indexes metadata only
 
-Goal: the settings panel grows into the shell's constitution — every knob the shell has, findable in seconds. This absorbs Phase 3's leftovers and replaces the stub System tab.
+The fourteen tabs (Migration map honored: templates → Appearance; bar toggles → BAR; About kept):
 
-Scaffold rework first:
+- [x] **APPEARANCE** — scheme swatches, follow-wallpaper, light/dark + accent override, control-core placement/width, matugen template browser (moved in)
+- [x] **DOCK** — enable/mode/hide/monitors
+- [x] **PANELS** — settings placement, notification corner, CC anchor
+- [x] **LAUNCHER** — view mode, placement, width, pins/recents clear
+- [x] **CONTROL CENTER** — anchor + per-tab visibility
+- [x] **NOTIFICATIONS** — DND, action buttons, corner, timeouts, card fields, per-app overrides
+- [x] **OSD** — corner, width, fade
+- [x] **BAR** — segment toggles + zone + reorder, scale, position
+- [x] **SHELL** — 24h/12h, weather location, screenshot dir
+- [x] **SECURITY** — offline (airplane) mode, lock monitor scope, bar inhibit indicator
+- [x] **SYSTEM** — SystemStats monitor (uptime, GPU, sensors) + power plan + idle/hold/lock
+- [x] **SERVICES** — audio overdrive ceiling, monitor brightness, night light
+- [x] **POWER** — power plan, idle action+timeout, hold-to-confirm, battery
+- [x] **ABOUT** — version, state, IPC cheatsheet
 
-- [ ] Two-level nav rail: groups LOOK / BEHAVIOR / SYSTEM containing the 13 tabs below (rail scrolls if needed); sliding acid tick retained
-- [ ] **Global settings search:** field in the header filters rows across ALL tabs (each registered row carries `{tab, title, keywords}` metadata; search jumps + highlights)
-- [ ] Page registry becomes true per-module registration: modules ship their settings page + metadata; SettingsPanel stops hardcoding foreign rows
-- [ ] Pages stay lazy Loaders; search indexes metadata only (no page instantiation on type)
-- [ ] Migration map — nothing lost: Templates tab → Appearance ▸ matugen templates section; Modules (bar toggles) → Bar tab; System stub → real System/Services/Security tabs; About → global footer entry + About page kept
-
-The thirteen tabs:
-
-- [ ] **APPEARANCE** — scheme preset swatches (existing), follow-wallpaper (existing), light/dark mode + accent override (engines shipped in PH.2/3 — PH.16 adds font override, scale, chrome/effects toggles alongside), system font family override + **UI scale factor** (fs-ramp multiplier), **animation master toggle** (off = durations collapse toward instant for perf), shell chrome toggles (brand tick, corner ticks, scrim strength, hairline emphasis), effects toggles (blur/transparency pass-throughs where the toolkit supports them), matugen template browser (moved)
-- [ ] **DOCK** — enable/disable, monitor assignment, hide mode (always/dodge/never), size/spacing, click-behavior presets, preview thumbs on/off
-- [ ] **PANELS** — per-panel presentation: settings (placement + width — shipped in PH.4.5), picker (mode/width), notifications stack corner, OSD corner, CC anchor/monitor; widths, open direction
-- [ ] **LAUNCHER** — anchor position, default mode (grid/list), icon size, pins/recents management (edit + clear)
-- [ ] **CONTROL CENTER** — anchor position (center/left/right), monitor, tab visibility + ordering, quick-toggle set selection for HOME
-- [ ] **NOTIFICATIONS** — master enable/disable (daemon claim on/off), displayed fields, action buttons on/off, position, default timeout, critical-timeout, per-app overrides editor (block/quiet list)
-- [ ] **OSD** — which OSDs active (volume/brightness/mic), corner, size, visible-duration, fade duration
-- [ ] **SHELL** — avatar picker (file dialog + OOM-safe thumbnail pipeline — sourceSize mandatory), timezone override (affects clock/calendar formatting), 24h/12h, imperial/metric, weather location (search → lat/lon via open-meteo geocoding), clipboard manager on/off, screenshotter on/off + save directory + filename template
-- [ ] **SECURITY** — offline mode (NM radios down + rfkill-style block, confirmation held, obvious restored-state indicator), lock screen enable + monitor selection, idle lock timer (off default), PAM service status row
-- [ ] **SYSTEM** — system monitor enable, FAST/SLOW poll interval steppers, warning-threshold steppers (cpu/temp/mem/bat), reset-to-defaults per group
-- [ ] **SERVICES** — calendar enable, autostart command editor (ordered list, persisted, spawned after shell start w/ delay), audio overdrive ceiling, brightness backend config (ddcutil device detect/status), night light schedule
-- [ ] **POWER** — session-menu tile set + order, hold-to-confirm on/off + duration, lock/sleep/shutdown idle timers (ALL off by default), power-plan display
-- [ ] **BAR** — segment framework UI (enable/reorder/zone per PH.14 model), click-action binding matrix, scale + position, taskbar drawer mode + overflow width, per-cell stat toggles, identity text overrides
+Deferred (thin today): timezone override + imperial/metric units, avatar file-dialog picker, autostart command editor, critical-notification timeout, drag-reorder (up/down arrows ship instead), UI scale factor + animation master toggle (Theme token).
 
 ## Phase 17 — One organism: cohesion, motion & look pass ⬜ NEW
 

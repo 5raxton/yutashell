@@ -25,6 +25,25 @@ Item {
     property var urgentIds: []
     property bool blinkOn: false
 
+    // self-managed urgency from Hyprland's event stream (was previously wired
+    // from the Bar; moved here so the segment is drop-in independent)
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(evt) {
+            if (evt.name !== "urgent")
+                return;
+            const addr = String(evt.data ?? "").replace(/^0x/, "");
+            const tl = Hyprland.toplevels.values.find(t => String(t.address).replace(/^0x/, "") === addr);
+            if (tl?.workspace && tl.workspace.id > 0)
+                root.markUrgent(tl.workspace.id);
+        }
+
+        function onFocusedWorkspaceChanged() {
+            root.clearUrgent(Hyprland.focusedWorkspace?.id ?? -1);
+        }
+    }
+
     function switchTo(id) {
         Hyprland.dispatch('hl.dsp.focus({ workspace = "' + id + '" })');
     }

@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
 import qs.theme
@@ -10,322 +9,365 @@ import "../audio"
 import "../session"
 import "../widgets"
 import "../common/ui"
+import "."
 
+// Bar v2 (PH.14) — a data-driven organism. The layout (which segments, in
+// which zone, in what order) is persisted in ShellState.barSegments and
+// resolved by the BarSegments singleton; each segment composes its own
+// component and honors its click-action via BarActions. Scale + position
+// are persisted too. The bar stays on the Overlay layer — popups slide out
+// from behind it.
 PanelWindow {
     id: root
 
     property var tip
 
     // Overlay: topmost layer. Popups land on Top, so anything sliding down
-    // (settings/picker/launcher) emerges from BEHIND this bar.
+    // emerges from BEHIND this bar.
     WlrLayershell.layer: WlrLayer.Overlay
 
+    readonly property bool topBar: ShellState.barPosition !== "bottom"
+    readonly property real scaleFactor: Math.max(0.8, Math.min(1.4, ShellState.barScale))
+
     anchors {
-        top: true
+        top: root.topBar
+        bottom: !root.topBar
         left: true
         right: true
     }
 
-    implicitHeight: Theme.barHeight
+    implicitHeight: Math.round(Theme.barHeight * root.scaleFactor)
     color: "transparent"
 
     Rectangle {
         id: frame
+
         anchors.fill: parent
         color: Theme.bg
 
+        // hairline — bottom edge for a top bar, top edge for a bottom bar
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: root.topBar ? parent.bottom : undefined
+            anchors.top: root.topBar ? undefined : parent.top
             height: 1
             color: Theme.hairline
         }
 
+        // the living strip — pulses at the bar's leading edge
         YPulse {
             x: Theme.outerPad
-            y: 0
+            y: root.topBar ? 0 : parent.height - height
             width: 132
             height: 2
             color: Theme.acid
             lo: 0.55
         }
 
-        Row {
-            id: leftRow
-            anchors.left: parent.left
-            anchors.leftMargin: Theme.outerPad
-            anchors.verticalCenter: parent.verticalCenter
+        // content — sized to the natural bar height, Y-scaled to the pref
+        Item {
+            id: content
 
-            IdentityBlock {}
+            x: 0
+            y: 0
+            width: parent.width
+            height: Theme.barHeight
+            transform: Scale {
+                yScale: root.scaleFactor
+            }
 
-            // warning chip — surfaces graceful-degradation notices instead of
-            // failing silently (missing hyprsunset/ddcutil/cliphist/…)
-            Item {
+            // ---- LEFT ZONE ----
+            Row {
+                id: leftRow
+
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.outerPad
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Health.count > 0
-                implicitWidth: warnRow.width + Theme.sp1 * 2
-                implicitHeight: Theme.barHeight
 
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: ShellState.openPanel()
-                    onContainsMouseChanged: {
-                        if (containsMouse)
-                            root.tip.showFor(this, "warnings · " + Health.summary);
-                        else
-                            root.tip.hide();
-                    }
-                }
+                Repeater {
+                    model: BarSegments.leftVisible
 
-                Row {
-                    id: warnRow
-
-                    anchors.centerIn: parent
-                    spacing: 4
-
-                    Text {
-                        text: "!"
-                        color: Theme.alert
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                        font.weight: Font.ExtraBold
-                    }
-
-                    Text {
-                        text: String(Health.count)
-                        color: Theme.alert
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 10
-                        font.weight: Font.Bold
-                    }
+                    delegate: segDelegate
                 }
             }
 
-            DividerV {
-                visible: Health.count > 0
+            // ---- CENTER (active window fill) ----
+            ActiveWindow {
+                anchors.left: leftRow.right
+                anchors.leftMargin: 18
+                anchors.right: rightRow.left
+                anchors.rightMargin: 18
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                visible: BarSegments.present("activewindow")
             }
 
-            DividerV {}
+            // ---- RIGHT ZONE ----
+            Row {
+                id: rightRow
 
-            Workspaces {
-                id: workspacesModule
-            }
-        }
-
-        ActiveWindow {
-            id: activeWindowModule
-            anchors.left: leftRow.right
-            anchors.leftMargin: 18
-            anchors.right: rightRow.left
-            anchors.rightMargin: 18
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-        }
-
-        Row {
-            id: rightRow
-
-            // segment presence — dividers read these instead of long chains
-            readonly property bool segTray: ShellState.barTray
-            readonly property bool segMedia: ShellState.barMedia && mediaModule.player !== null
-            readonly property bool segNet: ShellState.barNet
-            readonly property bool segBt: ShellState.barBt && btModule.present
-            readonly property bool segAudio: ShellState.barAudio
-            readonly property bool segNl: ShellState.barAudio && NightLight.active
-            readonly property bool segSess: ShellState.barSession && Session.inhibitCount > 0
-            readonly property bool segRec: Recording.active
-            readonly property bool segStats: ShellState.barStats
-            readonly property bool segClock: ShellState.barClock
-
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.outerPad
-            anchors.verticalCenter: parent.verticalCenter
-
-            TrayCluster {
-                id: trayModule
-                tip: root.tip
-                visible: rightRow.segTray
-            }
-
-            DividerV {
-                visible: rightRow.segTray && (rightRow.segMedia || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl)
-            }
-
-            MediaBlock {
-                id: mediaModule
-                tip: root.tip
-                visible: rightRow.segMedia
-            }
-
-            DividerV {
-                visible: rightRow.segMedia && (rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl)
-            }
-
-            NetBlock {
-                id: netModule
-                tip: root.tip
-                visible: rightRow.segNet
-            }
-
-            DividerV {
-                visible: rightRow.segNet && rightRow.segBt
-            }
-
-            BtBlock {
-                id: btModule
-                tip: root.tip
-                visible: rightRow.segBt
-            }
-
-            DividerV {
-                visible: (rightRow.segNet || rightRow.segBt) && (rightRow.segAudio || rightRow.segStats)
-            }
-
-            AudioBlock {
-                id: audioModule
-                tip: root.tip
-                visible: rightRow.segAudio
-            }
-
-            // night light active chip — the filter is on, the machine says so
-            Text {
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.outerPad
                 anchors.verticalCenter: parent.verticalCenter
-                visible: rightRow.segNl
-                text: "☾"
-                color: Theme.acid
-                font.family: Theme.fontFamily
-                font.pixelSize: 12
 
-                SequentialAnimation on opacity {
-                    running: rightRow.segNl
-                    loops: Animation.Infinite
+                Repeater {
+                    model: BarSegments.rightVisible
 
-                    NumberAnimation {
-                        from: 1.0
-                        to: 0.45
-                        duration: 1600
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        from: 0.45
-                        to: 1.0
-                        duration: 1600
-                        easing.type: Easing.InOutSine
-                    }
+                    delegate: segDelegate
                 }
-            }
-
-            DividerV {
-                visible: rightRow.segNl && (rightRow.segSess || rightRow.segStats)
-            }
-
-            // session inhibitors — some app is holding the idle/sleep lock
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: rightRow.segSess
-                text: "󰤄 " + Session.inhibitCount
-                color: Theme.acid
-                font.family: Theme.fontFamily
-                font.pixelSize: 12
-            }
-
-            DividerV {
-                visible: rightRow.segSess && (rightRow.segRec || rightRow.segStats)
-            }
-
-            // recording active chip — gpu-screen-recorder is rolling; click stops
-            Item {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: rightRow.segRec
-                implicitWidth: recRow.width
-                implicitHeight: Theme.barHeight
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: Recording.stop()
-                }
-
-                Row {
-                    id: recRow
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 6
-
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 7
-                        height: 7
-                        color: Theme.alert
-
-                        SequentialAnimation on opacity {
-                            running: rightRow.segRec
-                            loops: Animation.Infinite
-
-                            NumberAnimation {
-                                from: 1.0
-                                to: 0.25
-                                duration: 620
-                                easing.type: Easing.InOutSine
-                            }
-                            NumberAnimation {
-                                from: 0.25
-                                to: 1.0
-                                duration: 620
-                                easing.type: Easing.InOutSine
-                            }
-                        }
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "REC"
-                        color: Theme.alert
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
-                        font.weight: Font.Bold
-                        font.letterSpacing: 1.5
-                    }
-                }
-            }
-
-            DividerV {
-                visible: rightRow.segRec && rightRow.segStats
-            }
-
-            StatsCluster {
-                id: statsModule
-                tip: root.tip
-                visible: rightRow.segStats
-            }
-
-            DividerV {
-                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl || rightRow.segSess || rightRow.segRec) && rightRow.segClock
-            }
-
-            ClockBlock {
-                visible: ShellState.barClock
             }
         }
     }
 
-    Connections {
-        target: Hyprland
+    // ---- segment delegate: divider (except first) + the segment ----------
+    Component {
+        id: segDelegate
 
-        function onRawEvent(evt) {
-            if (evt.name !== "urgent")
-                return;
-            const addr = String(evt.data ?? "").replace(/^0x/, "");
-            const tl = Hyprland.toplevels.values.find(t => String(t.address).replace(/^0x/, "") === addr);
-            if (tl?.workspace && tl.workspace.id > 0)
-                workspacesModule.markUrgent(tl.workspace.id);
-        }
+        Row {
+            required property int index
+            required property var modelData
 
-        function onFocusedWorkspaceChanged() {
-            workspacesModule.clearUrgent(Hyprland.focusedWorkspace?.id ?? -1);
+            spacing: 0
+
+            DividerV {
+                visible: index > 0
+            }
+
+            Loader {
+                sourceComponent: root.segComponent(modelData.id)
+            }
         }
+    }
+
+    function segComponent(id) {
+        switch (id) {
+        case "identity":
+            return identityComp;
+        case "workspaces":
+            return workspacesComp;
+        case "taskbar":
+            return taskbarComp;
+        case "tray":
+            return trayComp;
+        case "media":
+            return mediaComp;
+        case "net":
+            return netComp;
+        case "bt":
+            return btComp;
+        case "audio":
+            return audioComp;
+        case "stats":
+            return statsComp;
+        case "cputemp":
+            return cputempComp;
+        case "gpu":
+            return gpuComp;
+        case "disk":
+            return diskComp;
+        case "nightlight":
+            return nlComp;
+        case "session":
+            return sessComp;
+        case "recording":
+            return recComp;
+        case "clock":
+            return clockComp;
+        }
+        return null;
+    }
+
+    Component {
+        id: identityComp
+
+        IdentityBlock {}
+    }
+
+    Component {
+        id: workspacesComp
+
+        Workspaces {}
+    }
+
+    Component {
+        id: taskbarComp
+
+        Taskbar {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: trayComp
+
+        TrayCluster {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: mediaComp
+
+        MediaBlock {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: netComp
+
+        NetBlock {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: btComp
+
+        BtBlock {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: audioComp
+
+        AudioBlock {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: statsComp
+
+        StatsCluster {
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: cputempComp
+
+        StatCell {
+            kind: "cputemp"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: gpuComp
+
+        StatCell {
+            kind: "gpu"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: diskComp
+
+        StatCell {
+            kind: "disk"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: nlComp
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "☾"
+            color: Theme.acid
+            font.family: Theme.fontFamily
+            font.pixelSize: 12
+
+            SequentialAnimation on opacity {
+                running: true
+                loops: Animation.Infinite
+
+                NumberAnimation {
+                    from: 1.0
+                    to: 0.45
+                    duration: 1600
+                    easing.type: Easing.InOutSine
+                }
+                NumberAnimation {
+                    from: 0.45
+                    to: 1.0
+                    duration: 1600
+                    easing.type: Easing.InOutSine
+                }
+            }
+        }
+    }
+
+    Component {
+        id: sessComp
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "󰤄 " + Session.inhibitCount
+            color: Theme.acid
+            font.family: Theme.fontFamily
+            font.pixelSize: 12
+        }
+    }
+
+    Component {
+        id: recComp
+
+        Row {
+            spacing: 6
+            anchors.verticalCenter: parent.verticalCenter
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 7
+                height: 7
+                color: Theme.alert
+
+                SequentialAnimation on opacity {
+                    running: true
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        from: 1.0
+                        to: 0.25
+                        duration: 620
+                        easing.type: Easing.InOutSine
+                    }
+                    NumberAnimation {
+                        from: 0.25
+                        to: 1.0
+                        duration: 620
+                        easing.type: Easing.InOutSine
+                    }
+                }
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "REC"
+                color: Theme.alert
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
+                font.letterSpacing: 1.5
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Recording.stop()
+            }
+        }
+    }
+
+    Component {
+        id: clockComp
+
+        ClockBlock {}
     }
 }

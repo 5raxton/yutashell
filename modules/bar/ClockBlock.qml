@@ -1,6 +1,7 @@
 import QtQuick
 import qs.theme
 import qs.modules.common
+import "."
 
 Item {
     id: root
@@ -13,12 +14,12 @@ Item {
 
     readonly property var weekdayKanji: ["月", "火", "水", "木", "金", "土", "日"]
 
-    // click opens the calendar (PH.11)
+    // click honors the segment action (default → calendar)
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: ShellState.toggleCalendar()
+        onClicked: BarActions.dispatch(BarSegments.clickFor("clock"))
     }
 
     Timer {

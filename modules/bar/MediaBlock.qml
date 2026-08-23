@@ -28,7 +28,9 @@ Item {
     readonly property int tickerW: 168
     readonly property bool overflowing: trackText.width > tickerClip.width + 2
 
-    visible: ShellState.barMedia && player !== null
+    // visibility is gated by the segment model (BarSegments.present("media"));
+    // here we only hide when no player exists
+    visible: player !== null
 
     function syncAnim() {
         const run = visible && overflowing && playing;

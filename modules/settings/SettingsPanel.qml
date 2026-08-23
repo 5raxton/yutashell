@@ -1,5 +1,8 @@
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Networking
+import Quickshell.Bluetooth
+import Quickshell.Services.UPower
 import QtQuick
 import qs.theme
 import qs.modules.common
@@ -8,6 +11,9 @@ import "../notify"
 import "../audio"
 import "../session"
 import "../dock"
+import "../bar"
+import "../net"
+import "../widgets"
 import "ui"
 
 // Control core v3 — right drawer built entirely from the shared kit
@@ -41,7 +47,8 @@ PanelWindow {
     readonly property int padX: Theme.sp4
     readonly property int tabH: Theme.barHeight
     readonly property int titleBlockH: 56
-    readonly property int contentW: cardW - padX * 2 - 1
+    readonly property int railW: 170
+    readonly property int contentW: cardW - railW - padX * 2 - 1
 
     function setPage(i) {
         tabIndex = i;
@@ -52,40 +59,112 @@ PanelWindow {
     readonly property var pages: [{
             id: "appearance",
             label: "APPEARANCE",
-            jp: "外見"
-        }, {
-            id: "templates",
-            label: "TEMPLATES",
-            jp: "型板"
-        }, {
-            id: "modules",
-            label: "MODULES",
-            jp: "部品"
-        }, {
-            id: "notifications",
-            label: "NOTIFY",
-            jp: "通知"
-        }, {
-            id: "audio",
-            label: "AUDIO",
-            jp: "音"
+            jp: "外見",
+            group: "LOOK",
+            keywords: "scheme palette wallpaper accent light dark font scale animation templates matugen"
         }, {
             id: "dock",
             label: "DOCK",
-            jp: "埠"
+            jp: "埠",
+            group: "LOOK",
+            keywords: "dock taskbar pin hide mode"
+        }, {
+            id: "panels",
+            label: "PANELS",
+            jp: "面",
+            group: "LOOK",
+            keywords: "settings picker notification osd width placement corner"
+        }, {
+            id: "launcher",
+            label: "LAUNCHER",
+            jp: "発",
+            group: "LOOK",
+            keywords: "launcher anchor grid list icon pins recents"
+        }, {
+            id: "controlcenter",
+            label: "CONTROL CENTER",
+            jp: "中枢",
+            group: "LOOK",
+            keywords: "control center cc anchor tabs"
+        }, {
+            id: "notifications",
+            label: "NOTIFY",
+            jp: "通知",
+            group: "BEHAVIOR",
+            keywords: "notification dnd timeout corner fields per-app"
+        }, {
+            id: "osd",
+            label: "OSD",
+            jp: "表",
+            group: "BEHAVIOR",
+            keywords: "osd volume brightness mic corner width fade"
+        }, {
+            id: "bar",
+            label: "BAR",
+            jp: "棒",
+            group: "BEHAVIOR",
+            keywords: "bar segment taskbar scale position click action tray stats clock"
+        }, {
+            id: "shell",
+            label: "SHELL",
+            jp: "殻",
+            group: "SYSTEM",
+            keywords: "avatar timezone clock 24h imperial metric weather clipboard screenshot"
+        }, {
+            id: "security",
+            label: "SECURITY",
+            jp: "安",
+            group: "SYSTEM",
+            keywords: "offline airplane lock idle pam"
         }, {
             id: "system",
             label: "SYSTEM",
-            jp: "系統"
+            jp: "系",
+            group: "SYSTEM",
+            keywords: "monitor stats poll threshold"
+        }, {
+            id: "services",
+            label: "SERVICES",
+            jp: "務",
+            group: "SYSTEM",
+            keywords: "autostart calendar audio overdrive brightness night light"
+        }, {
+            id: "power",
+            label: "POWER",
+            jp: "電",
+            group: "SYSTEM",
+            keywords: "power plan session menu hold idle lock battery"
         }, {
             id: "about",
             label: "ABOUT",
-            jp: "情報"
+            jp: "情報",
+            group: "SYSTEM",
+            keywords: "about version state ipc"
         }]
+
+    readonly property var groups: [
+        { id: "LOOK", label: "LOOK" },
+        { id: "BEHAVIOR", label: "BEHAVIOR" },
+        { id: "SYSTEM", label: "SYSTEM" }
+    ]
 
     property int tabIndex: 0
     readonly property var activePage: pages[Math.max(0, Math.min(tabIndex, pages.length - 1))]
     readonly property string activePageId: activePage.id
+
+    // global search — filters the rail by label/jp/keywords; picking a result
+    // jumps to its tab
+    property string searchQuery: ""
+
+    function matchesQuery(p) {
+        const q = root.searchQuery.trim().toLowerCase();
+        if (q.length === 0)
+            return true;
+        const hay = (p.label + " " + (p.jp ?? "") + " " + (p.keywords ?? "")).toLowerCase();
+        return hay.indexOf(q) >= 0;
+    }
+
+    readonly property var visiblePages: root.pages.filter(p => root.matchesQuery(p))
 
     Timer {
         id: hideDelay
@@ -248,97 +327,143 @@ PanelWindow {
                 color: Theme.hairline
             }
 
-            // ===== TAB STRIP =====
-            // same language as the bar's workspace blocks: numbered segments,
-            // hover snap, one acid underline that slides between pages
+            // ===== NAV RAIL (two-level: groups → tabs) =====
+            // vertical rail: search field on top, then LOOK / BEHAVIOR / SYSTEM
+            // groups, each with its tabs. Search filters the whole rail.
             Item {
-                id: tabStrip
+                id: navRail
 
                 x: 0
                 y: Theme.headH + 1
-                width: parent.width
-                height: root.tabH
+                width: root.railW
+                height: parent.height - y
 
                 Rectangle {
-                    anchors.left: parent.left
                     anchors.right: parent.right
+                    anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    height: 1
+                    width: 1
                     color: Theme.hairline
                 }
 
-                Repeater {
-                    model: root.pages
+                // search field
+                YField {
+                    id: searchField
 
-                    delegate: Item {
-                        id: tabSeg
-
-                        required property int index
-                        required property var modelData
-
-                        readonly property bool isActive: root.tabIndex === index
-
-                        x: index * (tabStrip.width / root.pages.length)
-                        width: tabStrip.width / root.pages.length
-                        height: tabStrip.height
-
-                        Text {
-                            x: root.padX
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "0" + (tabSeg.index + 1)
-                            color: tabSeg.isActive ? Theme.acid : Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.weight: Font.Bold
-                        }
-
-                        Text {
-                            x: root.padX + 22
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: tabSeg.width - (root.padX + 22) - (Theme.jpEnabled ? 40 : 4)
-                            elide: Text.ElideRight
-                            text: tabSeg.modelData.label
-                            color: tabSeg.isActive ? Theme.ink : tabArea.containsMouse ? Theme.ink : Theme.muted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsLabel
-                            font.weight: tabSeg.isActive ? Font.Bold : Font.Normal
-                            font.letterSpacing: 1.5
-                        }
-
-                        Text {
-                            visible: Theme.jpEnabled
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: root.padX
-                            text: tabSeg.modelData.jp
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                        }
-
-                        MouseArea {
-                            id: tabArea
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.setPage(tabSeg.index)
-                        }
+                    x: Theme.sp2
+                    y: Theme.sp2
+                    width: parent.width - Theme.sp2 * 2
+                    placeholder: Theme.jpEnabled ? "検索 // SEARCH" : "SEARCH…"
+                    onAccepted: {
+                        const idx = root.pages.findIndex(p => root.matchesQuery(p));
+                        if (idx >= 0 && root.searchQuery.trim().length > 0)
+                            root.setPage(idx);
                     }
+                    text: root.searchQuery
+                    onTextChanged: root.searchQuery = searchField.text
                 }
 
-                // single sliding acid underline (positional — animated)
-                Rectangle {
-                    y: parent.height - 2
-                    x: root.tabIndex * (parent.width / root.pages.length)
-                    width: parent.width / root.pages.length
-                    height: 2
-                    color: Theme.acid
+                Flickable {
+                    id: railFlick
 
-                    Behavior on x {
-                        NumberAnimation {
-                            duration: Theme.movFast
-                            easing.type: Easing.OutCubic
+                    x: 0
+                    y: searchField.y + searchField.height + Theme.sp2
+                    width: parent.width
+                    height: parent.height - y
+                    clip: true
+                    contentWidth: width
+                    contentHeight: railCol.height
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    FastWheel {}
+
+                    Column {
+                        id: railCol
+
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: root.groups
+
+                            delegate: Column {
+                                id: groupCol
+
+                                required property int index
+                                required property var modelData
+
+                                width: navRail.width
+                                visible: root.pages.some(p => p.group === modelData.id && root.matchesQuery(p))
+
+                                Text {
+                                    x: Theme.sp3
+                                    width: parent.width - Theme.sp3
+                                    height: 20
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: modelData.label
+                                    color: Theme.faint
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsMicro
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 2
+                                }
+
+                                Repeater {
+                                    model: root.pages.filter(p => p.group === groupCol.modelData.id && root.matchesQuery(p))
+
+                                    delegate: Item {
+                                        id: railRow
+
+                                        required property var modelData
+
+                                        readonly property bool active: root.activePageId === modelData.id
+
+                                        width: navRail.width
+                                        height: 30
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: railRow.active ? Theme.surface : railArea.containsMouse ? Theme.bg : "transparent"
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.top: parent.top
+                                                anchors.bottom: parent.bottom
+                                                width: 2
+                                                color: railRow.active ? Theme.acid : "transparent"
+                                            }
+                                        }
+
+                                        Text {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: Theme.sp3
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: parent.width - Theme.sp3 * 2
+                                            elide: Text.ElideRight
+                                            text: railRow.modelData.label
+                                            color: railRow.active ? Theme.acid : railArea.containsMouse ? Theme.ink : Theme.muted
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsLabel
+                                            font.weight: railRow.active ? Font.Bold : Font.Normal
+                                            font.letterSpacing: 1
+                                        }
+
+                                        MouseArea {
+                                            id: railArea
+
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.setPage(root.pages.indexOf(railRow.modelData))
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    width: 1
+                                    height: Theme.sp2
+                                }
+                            }
                         }
                     }
                 }
@@ -348,8 +473,8 @@ PanelWindow {
             Item {
                 id: pageTitleBlock
 
-                x: root.padX
-                y: Theme.headH + 1 + root.tabH + Theme.sp2
+                x: root.railW + root.padX
+                y: Theme.headH + 1 + Theme.sp2
                 width: root.contentW
                 height: root.titleBlockH - Theme.sp2
 
@@ -377,7 +502,7 @@ PanelWindow {
                 Text {
                     anchors.baseline: pageTitle.baseline
                     anchors.right: parent.right
-                    text: root.activePageId === "templates" ? Wallpaper.templatesList().filter(t => t.enabled).length + " ON" : ""
+                    text: root.activePageId === "appearance" ? Wallpaper.templatesList().filter(t => t.enabled).length + " TPL ON" : ""
                     color: Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsMicro
@@ -412,8 +537,8 @@ PanelWindow {
             Flickable {
                 id: pageScroll
 
-                x: root.padX
-                y: Theme.headH + 1 + root.tabH + root.titleBlockH
+                x: root.railW + root.padX
+                y: Theme.headH + 1 + root.titleBlockH
                 width: root.contentW
                 height: parent.height - y - Theme.footH - Theme.sp3
                 contentWidth: width
@@ -444,18 +569,30 @@ PanelWindow {
                     active: ShellState.panelOpen
                     sourceComponent: {
                         switch (root.activePageId) {
-                        case "templates":
-                            return templatesPage;
-                        case "modules":
-                            return modulesPage;
-                        case "notifications":
-                            return notificationsPage;
-                        case "audio":
-                            return audioPage;
                         case "dock":
                             return dockPage;
+                        case "panels":
+                            return panelsPage;
+                        case "launcher":
+                            return launcherPage;
+                        case "controlcenter":
+                            return ccPage;
+                        case "notifications":
+                            return notificationsPage;
+                        case "osd":
+                            return osdPage;
+                        case "bar":
+                            return barPage;
+                        case "shell":
+                            return shellPage;
+                        case "security":
+                            return securityPage;
                         case "system":
                             return systemPage;
+                        case "services":
+                            return servicesPage;
+                        case "power":
+                            return powerPage;
                         case "about":
                             return aboutPage;
                         default:
@@ -926,6 +1063,17 @@ PanelWindow {
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
                         wrapMode: Text.WordWrap
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "05"
+                        label: "Matugen templates"
+                        chip: Wallpaper.templatesList().filter(t => t.enabled).length + " on"
+                    }
+
+                    TemplatesPage {
+                        contentW: root.contentW
                     }
 
                     Item {
@@ -1737,6 +1885,59 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "01"
+                        label: "System monitor"
+                        chip: SystemStats.hostname.length > 0 ? SystemStats.hostname.toUpperCase() : ""
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Uptime"
+                        sub: SystemStats.uptime < 0 ? "--" : Math.floor(SystemStats.uptime / 3600) + "h " + Math.floor((SystemStats.uptime % 3600) / 60) + "m"
+                        note: "UP"
+                        interactive: false
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "GPU"
+                        sub: SystemStats.gpuUtil < 0 ? "no gpu" : SystemStats.gpuUtil + "% · " + SystemStats.gpuTemp + "°C · " + SystemStats.fmtBytes(SystemStats.gpuMemUsed * 1048576)
+                        note: "GPU"
+                        interactive: false
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Sensors"
+                        chip: SystemStats.temps.length + " sensors"
+                    }
+
+                    Repeater {
+                        model: SystemStats.temps
+
+                        delegate: YRow {
+                            required property var modelData
+
+                            width: root.contentW
+                            interactive: false
+                            title: modelData.label
+                            sub: modelData.id
+                            note: modelData.temp + "°C"
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "cpu/mem/net/disk/load samples flow from the SystemStats singleton (FAST 2s · SLOW 5s)."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
                         label: "Power plan"
                         chip: Session.ppdAvailable ? Session.profileName.toUpperCase() : "NO PPD"
                     }
@@ -1974,6 +2175,1012 @@ PanelWindow {
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
                         wrapMode: Text.WordWrap
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: panelsPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Settings panel"
+                        chip: root.anchorX + " · " + Math.max(640, Math.min(1200, ShellState.panelW)) + "px"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "center",
+                                    label: "CENTER"
+                                }, {
+                                    id: "left",
+                                    label: "LEFT"
+                                }, {
+                                    id: "right",
+                                    label: "RIGHT"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.panelAnchor === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("panelAnchor", modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Notification stack"
+                        chip: ShellState.notifyCorner.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "tr",
+                                    label: "TOP-R"
+                                }, {
+                                    id: "tl",
+                                    label: "TOP-L"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.notifyCorner === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: Notify.setCorner(modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Control center"
+                        chip: ShellState.ccAnchor.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "center",
+                                    label: "CENTER"
+                                }, {
+                                    id: "left",
+                                    label: "LEFT"
+                                }, {
+                                    id: "right",
+                                    label: "RIGHT"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.ccAnchor === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("ccAnchor", modelData.id)
+                            }
+                        }
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: launcherPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "View"
+                        chip: ShellState.launcherMode.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "grid",
+                                    label: "GRID"
+                                }, {
+                                    id: "list",
+                                    label: "LIST"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.launcherMode === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("launcherMode", modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Placement"
+                        chip: ShellState.launcherAnchor.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "center",
+                                    label: "CENTER"
+                                }, {
+                                    id: "left",
+                                    label: "LEFT"
+                                }, {
+                                    id: "right",
+                                    label: "RIGHT"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.launcherAnchor === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("launcherAnchor", modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Width"
+                        chip: ShellState.launcherW + "px"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            width: 32
+                            label: "−"
+                            onClicked: ShellState.set("launcherW", Math.max(480, ShellState.launcherW - 32))
+                        }
+
+                        YButton {
+                            width: 32
+                            label: "+"
+                            onClicked: ShellState.set("launcherW", Math.min(960, ShellState.launcherW + 32))
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "04"
+                        label: "Memory"
+                        chip: "pins " + (JSON.parse(ShellState.launcherPins).length ?? 0) + " · recents " + (JSON.parse(ShellState.launcherRecents).length ?? 0)
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            label: "CLEAR PINS"
+                            onClicked: ShellState.set("launcherPins", "[]")
+                        }
+
+                        YButton {
+                            label: "CLEAR RECENTS"
+                            onClicked: ShellState.set("launcherRecents", "[]")
+                        }
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: ccPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Tabs"
+                        chip: (JSON.parse(ShellState.ccTabs) || []).length + " visible"
+                    }
+
+                    Repeater {
+                        model: [{
+                                id: "home",
+                                label: "HOME"
+                            }, {
+                                id: "media",
+                                label: "MEDIA"
+                            }, {
+                                id: "audio",
+                                label: "AUDIO"
+                            }, {
+                                id: "monitors",
+                                label: "MONITORS"
+                            }, {
+                                id: "system",
+                                label: "SYSTEM"
+                            }, {
+                                id: "power",
+                                label: "POWER"
+                            }, {
+                                id: "network",
+                                label: "NETWORK"
+                            }, {
+                                id: "bluetooth",
+                                label: "BLUETOOTH"
+                            }, {
+                                id: "weather",
+                                label: "WEATHER"
+                            }, {
+                                id: "calendar",
+                                label: "CALENDAR"
+                            }, {
+                                id: "notifications",
+                                label: "NOTIFICATIONS"
+                            }]
+
+                        delegate: YRow {
+                            id: ctRow
+
+                            required property var modelData
+
+                            readonly property var ids: JSON.parse(ShellState.ccTabs) || []
+                            readonly property bool shown: ids.indexOf(modelData.id) >= 0
+
+                            width: root.contentW
+                            title: modelData.label
+                            sub: ctRow.shown ? "shown in the strip" : "hidden"
+                            on_: ctRow.shown
+
+                            YSwitch {
+                                checked: ctRow.shown
+                                anchors.verticalCenter: parent.verticalCenter
+                                onToggled: {
+                                    let ids = JSON.parse(ShellState.ccTabs) || [];
+                                    if (ids.indexOf(ctRow.modelData.id) >= 0)
+                                        ids = ids.filter(x => x !== ctRow.modelData.id);
+                                    else
+                                        ids.push(ctRow.modelData.id);
+                                    ShellState.set("ccTabs", JSON.stringify(ids));
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "hiding a tab keeps its page lazy — re-enable anytime."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: osdPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Corner"
+                        chip: ShellState.osdCorner.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: ["tl", "tc", "tr", "bl", "bc", "br"]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                width: 40
+                                tone: ShellState.osdCorner === modelData ? "acid" : "default"
+                                label: modelData.toUpperCase()
+                                onClicked: ShellState.set("osdCorner", modelData)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Size"
+                        chip: ShellState.osdWidth + "px"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            width: 32
+                            label: "−"
+                            onClicked: ShellState.set("osdWidth", Math.max(300, ShellState.osdWidth - 40))
+                        }
+
+                        YButton {
+                            width: 32
+                            label: "+"
+                            onClicked: ShellState.set("osdWidth", Math.min(720, ShellState.osdWidth + 40))
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Fade"
+                        chip: ShellState.osdFadeMs + "ms"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            width: 32
+                            label: "−"
+                            onClicked: ShellState.set("osdFadeMs", Math.max(600, ShellState.osdFadeMs - 200))
+                        }
+
+                        YButton {
+                            width: 32
+                            label: "+"
+                            onClicked: ShellState.set("osdFadeMs", Math.min(4000, ShellState.osdFadeMs + 200))
+                        }
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: barPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Layout"
+                        chip: ShellState.barScale + "× · " + ShellState.barPosition.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            width: 32
+                            label: "−"
+                            onClicked: ShellState.set("barScale", Math.max(0.8, ShellState.barScale - 0.1))
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ShellState.barScale.toFixed(1) + "×"
+                            color: Theme.ink
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsBody
+                            font.weight: Font.Bold
+                        }
+
+                        YButton {
+                            width: 32
+                            label: "+"
+                            onClicked: ShellState.set("barScale", Math.min(1.4, ShellState.barScale + 0.1))
+                        }
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "top",
+                                    label: "TOP"
+                                }, {
+                                    id: "bottom",
+                                    label: "BOTTOM"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.barPosition === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("barPosition", modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Segments"
+                        chip: BarSegments.model.length + " · " + (BarSegments.leftVisible.length + BarSegments.rightVisible.length) + " visible"
+                    }
+
+                    Repeater {
+                        model: BarSegments.model
+
+                        delegate: Item {
+                            id: segRow
+
+                            required property int index
+                            required property var modelData
+
+                            readonly property var meta: BarSegments.meta[modelData.id] ?? { label: modelData.id, jp: "" }
+                            readonly property bool on_: modelData.enabled !== false
+
+                            width: root.contentW
+                            height: 40
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: segArea.containsMouse ? Theme.surface : "transparent"
+                            }
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - 160
+                                elide: Text.ElideRight
+                                text: segRow.meta.label
+                                color: segRow.on_ ? Theme.ink : Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                font.weight: Font.DemiBold
+                            }
+
+                            // zone chips
+                            Row {
+                                anchors.right: segSwitch.left
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+
+                                Repeater {
+                                    model: ["left", "center", "right"]
+
+                                    delegate: Item {
+                                        required property var modelData
+
+                                        width: 22
+                                        height: 16
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: segRow.modelData.zone === modelData ? Theme.acid : "transparent"
+                                            border.width: 1
+                                            border.color: Theme.lineStrong
+                                        }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.charAt(0).toUpperCase()
+                                            color: segRow.modelData.zone === modelData ? Theme.bg : Theme.muted
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsMicro
+                                            font.weight: Font.Bold
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: BarSegments.setZone(segRow.modelData.id, modelData)
+                                        }
+                                    }
+                                }
+                            }
+
+                            YSwitch {
+                                id: segSwitch
+
+                                checked: segRow.on_
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.sp2
+                                onToggled: BarSegments.setEnabled(segRow.modelData.id, !segRow.modelData.enabled)
+                            }
+
+                            // up/down reorder
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.sp2
+                                visible: segArea.containsMouse
+                                spacing: 1
+
+                                Text {
+                                    text: "▲"
+                                    color: Theme.faint
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 8
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: BarSegments.move(segRow.modelData.id, -1)
+                                    }
+                                }
+
+                                Text {
+                                    text: "▼"
+                                    color: Theme.faint
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 8
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: BarSegments.move(segRow.modelData.id, 1)
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: segArea
+
+                                anchors.fill: parent
+                                anchors.leftMargin: 30
+                                hoverEnabled: true
+                                acceptedButtons: Qt.NoButton
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "hover a row for reorder arrows · L/C/R sets the zone · click actions live in the shell (clock→calendar, stats→control center, …)"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: shellPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Clock"
+                        chip: ShellState.clock24h ? "24H" : "12H"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "24-hour clock"
+                        sub: ShellState.clock24h ? "HH:MM" : "12-hour with AM/PM"
+                        note: "CLK"
+                        on_: ShellState.clock24h
+
+                        YSwitch {
+                            checked: ShellState.clock24h
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("clock24h", !ShellState.clock24h)
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Weather"
+                        chip: Weather.configured ? ShellState.weatherLabel.toUpperCase() : "UNSET"
+                    }
+
+                    YField {
+                        id: weatherLatField
+
+                        width: root.contentW
+                        placeholder: "latitude (e.g. 35.68)"
+                    }
+
+                    YField {
+                        id: weatherLonField
+
+                        width: root.contentW
+                        placeholder: "longitude (e.g. 139.69)"
+                    }
+
+                    YField {
+                        id: weatherLabelField
+
+                        width: root.contentW
+                        placeholder: "location label (e.g. TOKYO)"
+                    }
+
+                    YButton {
+                        label: "APPLY LOCATION"
+                        tone: "acid"
+                        onClicked: {
+                            if (weatherLatField.text.length > 0 && weatherLonField.text.length > 0) {
+                                ShellState.set("weatherLat", weatherLatField.text.trim());
+                                ShellState.set("weatherLon", weatherLonField.text.trim());
+                                ShellState.set("weatherLabel", weatherLabelField.text.trim());
+                                Weather.refresh();
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Screenshot"
+                        chip: Screenshot.status()
+                    }
+
+                    YField {
+                        id: shotDirField
+
+                        width: root.contentW
+                        placeholder: "save directory (default ~/Pictures/Shots)"
+                        onAccepted: {
+                            if (text.trim().length > 0)
+                                ShellState.set("shotDir", text.trim());
+                            text = "";
+                        }
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: securityPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Offline mode"
+                        chip: Connectivity.airplane ? "AIRPLANE" : "ONLINE"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Airplane mode"
+                        sub: Connectivity.airplane ? "wifi + bluetooth radios down" : "radios up"
+                        note: "AIR"
+                        on_: Connectivity.airplane
+
+                        YSwitch {
+                            checked: Connectivity.airplane
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: {
+                                const next = !Connectivity.airplane;
+                                Networking.wifiEnabled = !next;
+                                if (Bluetooth.defaultAdapter)
+                                    Bluetooth.defaultAdapter.enabled = !next;
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Lock screen"
+                        chip: "PAM " + ShellState.pamService
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Lock on all monitors"
+                        sub: ShellState.lockMonitors === "all" ? "every screen renders the auth card" : "primary screen only"
+                        note: "MON"
+                        on_: ShellState.lockMonitors === "all"
+
+                        YSwitch {
+                            checked: ShellState.lockMonitors === "all"
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("lockMonitors", ShellState.lockMonitors === "all" ? "primary" : "all")
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Bar inhibit indicator"
+                        sub: "a chip shows when an app holds the idle/sleep lock"
+                        note: "INH"
+                        on_: ShellState.barSession
+
+                        YSwitch {
+                            checked: ShellState.barSession
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("barSession", !ShellState.barSession)
+                        }
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: servicesPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Audio"
+                        chip: "overdrive " + ShellState.audioCeiling + "%"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Overdrive ceiling"
+                        sub: "volume allowed past 100%, flagged in acid"
+                        note: "VOL"
+                        interactive: false
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.sp1
+
+                            YButton {
+                                width: 30
+                                label: "−"
+                                onClicked: ShellState.set("audioCeiling", Math.max(100, ShellState.audioCeiling - 10))
+                            }
+
+                            YButton {
+                                width: 30
+                                label: "+"
+                                onClicked: ShellState.set("audioCeiling", Math.min(200, ShellState.audioCeiling + 10))
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Display"
+                        chip: DisplayService.available ? "DDC/CI" : "UNAVAILABLE"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Monitor brightness"
+                        sub: DisplayService.available ? DisplayService.displays.length + " display(s) · " + DisplayService.brightPct + "%" : "install ddcutil for DDC/CI control"
+                        note: "SUN"
+                        interactive: false
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Night light"
+                        chip: NightLight.available ? (NightLight.active ? "ACTIVE" : "IDLE") : "NO HYPRSUNSET"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Night light filter"
+                        sub: NightLight.available ? NightLight.temp + "K warmth" : "install hyprsunset"
+                        note: "☾"
+                        on_: NightLight.active
+
+                        YSwitch {
+                            checked: NightLight.active
+                            enabled: NightLight.available
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: NightLight.toggle()
+                        }
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: powerPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Power plan"
+                        chip: Session.ppdAvailable ? Session.profileName.toUpperCase() : "NO PPD"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "saver",
+                                    label: "SAVER"
+                                }, {
+                                    id: "balanced",
+                                    label: "BALANCED"
+                                }, {
+                                    id: "performance",
+                                    label: "PERF"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: Session.ppdAvailable && Session.profileName === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                enabled: Session.ppdAvailable
+                                onClicked: Session.setProfile(modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "Idle"
+                        chip: ShellState.idleAction === "none" ? "off" : ShellState.idleAction + " · " + ShellState.idleSecs + "s"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "none",
+                                    label: "OFF"
+                                }, {
+                                    id: "lock",
+                                    label: "LOCK"
+                                }, {
+                                    id: "suspend",
+                                    label: "SUSPEND"
+                                }, {
+                                    id: "shutdown",
+                                    label: "SHUTDOWN"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.idleAction === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("idleAction", modelData.id)
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Power menu"
+                        chip: ShellState.holdMs > 0 ? "hold " + ShellState.holdMs + "ms" : "no hold"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Hold to confirm"
+                        sub: ShellState.holdMs > 0 ? "destructive tiles need a press-and-hold" : "destructive tiles fire immediately"
+                        note: "HOLD"
+                        on_: ShellState.holdMs > 0
+
+                        YSwitch {
+                            checked: ShellState.holdMs > 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("holdMs", ShellState.holdMs > 0 ? 0 : 1100)
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "04"
+                        label: "Battery"
+                        chip: UPower.displayDevice && UPower.displayDevice.isPresent ? Math.round(UPower.displayDevice.percentage) + "%" : "NO BAT"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Battery"
+                        sub: UPower.displayDevice && UPower.displayDevice.isPresent ? "present" : "no battery on this machine"
+                        note: "BAT"
+                        interactive: false
+                        on_: UPower.displayDevice && UPower.displayDevice.isPresent
                     }
 
                     Item {

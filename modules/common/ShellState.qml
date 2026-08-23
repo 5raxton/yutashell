@@ -22,6 +22,7 @@ Singleton {
     property bool clipboardOpen: false
     property bool weatherOpen: false
     property bool emojiOpen: false
+    property bool ccOpen: false
 
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
@@ -40,6 +41,7 @@ Singleton {
         root.clipboardOpen = name === "clipboard";
         root.weatherOpen = name === "weather";
         root.emojiOpen = name === "emoji";
+        root.ccOpen = name === "cc";
     }
 
     function togglePanel() {
@@ -190,6 +192,18 @@ Singleton {
         root.emojiOpen = false;
     }
 
+    function toggleCc() {
+        root._exclusive(root.ccOpen ? "" : "cc");
+    }
+
+    function openCc() {
+        root._exclusive("cc");
+    }
+
+    function closeCc() {
+        root.ccOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -264,6 +278,16 @@ Singleton {
     readonly property alias weatherLabel: adapter.weatherLabel
     readonly property alias weatherUnit: adapter.weatherUnit
     readonly property alias clipboardPins: adapter.clipboardPins
+
+    // bar v2 (PH.14): ordered segment model, scale, position, click actions
+    readonly property alias barSegments: adapter.barSegments
+    readonly property alias barScale: adapter.barScale
+    readonly property alias barPosition: adapter.barPosition
+    readonly property alias barClick: adapter.barClick
+
+    // control center (PH.15): anchor + visible tab order
+    readonly property alias ccAnchor: adapter.ccAnchor
+    readonly property alias ccTabs: adapter.ccTabs
 
     function set(key, value) {
         adapter[key] = value;
@@ -388,6 +412,19 @@ Singleton {
     property string weatherLabel: ""
     property string weatherUnit: "celsius"
     property string clipboardPins: "[]"
+
+    // bar v2 (PH.14): ordered segment model [{id,zone,enabled}], layout scale
+    // (0.8-1.4x), top/bottom position, and per-segment click-action map
+    // {id: action} where action is calendar|network|bluetooth|audio|power|
+    // notifications|controlcenter|launcher|none (or ipc:target/fn)
+    property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"stats\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
+    property real barScale: 1.0
+    property string barPosition: "top"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"stats\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
+
+    // control center: horizontal anchor + visible tab id order (JSON array)
+    property string ccAnchor: "center"
+    property string ccTabs: "[\"home\",\"media\",\"audio\",\"monitors\",\"system\",\"power\",\"network\",\"bluetooth\",\"weather\",\"calendar\",\"notifications\"]"
         }
     }
 

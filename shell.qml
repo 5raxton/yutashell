@@ -18,6 +18,7 @@ import "modules/session"
 import "modules/dock"
 import "modules/overview"
 import "modules/widgets"
+import "modules/control"
 
 ShellRoot {
     Tooltip {
@@ -104,6 +105,8 @@ ShellRoot {
     ShotFlash {}
 
     Emoji {}
+
+    ControlCenter {}
 
     IpcHandler {
         target: "launcher"
@@ -752,6 +755,62 @@ ShellRoot {
 
         function close(): void {
             ShellState.closeEmoji();
+        }
+    }
+
+    IpcHandler {
+        target: "bar"
+
+        function seg(id: string, op: string): string {
+            const sid = String(id);
+            const o = String(op).toLowerCase();
+            if (["on", "off"].indexOf(o) >= 0)
+                BarSegments.setEnabled(sid, o === "on");
+            else if (["left", "center", "right"].indexOf(o) >= 0)
+                BarSegments.setZone(sid, o);
+            else
+                return "usage: bar seg <id> on|off|left|center|right";
+            return o + " " + sid;
+        }
+
+        function move(id: string, dir: string): void {
+            BarSegments.move(String(id), String(dir) === "up" ? -1 : 1);
+        }
+
+        function scale(v: string): string {
+            const s = Math.max(0.8, Math.min(1.4, parseFloat(v) || 1.0));
+            ShellState.set("barScale", s);
+            return "scale " + s;
+        }
+
+        function position(p: string): string {
+            const v = String(p).toLowerCase();
+            ShellState.set("barPosition", v === "bottom" ? "bottom" : "top");
+            return "position " + (v === "bottom" ? "bottom" : "top");
+        }
+
+        function click(id: string, action: string): void {
+            BarSegments.setClick(String(id), String(action ?? ""));
+        }
+
+        function status(): string {
+            return "scale " + ShellState.barScale + " · " + ShellState.barPosition + " · " + BarSegments.leftVisible.length + "/" + BarSegments.rightVisible.length + " visible";
+        }
+    }
+
+    IpcHandler {
+        target: "cc"
+
+        function toggle(): void {
+            ShellState.toggleCc();
+        }
+
+        function open(): void {
+            ShellState.openCc();
+        }
+
+        function close(): void {
+            ShellState.closeCc();
         }
     }
 }

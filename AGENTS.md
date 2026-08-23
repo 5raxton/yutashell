@@ -171,6 +171,15 @@ This deliberately supersedes the old "scrim abolition / desktop stays clickable"
 - cliphist 0.7 `list` output is `id<TAB>preview`; binary (image) entries carry raw bytes in the preview — detect via control chars and surface as IMAGE rows. `cliphist decode <id> | wl-copy` re-copies; `cliphist delete <id>` removes.
 - `qs ipc call <target> show` collides with quickshell's built-in target listing — name list functions `list`, not `show`.
 
+### 15. Bar v2 segments + control center + settings v4 (PH.14-16)
+- **The bar is data-driven now.** `ShellState.barSegments` is an ordered `[{id,zone,enabled}]` array; `BarSegments` (singleton in `modules/bar/`) parses it and answers `leftVisible`/`rightVisible`/`centerVisible` (runtime visibility = enabled AND the segment's live condition) plus `present(id)`, `clickFor(id)` and the mutation helpers. `Bar.qml` renders three zones via `Repeater` + `Loader` with a divider on `index > 0`. `BarActions.dispatch(action)` maps click-actions (calendar/network/…/`ipc:target/fn`). New segments only need a Component in Bar.qml + a `BarSegments.meta` entry + a `present()` case.
+- **Modules with `pragma Singleton` need a qmldir** declaring `singleton X 1.0 X.qml`. Adding one to `modules/bar/` made its imports strict — every top-level type is now listed there. Sub-directory `ui/` types (DividerV) stay a relative `import "ui"`.
+- **Height-only scaling**: the bar's content uses `transform: Scale { yScale }` (xScale stays 1) so the bar thickens without changing width.
+- **Control center** (`modules/control/ControlCenter.qml`): 11 lazy tabs behind a `switch`, tab order/visibility from `ShellState.ccTabs` (a JSON id array), anchor from `ccAnchor`. Tab state that needs per-tab `Timer`s (SYSTEM sparklines) gates on `activePageId === "x" && ShellState.ccOpen`.
+- **Settings v4**: two-level nav rail (`groups` + `pages` with a `group`/`keywords` field each) + `searchQuery` filters the rail via `matchesQuery(p)` (label/jp/keywords). Content area shifted right of the rail by `railW`. A Repeater delegate that *redeclares* a host type's own property (e.g. `readonly property bool on_` inside a `YRow` delegate) → `Property value set multiple times`; use a fresh name and bind the host property to it.
+- **Don't reference a window type's instance from another file** — `MediaWidget.player` (a PanelWindow *type*) is `undefined`; resolve MPRIS directly (`Mpris.players.values`). The control center carries its own `player`/`playing`.
+- **`Cannot display PlatformMenuEntry … not in QApplication mode`** is a reload-churn artifact from the SNI tray re-registering mid-edit, not a current-state bug — it stops once edits settle. (Tray menus would need `//@ pragma UseQApplication` on shell.qml if ever wanted.)
+
 ## Conventions (enforced)
 
 - Colors/fonts/metrics ONLY from `Theme.*`. No hardcoded colors in modules — this is what makes live recoloring free.
