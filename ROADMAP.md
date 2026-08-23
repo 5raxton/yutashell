@@ -5,9 +5,9 @@ Design language: neo-brutalist Japanese cyber-minimalist — flat black surfaces
 
 **The one-organism rule:** every surface — bar, launcher, control center, OSD, clipboard, screenshot chrome, lock screen — must read as the *same* object viewed from different angles. Same kit primitives, same hairline weight, same corner-tick motifs, same motion curves, same type ramp. If a new panel could be mistaken for another project's popup, it is wrong and gets rebuilt. We are not shipping a bag of tools; we are shipping one machine.
 
-## VIBE CHARTER — "the machine is alive" (binding for ALL future phases)
+## STYLE — "techy, neo-brutalist, paper on ink minimalist." (binding for ALL future phases)
 
-The shell is a living machine in an art exhibit, not a toolbox. Everything below is LAW; new phases inherit it automatically and reviewers reject work that ignores it.
+The shell is a living machine, a living organism, in an art exhibit, not just a toolbox. Everything below is LAW; new phases inherit it automatically and reviewers reject work that ignores it.
 
 **1. Everything breathes.** Idle chrome has a pulse: the bar's acid strip breathes (`YPulse`, `movDrift`), clock colons swell instead of strobe, BT glyphs hunt while scanning, equalizer bars sway while music plays. Pulses run SLOW (`movDrift` 2600 ms class) and NEVER apply to text content — text is data, data doesn't throb.
 
