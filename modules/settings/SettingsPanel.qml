@@ -5,6 +5,7 @@ import qs.theme
 import qs.modules.common
 import "../common/ui"
 import "../notify"
+import "../audio"
 import "ui"
 
 // Control core v3 — right drawer built entirely from the shared kit
@@ -62,6 +63,10 @@ PanelWindow {
             id: "notifications",
             label: "NOTIFY",
             jp: "通知"
+        }, {
+            id: "audio",
+            label: "AUDIO",
+            jp: "音"
         }, {
             id: "system",
             label: "SYSTEM",
@@ -429,6 +434,8 @@ PanelWindow {
                             return modulesPage;
                         case "notifications":
                             return notificationsPage;
+                        case "audio":
+                            return audioPage;
                         case "system":
                             return systemPage;
                         case "about":
@@ -959,6 +966,11 @@ PanelWindow {
                                 sub: "adapter glyph, hidden when off"
                             },
                             {
+                                key: "barAudio",
+                                title: "Audio segment",
+                                sub: "volume bars · mic state"
+                            },
+                            {
                                 key: "barClock",
                                 title: "Clock block",
                                 sub: "time · date" + (Theme.jpEnabled ? " · kanji weekday" : "")
@@ -995,6 +1007,325 @@ PanelWindow {
                     Item {
                         width: 1
                         height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: audioPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        index: "01"
+                        label: "Output"
+                        chip: AudioService.ready ? "PIPEWIRE" : "NO SERVICE"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: AudioService.sink ? AudioService.deviceLabel(AudioService.sink) : "no output device"
+                        sub: (AudioService.sink && AudioService.sink.audio && AudioService.sink.audio.muted ? "muted · " : "") + AudioService.nodePct(AudioService.sink) + "% · wheel the bar segment or open the console"
+                        note: "MASTER"
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.sp1
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: {
+                                    AudioService.stepPct(AudioService.sink, -5);
+                                    AudioService.osdPing("volume");
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: {
+                                    AudioService.stepPct(AudioService.sink, 5);
+                                    AudioService.osdPing("volume");
+                                }
+                            }
+                        }
+                    }
+
+                    // overdrive ceiling stepper
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "OVERDRIVE CEILING"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Text {
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            text: "volume past 100% is flagged in acid"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp2
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: ShellState.set("audioCeiling", Math.max(100, ShellState.audioCeiling - 10))
+                            }
+
+                            Item {
+                                width: 72
+                                height: Theme.ctlH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Theme.bg
+                                    border.width: 1
+                                    border.color: Theme.hairline
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: ShellState.audioCeiling + "%"
+                                    color: Theme.acid
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: ShellState.set("audioCeiling", Math.min(200, ShellState.audioCeiling + 10))
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "100 – 200"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsMicro
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "OSD"
+                    }
+
+                    // corner picker
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "CORNER"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp1
+
+                            Repeater {
+                                model: ["tl", "tc", "tr", "bl", "bc", "br"]
+
+                                YButton {
+                                    required property var modelData
+
+                                    width: 40
+                                    tone: ShellState.osdCorner === modelData ? "acid" : "default"
+                                    label: modelData.toUpperCase()
+                                    onClicked: ShellState.set("osdCorner", modelData)
+                                }
+                            }
+                        }
+                    }
+
+                    // fade stepper
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "FADE DELAY"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp2
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: ShellState.set("osdFadeMs", Math.max(600, ShellState.osdFadeMs - 200))
+                            }
+
+                            Item {
+                                width: 88
+                                height: Theme.ctlH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Theme.bg
+                                    border.width: 1
+                                    border.color: Theme.hairline
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: ShellState.osdFadeMs + " ms"
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: ShellState.set("osdFadeMs", Math.min(4000, ShellState.osdFadeMs + 200))
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "600 – 4000"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsMicro
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
+                        label: "Night light"
+                        chip: NightLight.available ? (NightLight.active ? "ACTIVE" : "IDLE") : "NO HYPRSUNSET"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Night light filter"
+                        sub: NightLight.available ? NightLight.temp + "K warmth on every screen" : "install hyprsunset to enable"
+                        note: "☾"
+                        on_: NightLight.active
+
+                        YSwitch {
+                            checked: NightLight.active
+                            enabled: NightLight.available
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: NightLight.toggle()
+                        }
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+                        visible: NightLight.available
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "TEMPERATURE"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp2
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: NightLight.temp = Math.max(1000, NightLight.temp - 250)
+                            }
+
+                            Item {
+                                width: 88
+                                height: Theme.ctlH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Theme.bg
+                                    border.width: 1
+                                    border.color: Theme.hairline
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: NightLight.temp + " K"
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: NightLight.temp = Math.min(6500, NightLight.temp + 250)
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "1000 – 6500 · lower = warmer"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsMicro
+                            }
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "04"
+                        label: "Brightness"
+                        chip: DisplayService.available ? "DDC/CI" : "UNAVAILABLE"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "External monitor brightness"
+                        sub: DisplayService.available ? DisplayService.displays.length + " display(s) · " + DisplayService.brightPct + "%" : "this box has no backlight — install ddcutil for DDC/CI control"
+                        note: "SUN"
+                        interactive: false
+                    }
+
+                    Item {
+                        height: Theme.sp2
+                        width: 1
                     }
                 }
             }

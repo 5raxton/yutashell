@@ -1,0 +1,7 @@
+singleton AudioService 1.0 AudioService.qml
+AudioBlock 1.0 AudioBlock.qml
+AudioPanel 1.0 AudioPanel.qml
+MediaWidget 1.0 MediaWidget.qml
+Osd 1.0 Osd.qml
+singleton DisplayService 1.0 DisplayService.qml
+singleton NightLight 1.0 NightLight.qml

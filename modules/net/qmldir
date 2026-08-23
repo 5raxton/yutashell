@@ -1,0 +1,6 @@
+singleton Connectivity 1.0 Connectivity.qml
+singleton NetWatch 1.0 NetWatch.qml
+NetBlock 1.0 NetBlock.qml
+BtBlock 1.0 BtBlock.qml
+NetworkPanel 1.0 NetworkPanel.qml
+BluetoothPanel 1.0 BluetoothPanel.qml

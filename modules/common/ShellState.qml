@@ -13,6 +13,8 @@ Singleton {
     property bool netOpen: false
     property bool btOpen: false
     property bool notifyCenterOpen: false
+    property bool audioOpen: false
+    property bool mediaOpen: false
 
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
@@ -22,6 +24,8 @@ Singleton {
         root.netOpen = name === "net";
         root.btOpen = name === "bt";
         root.notifyCenterOpen = name === "notifycenter";
+        root.audioOpen = name === "audio";
+        root.mediaOpen = name === "media";
     }
 
     function togglePanel() {
@@ -84,6 +88,22 @@ Singleton {
         root.notifyCenterOpen = false;
     }
 
+    function toggleAudio() {
+        root._exclusive(root.audioOpen ? "" : "audio");
+    }
+
+    function closeAudio() {
+        root.audioOpen = false;
+    }
+
+    function toggleMedia() {
+        root._exclusive(root.mediaOpen ? "" : "media");
+    }
+
+    function closeMedia() {
+        root.mediaOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -98,6 +118,7 @@ Singleton {
     readonly property alias barMedia: adapter.barMedia
     readonly property alias barNet: adapter.barNet
     readonly property alias barBt: adapter.barBt
+    readonly property alias barAudio: adapter.barAudio
 
     // notifications
     readonly property alias notifyDnd: adapter.notifyDnd
@@ -122,6 +143,14 @@ Singleton {
     readonly property alias launcherAnchor: adapter.launcherAnchor
     readonly property alias launcherPins: adapter.launcherPins
     readonly property alias launcherRecents: adapter.launcherRecents
+
+    // audio / OSD knobs
+    readonly property alias audioCeiling: adapter.audioCeiling
+    readonly property alias osdCorner: adapter.osdCorner
+    readonly property alias osdWidth: adapter.osdWidth
+    readonly property alias osdFadeMs: adapter.osdFadeMs
+    readonly property alias nlTemp: adapter.nlTemp
+    readonly property alias nlActive: adapter.nlActive
 
     function set(key, value) {
         adapter[key] = value;
@@ -168,6 +197,7 @@ Singleton {
             property bool barMedia: true
             property bool barNet: true
             property bool barBt: true
+            property bool barAudio: true
 
             // notifications: timeout seconds (0 = honor client), fields JSON,
             // per-app overrides JSON [{"match","mode"}], history dump JSON,
@@ -190,12 +220,21 @@ Singleton {
             // launcher card width (px, clamped by consumer)
             property int launcherW: 640
 
-            // launcher: view mode (grid|list), placement (center|left|top),
-            // pinned + recent app ids as JSON arrays
-            property string launcherMode: "grid"
-            property string launcherAnchor: "center"
-            property string launcherPins: "[]"
-            property string launcherRecents: "[]"
+    // launcher: view mode (grid|list), placement (center|left|top),
+    // pinned + recent app ids as JSON arrays
+    property string launcherMode: "grid"
+    property string launcherAnchor: "center"
+    property string launcherPins: "[]"
+    property string launcherRecents: "[]"
+
+    // audio: overdrive ceiling percent (100+), OSD corner (tl|tc|tr|bl|bc|br),
+    // OSD card width, OSD fade delay ms, night light temperature (K)
+    property int audioCeiling: 130
+    property string osdCorner: "bc"
+    property int osdWidth: 420
+    property int osdFadeMs: 1600
+    property int nlTemp: 4500
+    property bool nlActive: false
         }
     }
 

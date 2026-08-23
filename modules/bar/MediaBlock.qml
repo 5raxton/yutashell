@@ -200,16 +200,16 @@ Item {
                     root.player.next();
                 return;
             }
-            if (root.player.canTogglePlaying)
-                root.player.togglePlaying();
+            // left-click opens the media widget; play/pause moved to wheel-up
+            ShellState.toggleMedia();
         }
 
         onWheel: wheel => {
             if (!root.player)
                 return;
             if (wheel.angleDelta.y > 0) {
-                if (root.player.canGoPrevious)
-                    root.player.previous();
+                if (root.player.canTogglePlaying)
+                    root.player.togglePlaying();
             } else if (root.player.canGoNext) {
                 root.player.next();
             }

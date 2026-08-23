@@ -241,6 +241,24 @@ Singleton {
         root._trimLive();
     }
 
+    // shell-internal announcement (connectivity changes, service states).
+    // The machine speaking about itself: bypasses DND, never enters history.
+    function announce(sum, body, urg) {
+        const vm = entryComp.createObject(root, {
+                "n": null,
+                "id": root.seq++,
+                "app": "YUTA",
+                "icon": "",
+                "sum": String(sum || ""),
+                "body": String(body || ""),
+                "urg": urg === 2 ? 2 : 1,
+                "durMs": 4000
+            });
+        vm.remainMs = vm.durMs;
+        root.live = [vm].concat(root.live).slice();
+        root._trimLive();
+    }
+
     function _closeVm(vm, expire_) {
         if (!vm.n || vm.dead || !vm.n.tracked)
             return;

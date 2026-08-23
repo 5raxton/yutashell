@@ -6,6 +6,7 @@ import qs.theme
 import qs.modules.common
 import "ui"
 import "../net"
+import "../audio"
 import "../common/ui"
 
 PanelWindow {
@@ -79,6 +80,8 @@ PanelWindow {
             readonly property bool segMedia: ShellState.barMedia && mediaModule.player !== null
             readonly property bool segNet: ShellState.barNet
             readonly property bool segBt: ShellState.barBt && btModule.present
+            readonly property bool segAudio: ShellState.barAudio
+            readonly property bool segNl: ShellState.barAudio && NightLight.active
             readonly property bool segStats: ShellState.barStats
             readonly property bool segClock: ShellState.barClock
 
@@ -93,7 +96,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: rightRow.segTray && (rightRow.segMedia || rightRow.segNet || rightRow.segBt)
+                visible: rightRow.segTray && (rightRow.segMedia || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl)
             }
 
             MediaBlock {
@@ -103,7 +106,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: rightRow.segMedia && (rightRow.segStats || rightRow.segNet || rightRow.segBt)
+                visible: rightRow.segMedia && (rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl)
             }
 
             NetBlock {
@@ -123,7 +126,45 @@ PanelWindow {
             }
 
             DividerV {
-                visible: (rightRow.segNet || rightRow.segBt) && rightRow.segStats
+                visible: (rightRow.segNet || rightRow.segBt) && (rightRow.segAudio || rightRow.segStats)
+            }
+
+            AudioBlock {
+                id: audioModule
+                tip: root.tip
+                visible: rightRow.segAudio
+            }
+
+            // night light active chip — the filter is on, the machine says so
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: rightRow.segNl
+                text: "☾"
+                color: Theme.acid
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+
+                SequentialAnimation on opacity {
+                    running: rightRow.segNl
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        from: 1.0
+                        to: 0.45
+                        duration: 1600
+                        easing.type: Easing.InOutSine
+                    }
+                    NumberAnimation {
+                        from: 0.45
+                        to: 1.0
+                        duration: 1600
+                        easing.type: Easing.InOutSine
+                    }
+                }
+            }
+
+            DividerV {
+                visible: rightRow.segNl && rightRow.segStats
             }
 
             StatsCluster {
@@ -133,7 +174,7 @@ PanelWindow {
             }
 
             DividerV {
-                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt) && rightRow.segClock
+                visible: (rightRow.segTray || rightRow.segMedia || rightRow.segStats || rightRow.segNet || rightRow.segBt || rightRow.segAudio || rightRow.segNl) && rightRow.segClock
             }
 
             ClockBlock {

@@ -3,7 +3,7 @@
 A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
-> **Status:** WIP — Phases 0–6 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen incl. light mode, settings control core, notification daemon, connectivity suite).
+> **Status:** WIP — Phases 0–7 done (foundations, taskbar incl. per-monitor bars + media ticker, theme engine + matugen incl. light mode, settings control core, notification daemon, connectivity suite, audio/media/displays/OSD suite).
 
 ![screenshot placeholder — add one when the shell stabilizes]
 
@@ -19,7 +19,7 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed
 - **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. **Light mode** regenerates every palette at runtime (paper surfaces, ink text, contrast-fitted accents); an **accent override** lets any color take the acid slot. Japanese labels auto-degrade to romaji when no CJK font is present.
 - **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
-- **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change. The shell detects which themed apps are actually installed (absent apps show ABSENT and refuse to enable), and for include-style configs it **writes the include line itself** into a managed `# >>> yutashell-matugen` block — toggling a template is zero-friction; disabling strips the block again
+- **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change. The shell detects which themed apps are actually installed (absent apps show ABSENT and refuse to enable), and for include-style configs it **writes the include line itself** into a managed `# >>> yutashell-matugen` block — toggling a template is zero-friction; disabling strips the block again. The Hyprland Lua variant (`hyprland-lua`) goes further: `colors.lua` applies window/group borders via Helmsman's `hl.config` at boot and a post hook re-applies them live after every regeneration — borders follow the wallpaper with no manual wiring.
 - **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — bar-style tab strip with sliding acid underline, scheme swatches, light/dark mode + accent override ("Mode & accent"), current-wallpaper card, full matugen template catalog browser (search + add custom), bar segment toggles, placement (center/left/right) + width customization, system/about tabs; remembers your last visited tab
 - **Wallpaper picker** (`modules/picker/`): the ARCHIVE, a centered rectangle a step larger than the launcher (~1000×600) — a numbered index spine on the left (pure type, no thumbnail decoding) and a huge framed preview stage on the right showing one wallpaper at full quality. The always-focused filter field drives everything: type to filter, arrows to walk the index, enter or APPLY to commit; random/rescan in the spine, current wallpaper marked with an acid dot. Picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
 - **App launcher**: small centered card (~640×460) dropping from beneath the bar, indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
@@ -37,6 +37,12 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
   - VPN tunnels: wireguard/vpn profiles listed from NetworkManager with UP/DOWN toggles
   - DNS: current resolvers readout + quick-set override applied to the active connection profile, REVERT back to DHCP
   - **Bluetooth panel**: adapter power/scanning/discoverable switches, device list with theme icons + battery % chips, PAIR / CONNECT / DISCONNECT / FORGET, and a trust switch (BlueZ trust doubles as the autoconnect flag)
+- **Audio & media console** (`modules/audio/`): PipeWire through `Quickshell.Services.Pipewire`
+  - Bar segment: output icon + four level bars (red slash when muted), wheel steps volume ±5 %, click opens the audio console, middle-click mute; toggleable in settings → MODULES
+  - **Audio panel**: sinks and sources with per-device sliders (cubic taper so the travel feels linear), default-device star, per-app stream rows with individual volume + mute, master section with overdrive past 100 % up to a configurable ceiling (acid-flagged)
+  - **OSD**: a brutal horizontal gauge stamps the corner on every volume/mic/brightness event — VOL/MIC/BRIGHT tag, big % readout, auto-fade; corner/width/fade persisted in settings → AUDIO
+  - **Media widget**: MPRIS expanded — app glyph, track line, seekbar with elapsed/total, play/pause/next/prev transport
+  - Night light (`hyprsunset`, temperature 1000–6500 K, IPC + bar chip while active) and DDC/CI brightness (`ddcutil`) both detect their binary at runtime and hide cleanly when absent
 - **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YScroll / YSurface / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
 - **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit) and never dims the desktop — input is masked to the card so the rest of the screen stays live
 
@@ -100,6 +106,12 @@ qs ipc call <target> <function> [args...]
 | `notifycenter` | `test <urgency>` | send a test toast (`normal`/`low`/`critical`) |
 | `network` | `toggle` / `open` / `close` | network panel (wifi/wired/vpn/dns) |
 | `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
+| `audio` | `open` / `close` | audio console (devices, streams, mic) |
+| `audio` | `volup` / `voldown` | master volume ±5 % with OSD |
+| `audio` | `mute` / `micmute` | toggle output / input mute (OSD variant per kind) |
+| `audio` | `status` | print sink name + volume + mute state |
+| `audio` | `nl` / `nltemp <K>` | night light toggle / set temperature (hyprsunset; hides when absent) |
+| `display` | `bright <0-100>` | external monitor brightness over DDC/CI (ddcutil; hides when absent) |
 
 ### Hyprland binds (standard setup)
 
@@ -115,6 +127,10 @@ bind = SUPER, N, exec, qs ipc call notifycenter toggle
 bind = SUPERSHIFT, N, exec, qs ipc call dnd toggle
 bind = SUPER, G, exec, qs ipc call network toggle
 bind = SUPER, B, exec, qs ipc call bluetooth toggle
+bindl = , XF86AudioRaiseVolume, exec, qs ipc call audio volup
+bindl = , XF86AudioLowerVolume, exec, qs ipc call audio voldown
+bindl = , XF86AudioMute, exec, qs ipc call audio mute
+bindl = , XF86AudioMicMute, exec, qs ipc call audio micmute
 ```
 
 If your config wraps dispatches in a dispatcher layer (e.g. this machine's Helmsman Lua dispatcher), route the command through that layer's exec wrapper instead — the shell side is plain `exec`, no special dispatch strings needed.
@@ -143,6 +159,9 @@ yutashell/
 │   │                          # toast stack, history center + ui/
 │   ├── net/                   # connectivity: NetBlock/BtBlock bar segments,
 │   │                          # NetworkPanel, BluetoothPanel
+│   ├── audio/                 # PH.07: AudioService (Pipewire), AudioBlock bar
+│   │                          # segment, audio console, MediaWidget, OSDs,
+│   │                          # NightLight (hyprsunset), DisplayService (ddcutil)
 │   └── settings/              # control-core drawer + ui/
 ```
 

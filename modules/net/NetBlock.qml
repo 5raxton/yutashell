@@ -3,6 +3,7 @@ import Quickshell.Networking
 import QtQuick
 import qs.theme
 import qs.modules.common
+import "."
 
 Item {
     id: root
@@ -12,39 +13,13 @@ Item {
 
     property var tip
 
-    readonly property var wifiDev: {
-        const devs = Networking.devices.values;
-        for (let i = 0; i < devs.length; i++)
-            if (devs[i].type === DeviceType.Wifi)
-                return devs[i];
-        return null;
-    }
-
-    readonly property var wiredDev: {
-        const devs = Networking.devices.values;
-        for (let i = 0; i < devs.length; i++)
-            if (devs[i].type === DeviceType.Wired)
-                return devs[i];
-        return null;
-    }
-
-    // the connected wifi network, if any
-    readonly property var activeWifi: {
-        if (!wifiDev)
-            return null;
-        const nets = wifiDev.networks.values;
-        for (let i = 0; i < nets.length; i++)
-            if (nets[i].connected)
-                return nets[i];
-        return null;
-    }
-
-    readonly property bool wifiOn: Networking.wifiEnabled && wifiDev !== null
-    readonly property bool wiredUp: wiredDev !== null && wiredDev.hasLink
-    readonly property int strength: activeWifi ? Math.max(0, Math.min(100, activeWifi.signalStrength)) : 0
+    readonly property bool wifiOn: Connectivity.wifiOn
+    readonly property bool wiredUp: Connectivity.wiredUp
+    readonly property int strength: Connectivity.strength
+    readonly property var activeWifi: Connectivity.activeWifi
 
     // tier = how many of the four bars are lit
-    readonly property int tiers: !wifiOn ? 0 : !activeWifi ? (wiredUp ? 0 : 0) : strength >= 75 ? 4 : strength >= 50 ? 3 : strength >= 25 ? 2 : 1
+    readonly property int tiers: !wifiOn ? 0 : !activeWifi ? 0 : strength >= 75 ? 4 : strength >= 50 ? 3 : strength >= 25 ? 2 : 1
 
     function showCol(item, text) {
         if (tip)
@@ -85,7 +60,7 @@ Item {
             height: 1
         }
 
-        // wired glyph: two stacked bars
+        // wired glyph: two stacked bars (primary link wins the slot)
         Column {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
@@ -124,7 +99,7 @@ Item {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            visible: !root.wifiOn
+            visible: !root.wifiOn && !root.wiredUp
             text: "×"
             color: Theme.alert
             font.family: Theme.fontFamily
@@ -137,9 +112,17 @@ Item {
         function onPressedChanged() {
             if (area.pressed)
                 ;
-            else if (area.containsMouse)
-                root.showCol(netRow, root.wiredUp ? "wired · open network" : root.activeWifi ? root.activeWifi.name + " · " + root.strength + "%" : root.wifiOn ? "wifi on · not connected" : "wifi off");
-            else
+            else if (area.containsMouse) {
+                const c = Connectivity;
+                let t;
+                if (root.wiredUp)
+                    t = "wired · open network" + (c.wiredSpeed ? " · " + c.wiredSpeed : "");
+                else if (root.activeWifi)
+                    t = root.activeWifi.name + " · " + root.strength + "%";
+                else
+                    t = c.wifiOn ? "wifi on · not connected" : "wifi off";
+                root.showCol(netRow, t);
+            } else
                 root.hideCol();
         }
 

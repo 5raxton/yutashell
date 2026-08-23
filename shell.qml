@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Braxton
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Mpris
 import qs.theme
 import qs.modules.common
 import "modules/bar"
@@ -11,6 +12,7 @@ import "modules/picker"
 import "modules/launcher"
 import "modules/notify"
 import "modules/net"
+import "modules/audio"
 
 ShellRoot {
     Tooltip {
@@ -43,6 +45,12 @@ ShellRoot {
     NetworkPanel {}
 
     BluetoothPanel {}
+
+    AudioPanel {}
+
+    MediaWidget {}
+
+    Osd {}
 
     IpcHandler {
         target: "launcher"
@@ -210,6 +218,142 @@ ShellRoot {
 
         function close(): void {
             ShellState.closeBt();
+        }
+    }
+
+    IpcHandler {
+        target: "audio"
+
+        function toggle(): void {
+            ShellState.toggleAudio();
+        }
+
+        function open(): void {
+            ShellState._exclusive("audio");
+        }
+
+        function close(): void {
+            ShellState.closeAudio();
+        }
+
+        function volup(): void {
+            AudioService.stepPct(AudioService.sink, 5);
+            AudioService.osdPing("volume");
+        }
+
+        function voldown(): void {
+            AudioService.stepPct(AudioService.sink, -5);
+            AudioService.osdPing("volume");
+        }
+
+        function mute(): void {
+            const m = AudioService.toggleMute(AudioService.sink);
+            AudioService.osdPing(m ? "mic" : "volume");
+        }
+
+        function micmute(): void {
+            const m = AudioService.toggleMute(AudioService.source);
+            AudioService.osdPing("mic");
+            void m;
+        }
+
+        function status(): string {
+            return (AudioService.sink ? AudioService.deviceLabel(AudioService.sink) : "no sink") + " · " + (AudioService.nodePct(AudioService.sink)) + "%" + (AudioService.sink && AudioService.sink.audio && AudioService.sink.audio.muted ? " MUTED" : "");
+        }
+
+        function nl(): void {
+            NightLight.toggle();
+        }
+
+        function nltemp(t: int): void {
+            NightLight.temp = t;
+            if (!NightLight.active)
+                NightLight.toggle();
+        }
+    }
+
+    IpcHandler {
+        target: "display"
+
+        function bright(pct: int): void {
+            DisplayService.setBright(Math.max(0, Math.min(100, pct)));
+        }
+    }
+
+    IpcHandler {
+        target: "media"
+
+        function toggle(): void {
+            ShellState.toggleMedia();
+        }
+
+        function close(): void {
+            ShellState.closeMedia();
+        }
+
+        function playpause(): void {
+            const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
+            if (p && p.canTogglePlaying)
+                p.togglePlaying();
+        }
+
+        function next(): void {
+            const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
+            if (p && p.canGoNext)
+                p.next();
+        }
+
+        function previous(): void {
+            const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
+            if (p && p.canGoPrevious)
+                p.previous();
+        }
+    }
+
+    IpcHandler {
+        target: "brightness"
+
+        function up(): void {
+            DisplayService.setBright(DisplayService.brightPct + 10);
+            AudioService.osdPing("bright");
+        }
+
+        function down(): void {
+            DisplayService.setBright(DisplayService.brightPct - 10);
+            AudioService.osdPing("bright");
+        }
+
+        function set(v: string): void {
+            DisplayService.setBright(parseInt(v));
+            AudioService.osdPing("bright");
+        }
+
+        function status(): string {
+            return DisplayService.available ? "ddcutil · " + DisplayService.displays.length + " display(s) · " + DisplayService.brightPct + "%" : "unavailable (install ddcutil)";
+        }
+    }
+
+    IpcHandler {
+        target: "nightlight"
+
+        function toggle(): void {
+            NightLight.toggle();
+        }
+
+        function on(): void {
+            NightLight.start();
+        }
+
+        function off(): void {
+            NightLight.stop();
+        }
+
+        function temp(k: string): void {
+            NightLight.temp = Math.max(1000, Math.min(6500, parseInt(k)));
+        }
+
+        function status(): string {
+            return NightLight.available ? (NightLight.active ? "active · " : "idle · ") + NightLight.temp + "K" : "unavailable (install hyprsunset)";
         }
     }
 

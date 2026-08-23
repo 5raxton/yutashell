@@ -7,10 +7,11 @@ import QtQuick
 import qs.theme
 import qs.modules.common
 import "../common/ui"
+import "."
 
 // Network suite surface — wifi list + join dialog, wired status, VPN toggle,
-// DNS view + quick-set, airplane master switch. VPN/DNS ride nmcli (NetworkManager's
-// own CLI); everything else is native Quickshell.Networking.
+// DNS view + quick-set, airplane master switch. Device state comes from the
+// shared Connectivity model; VPN/DNS ride nmcli (NetworkManager's own CLI).
 PanelWindow {
     id: root
 
@@ -36,22 +37,9 @@ PanelWindow {
     readonly property int padX: Theme.sp4
     readonly property int contentW: cardW - padX * 2 - 1
 
-    // ---- wifi device handle ----
-    readonly property var wifiDev: {
-        const devs = Networking.devices.values;
-        for (let i = 0; i < devs.length; i++)
-            if (devs[i].type === DeviceType.Wifi)
-                return devs[i];
-        return null;
-    }
-    readonly property var wiredDev: {
-        const devs = Networking.devices.values;
-        for (let i = 0; i < devs.length; i++)
-            if (devs[i].type === DeviceType.Wired)
-                return devs[i];
-        return null;
-    }
-    readonly property bool airplane: !Networking.wifiEnabled && !(Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled)
+    // ---- shared connectivity model ----
+    readonly property var wifiDev: Connectivity.wifiDev
+    readonly property bool airplane: Connectivity.airplane
 
     readonly property var nets: {
         if (!wifiDev || !Networking.wifiEnabled)
@@ -63,6 +51,9 @@ PanelWindow {
 
     // selected unknown network awaiting PSK
     property string pendingJoin: ""
+
+    // applied DNS override for the active managed profile
+    property string appliedDns: ""
 
     Timer {
         id: hideDelay
@@ -78,7 +69,7 @@ PanelWindow {
             if (ShellState.netOpen) {
                 if (root.wifiDev)
                     root.wifiDev.scannerEnabled = true;
-                vpnProbe.running = true;
+                Connectivity.refresh();
             } else {
                 if (root.wifiDev)
                     root.wifiDev.scannerEnabled = false;
@@ -88,7 +79,7 @@ PanelWindow {
 
     Component.onCompleted: refreshTimer.start()
 
-    // periodic refresh of nmcli-derived data while open
+    // periodic re-poll of nmcli-derived data while open
     Timer {
         id: refreshTimer
 
@@ -96,59 +87,26 @@ PanelWindow {
         running: ShellState.netOpen
         repeat: true
         triggeredOnStart: true
-        onTriggered: {
-            vpnProbe.command = ["nmcli", "-t", "-f", "NAME,TYPE,DEVICE,ACTIVE", "con", "show"];
-            vpnProbe.running = true;
-            dnsProbe.command = ["nmcli", "-t", "dev", "show"];
-            dnsProbe.running = true;
-        }
+        onTriggered: Connectivity.refresh()
     }
 
-    // ---- nmcli plumbing ---------------------------------------------------
-    property var vpnList: []       // [{name,type,device,active}]
-    property string activeCon: ""  // active ethernet/wifi profile name
-    property string dnsServers: ""
-    property string appliedDns: ""
+    // applied-DNS follows the active profile reported by the shared model
+    Connections {
+        target: Connectivity
 
-    function _splitConLine(l) {
-        // NAME:TYPE:DEVICE:ACTIVE — NAME may contain colons; split from the right
-        const i1 = l.lastIndexOf(":");
-        if (i1 < 0)
-            return null;
-        const active = l.slice(i1 + 1);
-        const i2 = l.lastIndexOf(":", i1 - 1);
-        if (i2 < 0)
-            return null;
-        const device = l.slice(i2 + 1, i1);
-        const i3 = l.lastIndexOf(":", i2 - 1);
-        if (i3 < 0)
-            return null;
-        return {
-            "name": l.slice(0, i3),
-            "type": l.slice(i3 + 1, i2),
-            "device": device,
-            "active": active === "yes"
-        };
-    }
-
-    Process {
-        id: vpnProbe
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const rows = text.split("\n").map(root._splitConLine).filter(r => r && (r.type === "vpn" || r.type === "wireguard"));
-                root.vpnList = rows;
-                const act = text.split("\n").map(root._splitConLine).filter(r => r && r.active && (r.type === "ethernet" || r.type === "wifi"));
-                if (act.length > 0 && root.activeCon !== act[0].name) {
-                    root.activeCon = act[0].name;
-                    appliedProbe.command = ["nmcli", "-g", "ipv4.dns", "con", "show", act[0].name];
-                    appliedProbe.running = true;
-                } else if (act.length === 0) {
-                    root.activeCon = "";
-                    root.appliedDns = "";
-                }
+        function onActiveConChanged() {
+            if (!Connectivity.activeCon) {
+                root.appliedDns = "";
+                return;
             }
+            appliedProbe.command = ["nmcli", "-g", "ipv4.dns", "con", "show", Connectivity.activeCon];
+            appliedProbe.running = true;
         }
+    }
+
+    function runNm(args) {
+        followup.command = args;
+        followup.running = true;
     }
 
     Process {
@@ -160,42 +118,20 @@ PanelWindow {
     }
 
     Process {
-        id: dnsProbe
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const out = [];
-                const lines = text.split("\n");
-                for (let i = 0; i < lines.length; i++) {
-                    const m = /^IP4\.DNS\[\d+\]:(.+)$/.exec(lines[i].trim());
-                    if (m && out.indexOf(m[1]) < 0)
-                        out.push(m[1]);
-                }
-                root.dnsServers = out.join("  ·  ");
-            }
-        }
-    }
-
-    function runNm(args) {
-        followup.command = args;
-        followup.running = true;
-    }
-
-    Process {
         id: followup
 
-        onExited: refreshTimer.trigger()
+        onExited: Connectivity.refresh()
     }
 
     function vpnToggle(row) {
-        runNm(["nmcli", "con", row.active ? "down" : "up", "id", row.name]);
+        Connectivity.vpnToggle(row);
     }
 
     function applyDns(val) {
-        if (!root.activeCon)
+        if (!Connectivity.activeCon)
             return;
-        runNm(["nmcli", "con", "mod", root.activeCon, "ipv4.dns", val]);
-        runNm(["nmcli", "con", "up", root.activeCon]);
+        runNm(["nmcli", "con", "mod", Connectivity.activeCon, "ipv4.dns", val]);
+        runNm(["nmcli", "con", "up", Connectivity.activeCon]);
     }
 
     Item {
@@ -271,7 +207,7 @@ PanelWindow {
                 YChip {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
-                    label: root.wiredDev && root.wiredDev.hasLink ? (root.wiredDev.network && root.wiredDev.network.connected ? "WIRED" : "LINK") : root.airplane ? "AIRPLANE" : Networking.connectivity === NetworkConnectivity.Full ? "ONLINE" : "OFFLINE"
+                    label: Connectivity.wiredUp ? "WIRED" : root.airplane ? "AIRPLANE" : Networking.connectivity === NetworkConnectivity.Full ? "ONLINE" : "OFFLINE"
                     tone: root.airplane ? "alert" : "outline"
                 }
             }
@@ -539,8 +475,8 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        visible: root.wiredDev !== null
-                        text: (root.wiredDev && root.wiredDev.hasLink ? "link " + (root.wiredDev.linkSpeed > 0 ? root.wiredDev.linkSpeed + " Mb/s" : "") + " · addr " + (root.wiredDev.address || "—") : "no link")
+                        visible: Connectivity.wiredDev !== null
+                        text: (Connectivity.wiredUp ? "link " + (Connectivity.wiredSpeed || "") + " · addr " + (Connectivity.wiredDev.address || "—") : "no link")
                         color: Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
@@ -548,7 +484,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        visible: root.wiredDev === null
+                        visible: Connectivity.wiredDev === null
                         text: "no wired hardware"
                         color: Theme.faint
                         font.family: Theme.fontFamily
@@ -559,11 +495,11 @@ PanelWindow {
                         width: parent.width
                         index: "04"
                         label: "VPN tunnels"
-                        chip: root.vpnList.filter(v => v.active).length + " UP"
+                        chip: Connectivity.vpnList.filter(v => v.active).length + " UP"
                     }
 
                     Repeater {
-                        model: root.vpnList
+                        model: Connectivity.vpnList
 
                         delegate: YRow {
                             id: vpnRow
@@ -588,7 +524,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        visible: root.vpnList.length === 0
+                        visible: Connectivity.vpnList.length === 0
                         text: "no wireguard/vpn profiles in networkmanager"
                         color: Theme.faint
                         font.family: Theme.fontFamily
@@ -603,7 +539,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: root.dnsServers.length > 0 ? root.dnsServers : "—"
+                        text: Connectivity.dnsServers.length > 0 ? Connectivity.dnsServers : "—"
                         color: Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsBody
@@ -619,7 +555,7 @@ PanelWindow {
                     }
 
                     Row {
-                        visible: root.activeCon.length > 0
+                        visible: Connectivity.activeCon.length > 0
                         spacing: Theme.sp1
 
                         YField {
@@ -648,7 +584,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        visible: root.activeCon.length === 0
+                        visible: Connectivity.activeCon.length === 0
                         text: "no active managed connection — dns quick-set unavailable"
                         color: Theme.faint
                         font.family: Theme.fontFamily
