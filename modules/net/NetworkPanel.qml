@@ -607,6 +607,10 @@ PanelWindow {
 
             YScroll {
                 target: scroll
+                anchors.top: scroll.top
+                anchors.bottom: scroll.bottom
+                anchors.right: scroll.right
+                width: 3
             }
         }
     }

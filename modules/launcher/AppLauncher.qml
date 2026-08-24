@@ -510,6 +510,9 @@ PanelWindow {
                     model: card.cmdMatches
                     currentIndex: card.selIdx
                     onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+
+                    FastWheel {}
+
                     boundsBehavior: Flickable.StopAtBounds
 
                     delegate: Item {
@@ -582,6 +585,8 @@ PanelWindow {
                     cellWidth: Math.floor(gridW / cols)
                     cellHeight: 92
                     boundsBehavior: Flickable.StopAtBounds
+
+                    FastWheel {}
 
                     delegate: Item {
                         id: tileRoot
@@ -698,6 +703,8 @@ PanelWindow {
                     spacing: 1
                     boundsBehavior: Flickable.StopAtBounds
 
+                    FastWheel {}
+
                     delegate: Item {
                         id: rowRoot
 
@@ -813,6 +820,15 @@ PanelWindow {
                             }
                         }
                     }
+                }
+
+                // scroll rail over whichever list is live
+                YScroll {
+                    target: card.commandMode ? commandList : card.mode === 0 ? gridView : listView
+                    x: parent.width - 7
+                    y: Theme.sp2
+                    width: 3
+                    height: parent.height - Theme.sp2 * 2
                 }
             }
 

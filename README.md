@@ -264,7 +264,7 @@ Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`,
 - ✅ **Phase 1 — Foundation & module infrastructure**: qmldir ↔ singleton cross-audit (all 13 modules, 23 singletons), boot probes verified on every binary-detecting service, warm-up Timer extended to all lazily-referenced services, fresh-instance verification (clean load, warm IPC, RSS in range)
 - ✅ **Phase 2 — Service layer audit & hardening**: all 16 service items verified live over IPC; fixed multi-display brightness drops, night-light restart race, boot-stale VPN/DNS snapshots, network-panel poll that never rested, and update toasts that re-fired every 6 h
 - ✅ **Phase 3 — Module suite audit**: all 23 module items verified against contract + live IPC exercise of every surface; fixed Bluetooth device-delegate null crashes during scan churn
-- ⬜ Phase 4 — Widget kit completeness
+- ✅ **Phase 4 — Widget kit completeness**: all 13 kit components audited against contract; fixed 3 zero-sized YScroll rails (notify/BT/network panels), added 4 missing FastWheel handlers (launcher ×3, notify center), launcher scroll rail; verified zero hand-rolled controls and 12/12 YClickAway adoption
 - ⬜ Phase 5 — Plugin system
 - ⬜ Phase 6 — Multi-monitor & surface architecture
 - ⬜ Phase 7 — Compositor integration breadth

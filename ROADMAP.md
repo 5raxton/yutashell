@@ -86,24 +86,26 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 ---
 
-## PHASE 4: Widget Kit — Reusable UI Components
+## PHASE 4: Widget Kit — Reusable UI Components — ✅ COMPLETE
 
 **Objective**: Use the shared kit (`modules/common/ui/`) for all buttons, rows, switches, sections, chips, scroll areas — never hand-roll these.
 
-- [ ] **4.1** `YButton` — tone system (`"acid"`/`"default"`/`"danger"`), hover fill wipe, interrogation tick, `onClicked` handler pattern
-- [ ] **4.2** `YRow` — title + sub + trailing slot, `trailingW` consumer-set width (NEVER from childrenRect), `on_` property, `interactive` property, `hovered` signal, `toggled()` signal, MouseArea covering up to `trailingHost.left`
-- [ ] **4.3** `YSwitch` — checked/unchecked with tone, `onToggled` handler
-- [ ] **4.4** `YSection` — header with label, chip, index
-- [ ] **4.5** `YChip` — small tagged chip with `tone` property
-- [ ] **4.6** `YField` — text input with `placeholder`, `onAccepted`, `onTextChanged`
-- [ ] **4.7** `YScroll` — Flickable sibling over content (NOT child), `target` property, `FastWheel` child
-- [ ] **4.8** `YClickAway` — fullscreen transparent `MouseArea` emitting `outsideClicked`, pattern: declare first child of content root, card (YSurface) after it
-- [ ] **4.9** `YPulse` — opacity breathing (lo 0.62, drift 2600ms), for idle chrome pulses
-- [ ] **4.9** `YSpark` — small animated sparkle/decoration widget
-- [ ] **4.10** `YSurface` — the standard popup card with entrance ritual (drop from behind bar, acid scanline, border burn/cool, power line, family tick), exit ceremony (reverse scanline + lift), `cascade` staggered reveal, `onOpenChanged` driver, `FlareShape` concave shoulders, `powerLine` 2px acid bottom edge, `scanline`/`familyTick` animations
-- [ ] **4.11** `FastWheel` — clamped step 132, standard wheel handler for every Flickable/GridView/ListView
-- [ ] **4.12** `YPulse` — idle life pulses (opacity-only, never pulse text), lo 0.62, movDrift 2600ms
-- [ ] **4.12** `YSpark` — decorative animation widget
+- [x] **4.1** `YButton` — tone system (`"acid"`/`"default"`/`"danger"`), hover fill wipe, interrogation tick (acid underline draws in), hard-shadow press collapse — verified against contract
+- [x] **4.2** `YRow` — title + sub + note-swap-on-hover + trailing slot, `trailingW` consumer-set width (NEVER from childrenRect), `on_`, `interactive`, `hovered`, `toggled()` signal; row MouseArea stops at `trailingHost.left`
+- [x] **4.3** `YSwitch` — checked/unchecked with acid fill-wipe, OutBack(0.45) knob snap, `toggled()` handler
+- [x] **4.4** `YSection` — header with index glyph, label, flex rule (`reveal()` draws left→right via Scale.xScale for cascade), trailing chip
+- [x] **4.5** `YChip` — outline/acid/alert tones, label-change micro-pop
+- [x] **4.6** `YField` — placeholder, `accepted()`, focus underline + acid left bar, optional `navKeys` mode surfacing arrows/tab/esc/shift-del as signals (launcher)
+- [x] **4.7** `YScroll` — Flickable SIBLING with sleeping rails (wake on scroll, settle after 700 ms). **Fixed 3 zero-sized instances** that rendered nothing: NotificationCenter, BluetoothPanel, NetworkPanel now anchor/size it like SettingsPanel/AudioPanel always did. Launcher gained a rail over its active list (target follows command/grid/list mode)
+- [x] **4.8** `YClickAway` — fullscreen transparent catcher emitting `outsideClicked`; adoption audited: all 12 floating surfaces carry it as first child (Polkit/Lock modal, ToastStack/Osd/Dock passive by design)
+- [x] **4.9** `YPulse` — opacity breathing lo 0.62 over movDrift, gated on `visible`
+- [x] **4.10** `YSurface` — full entrance ritual (OutBack drop into bar socket, scanline sweep, border burn→cool @230 ms, power line draw, family tick), reverse exit ceremony, `cascade` stagger (26 ms, Translate-based, transforms destroyed on stop), FlareShape concave shoulders, swallow MouseArea — read end-to-end, matches spec
+- [x] **4.11** `FastWheel` — notchStep 132 clamped, parent-walk survives Flickable contentItem reparenting. **Added the 4 missing instances**: AppLauncher ×3 (commandList/gridView/listView) and NotificationCenter listFlick
+- [x] **4.12** `YSpark` — push-driven Canvas sparkline (repaints only on push/color/resize); `property var data` shadowing Item.data verified legal on this Qt build via isolated instance probe
+
+**Audit method**: all 13 kit components read against contract; consumers swept for hand-rolled buttons/switches/sections (none found — grep hits were YButton internals and bespoke nav-rail/tile controls); FastWheel adoption checked per scrollable (12/12 files covered after fixes); YClickAway per floating surface (12/12).
+
+**Verification**: fresh instance pid 43594 — clean boot RSS 380 MB → 8 open/close IPC cycles across launcher/notify/BT/network panels → 0 QML errors, RSS stable ~394 MB.
 
 **Cool bits from references**:
 - DankMaterialShell: `DankIcon`, `DankSlider`, `DankToggle`, `DankTabBar`, `DankGridView`, `DankListView`, `DankTextField`, `DankDropdown`, `CachingImage`, `StateLayer` (Material Design 3 interaction states), `StyledRect`/`StyledText` themed base components

@@ -160,6 +160,9 @@ PanelWindow {
                 contentWidth: width
                 contentHeight: listCol.height
 
+                FastWheel {}
+
+
                 Column {
                     id: listCol
 
@@ -298,6 +301,10 @@ PanelWindow {
 
             YScroll {
                 target: listFlick
+                x: listFlick.x + listFlick.width - 4
+                y: listFlick.y
+                width: 3
+                height: listFlick.height
             }
 
             // empty state
