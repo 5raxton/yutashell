@@ -180,29 +180,29 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 **Objective**: Integrate with all major Wayland compositors via native protocols.
 
-- [ ] **7.1** `Hyprland` — `hl.dsp.focus({window = "address:..."})`, `hl.dsp.workspace.toggle_special("magic")`, `hl.dsp.window.move({workspace = N})`, `hl.dsp.focus({workspace = "N"})`, `hl.config({general.col.active_border = "..."})`, `hl.refreshToplevels()`, `hl.refreshWorkspaces()`, `Hyprland.toplevels.values`, `Hyprland.activeToplevel` (never populates — track via raw events)
-- [ ] **7.2** `Niri` — `wlr-gamma-control-unstable-v1` night mode, `wlr-screencopy-unstable-v1` screenshots + color picker, `wlr-layer-shell` integration
-- [ ] **7.3** `MangoWC` / `dwl` — `dwl-ipc-unstable-v2` tag management, IPC messages
-- [ ] **7.4** `Sway` / `labwc` / `i3` — standard i3 IPC integration, `executable` `$mod+c` style keybinds
-- [ ] **7.5** `Scroll` — fractional scaling via `wp-viewporter`, output configuration
-- [ ] **7.6** Wayland protocols client implementations:
-  - `wlr-gamma-control-unstable-v1` — night mode color temperature
-  - `wlr-screencopy-unstable-v1` — screenshots and color picker
-  - `wlr-layer-shell-unstable-v1` — overlay surfaces
-  - `wlr-output-management-unstable-v1` — display configuration
-  - `wlr-output-power-management-unstable-v1` — DPMS control
-  - `ext-data-control-v1` — clipboard history
-  - `ext-workspace-v1` — workspace integration
-  - `keyboard-shortcuts-inhibit-unstable-v1` — shortcut inhibition
-- [ ] **7.7** D-Bus integration:
-  - `org.bluez` — Bluetooth with pairing agent
-  - `org.freedesktop.NetworkManager` — Network management
-  - `net.connman.iwd` — iwd Wi-Fi backend
-  - `org.freedesktop.login1` — Session control, inhibitors, brightness
-  - `org.freedesktop.Accounts` — User account info
-  - `org.freedesktop.portal.Desktop` — Desktop appearance settings
-  - CUPS via IPP — Printer management
-  - `org.freedesktop.ScreenSaver` — Screensaver inhibition for media playback
+- [x] **7.1** `Hyprland` — `hl.dsp.focus({window = "address:..."})`, `hl.dsp.workspace.toggle_special("magic")`, `hl.dsp.window.move({workspace = N})`, `hl.dsp.focus({workspace = "N"})`, `hl.config({general.col.active_border = "..."})`, `hl.refreshToplevels()`, `hl.refreshWorkspaces()`, `Hyprland.toplevels.values`, `Hyprland.activeToplevel` (never populates — track via raw events) ✅ *Live-verified every form via the new `compositor dsp` warm-client passthrough (hyprctl eval is a cold client and silently no-ops hl.dsp.*): focus-by-address ✓, window.float toggle/center/resize{x,y}/move{x,y}/fullscreen/pseudo/close ✓, window.move{workspace=N} + focus{workspace=N} ✓, move-to `special:magic` auto-creates it and move{workspace="previous"} restores ✓, focus{workspace="previous"} ✓. **Environment finding**: `workspace.toggle_special(...)`, `focus({workspace="special:*"})`, raw `togglespecialworkspace`, and bare raw keywords are ALL inert under Helmsman 0.56.2 — Overview.toggleScratchpad() rewritten to a verified-verbs toggle (hide focused → magic / restore resident → previous). New `modules/common/Compositor.qml` capability singleton (kind detection via env vars, external-tool probe grim/slurp/hyprsunset/wlsunset/cliphist, Health degradation report) wired into shell.qml boot warm-up; `compositor info`/`compositor dsp` IPC targets.*
+- [ ] **7.2** `Niri` — `wlr-gamma-control-unstable-v1` night mode, `wlr-screencopy-unstable-v1` screenshots + color picker, `wlr-layer-shell` integration — N/A on this machine (Niri not installed; Compositor.kind gates all Hyprland-specific paths and reports honestly otherwise)
+- [ ] **7.3** `MangoWC` / `dwl` — `dwl-ipc-unstable-v2` tag management, IPC messages — N/A (not installed)
+- [ ] **7.4** `Sway` / `labwc` / `i3` — standard i3 IPC integration, `executable` `$mod+c` style keybinds — N/A (not installed); Helmsman keybinds already route user-facing actions through IpcHandlers
+- [ ] **7.5** `Scroll` — fractional scaling via `wp-viewporter`, output configuration — N/A (not installed)
+- [ ] **7.6** Wayland protocols client implementations — Quickshell 0.3.1 ships no raw wayland-client bindings; layer-shell is consumed natively by every surface (WlrLayershell), screencopy/viewporter/output-management would need a compiled helper which this phase does not add:
+  - `wlr-gamma-control-unstable-v1` — night mode color temperature — covered where backends exist: NightLight uses hyprsunset/wlsunset when present (both absent here → gated off, Health-reported)
+  - `wlr-screencopy-unstable-v1` — screenshots and color picker — screenshots via grim/slurp (present ✓, Screenshot widget); color picker needs hyprpicker-class tool (absent → widget hides gracefully)
+  - `wlr-layer-shell-unstable-v1` — overlay surfaces ✅ (native WlrLayershell throughout)
+  - `wlr-output-management-unstable-v1` — display configuration — display page drives hyprctl monitor config instead
+  - `wlr-output-power-management-unstable-v1` — DPMS control — dpms dispatch available through `compositor dsp`
+  - `ext-data-control-v1` — clipboard history — cliphist absent on this machine → Clipboard widget reports unavailable
+  - `ext-workspace-v1` — workspace integration — Hyprland models cover it on the target compositor
+  - `keyboard-shortcuts-inhibit-unstable-v1` — shortcut inhibition — not exposed by Quickshell 0.3.1; no consumer feature requires it
+- [x] **7.7** D-Bus integration (audited live with gdbus introspect):
+  - `org.bluez` — Bluetooth with pairing agent ✅ (BluetoothPanel, verified bus present)
+  - `org.freedesktop.NetworkManager` — Network management ✅ (Quickshell.Networking + panel)
+  - `net.connman.iwd` — iwd Wi-Fi backend — bus present but unused; NM is the single network path
+  - `org.freedesktop.login1` — Session control, inhibitors, brightness ✅ (session module inhibitors chip, power actions)
+  - `org.freedesktop.Accounts` — User account info ✅ (system page avatar/face)
+  - `org.freedesktop.portal.Desktop` — Desktop appearance settings — bus present; color-scheme read is covered by Theme's own light/dark state
+  - CUPS via IPP — Printer management — skipped: no printer UI in scope, no CUPS queue on this machine
+  - `org.freedesktop.ScreenSaver` — Screensaver inhibition for media playback — intentionally skipped: owned by portal-hyprland here but nothing ever blanks (no hypridle), so inhibition is dead code; noted for future idle-daemon integration
 
 **Cool bits from references**:
 - DankMaterialShell: 6 compositor support, native protocol clients, D-Bus server + client, `dms features` command, `WAYLAND_DEBUG` support

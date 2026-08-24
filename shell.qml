@@ -4,6 +4,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import qs.theme
 import qs.modules.common
@@ -45,6 +46,8 @@ ShellRoot {
             void Session.ppdAvailable;
             // plugin scan starts at singleton boot — force it now (PH.05)
             void PluginService.manifests;
+            // compositor capability probe + Health report land early (PH.07)
+            void Compositor.kind;
         }
     }
 
@@ -280,6 +283,37 @@ ShellRoot {
 
         function close(): void {
             ShellState.closeBt();
+        }
+    }
+
+    IpcHandler {
+        target: "compositor"
+
+        function info(): string {
+            const bins = ["hyprsunset", "wlsunset", "grim", "slurp", "cliphist"].map(b => b + "=" + (Compositor.hasBin(b) ? "ok" : "missing")).join(" ");
+            return "kind=" + Compositor.kind + " screens=" + Quickshell.screens.length + " focused=" + (FocusMonitor.screen ? FocusMonitor.screen.name : "?") + " toplevels=" + Hyprland.toplevels.values.length + " workspaces=" + Hyprland.workspaces.values.length + " bins: " + bins;
+        }
+
+        // warm-client Lua dispatch passthrough — the ONLY reliable way to
+        // exercise hl.dsp.* forms from a script (hyprctl eval is a cold client
+        // and silently no-ops them). Full form preferred:
+        //   qs ipc call compositor dsp 'window.close()'
+        //   qs ipc call compositor dsp 'focus({ window = "class:foo" })'
+        // Raw compositor keywords escape the Lua wrapper with a raw: prefix:
+        //   qs ipc call compositor dsp 'raw:togglespecialworkspace magic'
+        function dsp(lua: string): string {
+            if (!Compositor.isHyprland)
+                return "not hyprland";
+            const s = String(lua);
+            let path;
+            if (s.startsWith("hl."))
+                path = s;
+            else if (s.startsWith("raw:"))
+                path = s.slice(4);
+            else
+                path = "hl.dsp." + s;
+            Hyprland.dispatch(path);
+            return "dispatched " + path;
         }
     }
 

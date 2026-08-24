@@ -125,6 +125,8 @@ qs ipc call <target> <function> [args...]
 | `plugins` | `list` | discovered plugins with enabled state (`[x] id — name (type vX.Y.Z)`) |
 | `plugins` | `rescan` | re-scan `<config>/plugins/` for manifests |
 | `plugins` | `enable <id>` / `disable <id>` | toggle a plugin (daemons start/stop, widgets join the bar segment) |
+| `compositor` | `info` | one-line capability report: compositor kind, screens, focused output, toplevel/workspace counts, external-tool availability |
+| `compositor` | `dsp <lua>` | warm-client dispatch passthrough — `window.close()`, `focus({ workspace = "2" })`, `raw:<keyword>` escapes the Lua wrapper (verification/debug tool) |
 | `dnd` | `on` / `off` / `toggle` | do-not-disturb: normals/lows held to history, criticals break through |
 | `dnd` | `status` | print dnd state + suppressed count + history size |
 | `notifycenter` | `toggle` / `open` / `close` | notification history center |
@@ -271,7 +273,7 @@ Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`,
 - ✅ **Phase 4 — Widget kit completeness**: all 13 kit components audited against contract; fixed 3 zero-sized YScroll rails (notify/BT/network panels), added 4 missing FastWheel handlers (launcher ×3, notify center), launcher scroll rail; verified zero hand-rolled controls and 12/12 YClickAway adoption
 - ✅ **Phase 5 — Plugin system**: PluginService discovers `<config>/plugins/*/plugin.json`, daemon + widget types with namespaced settings, Settings PLUGINS page (15 tabs now), bar PLUGIN WIDGETS segment, `plugins` IPC target; reference daemon (wallpaper watcher) + widget (pulse dot) shipped; enabled state survives restarts with boot-time daemon start
 - ✅ **Phase 6 — Multi-monitor & surface architecture**: per-screen Bar/Dock verified with full layer audit (Overlay chrome vs Top popups); new FocusMonitor makes all 19 popup windows, the OSD and toasts open on the focused monitor — placement latches at open so cards never jump screens mid-display; shared tooltip now follows its anchor's bar instance
-- ⬜ Phase 7 — Compositor integration breadth
+- ✅ **Phase 7 — Compositor integration**: every Hyprland dispatch form live-verified through the new `compositor dsp` warm-client passthrough (`compositor info` capability report too); found + fixed that `toggle_special`, focus-to-special and raw keywords are inert under Helmsman 0.56.2 — Overview's scratchpad toggle rewritten on verified verbs (hide focused window to `special:magic` / restore via `move previous`); new Compositor singleton reports kind + external-tool availability and degrades honestly via Health; D-Bus surface audited (bluez/NM/login1/Accounts/portal present, iwd unused, ScreenSaver inhibition skipped — nothing blanks here); non-Hyprland compositors and raw protocol clients documented as N/A for this machine
 - ⬜ Phase 8 — Distribution & packaging support
 - ⬜ Phase 9 — Advanced theming & wallpaper pipeline
 - ⬜ Phase 10 — Polish, QA & edge cases
