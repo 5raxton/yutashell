@@ -1,293 +1,211 @@
 # YUTASHELL
 
-A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outfoxxed.me).
-Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
+A complete desktop shell for [Hyprland](https://hyprland.pl), built on [Quickshell](https://quickshell.outfoxxed.me).
 
-> **Status:** Phases 0–17 complete — the full roadmap: foundations, per-monitor taskbar, theme engine + matugen, settings control core, notification daemon, connectivity, audio/media/OSDs, session/lock/power, dock, overview, widgets, unified system data layer, configurable bar v2, control center, settings v4, and the final one-organism cohesion pass. The shell is a complete, polished daily driver.
->
-> **ROADMAP v2.0** ("Operation Perfection") is **complete — all 10 phases done**: foundation audit, service-layer hardening, module-suite audit, widget-kit completeness, plugin system, multi-monitor surface architecture, compositor integration (live-verified dispatch suite), distribution kit (Makefile/installer/smoke-test/packaging), theming & wallpaper pipeline audit, and the final QA sweep. Every phase carries per-item evidence in [ROADMAP.md](ROADMAP.md).
+Flat black surfaces, bone-white ink, a single acid accent, hairline structure and sparse Japanese micro-labels — no rounded corners, no gradients. Every surface slides out from behind the bar on one shared choreography, every color flows from one theme engine, and every feature degrades gracefully when its backend is missing.
 
-## Showcase
+| | | |
+|---|---|---|
+| ![desktop](images/showcase/desktop.png) | ![launcher](images/showcase/app-launcher.png) | ![settings](images/showcase/appearance-settings-tab.png) |
+| *desktop* | *launcher* | *settings* |
+| ![notifications](images/showcase/notification-center.png) | ![wallpaper picker](images/showcase/wallpaper-selector.png) | |
+| *notification center* | *wallpaper archive* | |
 
-| desktop | launcher | settings | notifications | wallpaper |
-|---|---|---|---|---|
-| ![desktop](images/showcase/desktop.png) | ![launcher](images/showcase/app-launcher.png) | ![settings](images/showcase/appearance-settings-tab.png) | ![notifications](images/showcase/notification-center.png) | ![picker](images/showcase/wallpaper-selector.png) |
+## Features
 
-## Features (current)
+**Bar** — one per connected screen (hot-plug aware), fully data-driven: an ordered `{id, zone, enabled}` model persisted in state.json controls 18 segments across left/center/right zones. Workspaces with occupied/urgent states, merged pinned+running taskbar, system tray (SNI), MPRIS now-playing ticker, CPU/MEM/NET/BAT stat cells (plus GPU / disk-IO / CPU-temp), clock, night-light and session chips. Scale 0.8–1.4×, top or bottom, per-segment click actions.
 
-- **Taskbar** (`modules/bar/`) — one bar window per connected screen, hot-plug aware
-  - Identity block (`{HOSTNAME} // 因果` + `YUTA.SHELL // v{version}`) with blinking cursor, hover inversion; **left-click opens the settings panel**
-  - **Configurable segments**: the whole bar is a data-driven organism — an ordered `{id, zone, enabled}` model in state.json (17 segments) resolved by `BarSegments`; the BAR settings tab toggles, zones and reorders them
-  - Workspace switcher: dynamic slots, occupied/empty/urgent states, acid underline that slides to the focused workspace, red blink on window-urgent events
-  - **Taskbar**: pinned + running apps merged (shares the dock's model), click launch/focus/minimize-cycle, middle-click new instance, right-click pin, scroll cycles windows
-  - Focused-window title with app class, tracked via Hyprland's event stream
-  - System tray (StatusNotifier): left-click menus, middle-click secondary actions, wheel scroll
-  - Media segment: MPRIS now-playing ticker; net/bt/audio chips; per-segment click-actions (clock→calendar, stats→control center, …)
-  - Stat cells: NET/CPU/MEM/BAT cluster plus toggleable CPU.TEMP / GPU / DISK.IO cells, all fed by SystemStats
-  - Clock with blinking colon, seconds, weekday/date; kanji weekday when a CJK font is installed; bar scale 0.8–1.4× + top/bottom position
-- **Theme engine** (`theme/`): every color/font/metric lives in one singleton. Twelve curated scheme presets (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula) plus wallpaper-driven palettes via matugen — regenerating a scheme repaints every open surface live. **Light mode** regenerates every palette at runtime (paper surfaces, ink text, contrast-fitted accents); an **accent override** lets any color take the acid slot. Japanese labels auto-degrade to romaji when no CJK font is present.
-- **Wallpaper module** (`modules/common/Wallpaper.qml`): indexes `~/Pictures/Wallpapers`, paints through awww, feeds matugen, applies the generated palette to the whole shell
-- **Matugen template registry**: per-app config theming (kitty, alacritty, fuzzel, hyprland, gtk3/gtk4, mako, dunst, starship, btop, rofi, or custom entries) regenerated on every wallpaper change. The shell detects which themed apps are actually installed (absent apps show ABSENT and refuse to enable), and for include-style configs it **writes the include line itself** into a managed `# >>> yutashell-matugen` block — toggling a template is zero-friction; disabling strips the block again. The Hyprland Lua variant (`hyprland-lua`) goes further: `colors.lua` applies window/group borders via Helmsman's `hl.config` at boot and a post hook re-applies them live after every regeneration — borders follow the wallpaper with no manual wiring.
-- **Settings panel** (`modules/settings/`): drops from behind the bar as a large tabbed card — a **grouped nav rail** (LOOK / BEHAVIOR / SYSTEM) with 15 tabs and a **global search** field that filters the rail. APPEARANCE (schemes, mode/accent, matugen templates), DOCK, PANELS, LAUNCHER, CONTROL CENTER, NOTIFY, OSD, BAR (the segment framework), SHELL, SECURITY, SYSTEM, SERVICES, POWER, PLUGINS, ABOUT; remembers your last visited tab
-- **Plugins** (`plugins/` + `modules/common/PluginService.qml`): drop a folder with `plugin.json` + QML into `plugins/`, hit rescan — daemon types run invisibly at boot, widget types render in the bar's PLUGIN WIDGETS segment. Per-plugin state is namespaced under `state.json`. Reference examples shipped: `WallpaperWatcherDaemon/` (counts wallpaper changes) and `PulseDot/` (breathing acid dot). Loading executes the plugin's code — only install ones you trust
-- **Wallpaper picker** (`modules/picker/`): the ARCHIVE, a centered rectangle a step larger than the launcher (~1000×600) — a numbered index spine on the left (pure type, no thumbnail decoding) and a huge framed preview stage on the right showing one wallpaper at full quality. The always-focused filter field drives everything: type to filter, arrows to walk the index, enter or APPLY to commit; random/rescan in the spine, current wallpaper marked with an acid dot. Picking runs the whole pipeline (paint → matugen → every enabled template → live recolor)
-- **App launcher**: small centered card (~640×460) dropping from beneath the bar, indexing every installed `.desktop` entry — fuzzy search (subsequence + boundary scoring across name/id/generic-name/keywords), grid or list view, pinned apps + recents weighting (right-click to pin, shift-del forgets), desktop-action rows, an inline calculator row (click to copy), and a `:` command mode driving the shell's own functions (`:scheme cyan`, `:wall random`, `:dark`, `:panel`, …). Placement, width, view mode, pins and recents persist.
-- **One surface at a time**: opening any popup (settings / launcher / picker / network / bluetooth / notification center) closes the others; every surface arrives with the house entrance ritual — drop from behind the bar with a soft socket landing, one acid scanline sweep, border burn, family tick draw — and leaves with the reverse ceremony (scanline returns up as the card lifts)
-- **The machine is alive**: idle chrome breathes (the bar's acid strip pulses on a slow drift), every card carries a 2 px acid **power line** that draws itself on open, panel content cascades in as staggered rising rows, media plays through three swaying equalizer bars, net arrows flash acid under load, the BT glyph hunts while scanning, clock colons swell instead of strobe, switches wipe their fill and snap their knobs, rows interrogate on hover (wipe + growing status tick + detail crossfade), scroll rails fall asleep when idle, toasts stagger in and get a slide-up send-off — all opacity/transform-based and paused when hidden
-- **Notification daemon** (`modules/notify/`): a full themed replacement for mako/dunst built on `Quickshell.Services.Notifications` — the shell *is* `org.freedesktop.Notifications`
-  - Toast cards drop from behind the bar in a configurable corner (top-right/top-left), max N visible (1–6), flat black with a 1px urgency border (critical = alert red + CRITICAL tag), and a shrinking acid underline as the timeout progress; hovering a card pauses its countdown, criticals persist until dismissed
-  - Inline action buttons rendered straight from each notification's actions; a global switch hides them all
-  - **History ring**: every notification is recorded (50 in memory, 30 persisted to state.json) into the notification center — browsable card with per-row REPLAY / dismiss, CLEAR ALL, DND row with suppressed-counter chip
-  - **Do not disturb**: IPC (`dnd on/off/toggle/status`) + bar-independent; normals/lows are held to history while criticals break through; a counter chip shows how many were silenced
-  - Per-app overrides: match by app-name/desktop-entry substring → QUIET (history only) or BLOCK (drop entirely); edited in settings → NOTIFY tab along with default timeout, max visible, corner, and display-field toggles (app name / body / icon)
-- **Connectivity suite** (`modules/net/`): native NetworkManager + BlueZ panels — no nm-applet
-  - Bar segments: NET glyph with 4-tier wifi signal bars (or wired link bars, red × when wifi is off) and BT glyph when the adapter is powered; clicking opens their panels. Both toggleable in settings → MODULES
-  - **Network panel**: wireless network list sorted by signal with lock glyphs + SAVED/CONN chips, inline passphrase join dialog (masked field), connect/forget for known networks, wired link speed + address, airplane mode master switch (wifi + BT radios down together), Wi-Fi radio/hard-block awareness
-  - VPN tunnels: wireguard/vpn profiles listed from NetworkManager with UP/DOWN toggles
-  - DNS: current resolvers readout + quick-set override applied to the active connection profile, REVERT back to DHCP
-  - **Bluetooth panel**: adapter power/scanning/discoverable switches, device list with theme icons + battery % chips, PAIR / CONNECT / DISCONNECT / FORGET, and a trust switch (BlueZ trust doubles as the autoconnect flag)
-- **Audio & media console** (`modules/audio/`): PipeWire through `Quickshell.Services.Pipewire`
-  - Bar segment: output icon + four level bars (red slash when muted), wheel steps volume ±5 %, click opens the audio console, middle-click mute; toggleable in settings → MODULES
-  - **Audio panel**: sinks and sources with per-device sliders (cubic taper so the travel feels linear), default-device star, per-app stream rows with individual volume + mute, master section with overdrive past 100 % up to a configurable ceiling (acid-flagged)
-  - **OSD**: a brutal horizontal gauge stamps the corner on every volume/mic/brightness event — VOL/MIC/BRIGHT tag, big % readout, auto-fade; corner/width/fade persisted in settings → AUDIO
-  - **Media widget**: MPRIS expanded — app glyph, track line, seekbar with elapsed/total, play/pause/next/prev transport
-  - Night light (`hyprsunset`, temperature 1000–6500 K, IPC + bar chip while active) and DDC/CI brightness (`ddcutil`) both detect their binary at runtime and hide cleanly when absent
-- **Session, power & lock** (`modules/session/`): power menu overlay with hold-to-confirm destructive tiles (lock/suspend/hibernate/reboot/poweroff/logout, tile set + order persisted), a full-screen lock screen on selected monitor(s) with PAM auth (`system-auth`) + wrong-attempt shake, inhibitor-aware idle timer (lock/suspend/shutdown, off by default), power plans via power-profiles-daemon (auto-detected), a themed Polkit privilege dialog, and a bar chip while any app holds the idle/sleep lock
-- **Dock** (`modules/dock/`): optional bottom dock (OFF by default, enable in settings → DOCK) — pinned + running apps merged, active-window tick, click launch/focus/minimize-to-scratchpad cycle, middle-click new instance, scroll cycles an app's windows, right-click context menu (pin/close), intellihide (never/dodge/always), overlay vs exclusive edge, per-monitor instances
-- **Overview** (`modules/overview/`): workspace grid (click to jump), an Alt-Tab style window switcher (MRU ordering, acid selection frame), scratchpad control (`special:magic`), and quick-tile presets (float/fullscreen/pseudo/center/left/right/top/bottom)
-- **Widgets** (`modules/widgets/`): calendar popup (clock click, month grid + nav, shared `CalendarGrid` for the control center), weather (open-meteo, cached, conditions hero + 5-day strip), clipboard manager (cliphist history, search + re-copy + pin + wipe), screenshot suite (`shot region|full|window` with slurp styled in the live accent + shutter flash), update counter (`checkupdates`), screen-recording bar chip, color picker (hyprpicker, hides when absent), and an emoji/kaomoji picker — every widget degrades to a flat message when its backend is missing
-- **Control center** (`modules/control/`): one themed popup falling from the bar with eleven lazy tabs — HOME (quick toggles + glance rows), MEDIA, AUDIO, MONITORS, SYSTEM (live sparklines), POWER, NETWORK, BLUETOOTH, WEATHER, CALENDAR, NOTIFICATIONS; anchor configurable, tab set/order persisted
-- **System data layer** (`modules/common/SystemStats.qml`): one sampling engine (CPU per-core, memory, network, disk IO, load, uptime, hwmon temps, nvidia-smi GPU, battery) with FAST/SLOW poll classes and threshold signals — the bar stats and control-center graphs all drink from it
-- **UI kit** (`modules/common/ui/`): YButton / YSwitch / YRow / YSection / YField / YChip / YSlider / YScroll / YSurface / YPulse / YClickAway / FastWheel — every panel is composed from these plus Theme tokens only, so all surfaces read as one system
-- **Surface language**: the bar sits on the overlay layer (topmost); every popup slides out from behind it on a shared choreography (`movSlow` drop, eased exit). **Clicking outside any popup closes it** (a fullscreen click-catcher behind the card) and never dims the desktop; ESC closes, and only one surface is open at a time
-- **Error surface**: optional-backend absences (hyprsunset/ddcutil/cliphist/hyprpicker/…) report to a `Health` singleton; the bar shows a `!` chip with a tooltip instead of failing silently
+**Theme engine** — every color, font and metric lives in a single `Theme` singleton; modules never hardcode values, so the whole shell repaints live when the palette changes. Twelve curated schemes (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`, `cyberpunk`, `doom`, `gruvbox`, `mono`, `tokyonight`, `kanagawa`, `dracula`), wallpaper-derived palettes via matugen, runtime-generated light mode for any palette (with WCAG contrast fitting), and an accent override that lets any hex take the accent slot. Japanese labels fall back to romaji automatically when no CJK font is installed.
+
+**Wallpaper & template pipeline** — index → paint (awww) → palette (matugen) → apply. The wallpaper archive UI keeps a type-driven index spine plus one full-quality preview; picking a wallpaper repaints the desktop and regenerates every enabled app template in one pass. ~70 vendored matugen templates (terminals, editors, GTK, bars, prompts…); for include-style configs the shell writes and strips its own managed block inside the target app's config, so toggling a template is zero-friction and fully reversible. Custom templates are two paths away.
+
+**Surfaces** — settings panel (15 pages behind a searchable nav rail), control center (11 tabs), app launcher (fuzzy search, pins/recents, inline calculator, `:` command mode), wallpaper archive, notification center, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji pickers, workspace overview with Alt-Tab switcher and quick-tile presets, power menu, lock screen. One surface open at a time; click-outside closes; ESC closes.
+
+**Notifications** — the shell *is* the notification daemon (`org.freedesktop.Notifications`): themed toasts with timeout underlines and hover-pause, inline action buttons, do-not-disturb with suppressed counter, per-app overrides (quiet/block), and a persisted history ring with replay.
+
+**Connectivity & audio** — native NetworkManager and BlueZ panels (Wi-Fi join/forget, VPN tunnels, DNS override, airplane mode, device pairing/trust/battery) and a PipeWire console (per-device and per-stream volume with perceptual taper, overdrive ceiling, default-device switching). Volume/mic/brightness OSDs. Night light (hyprsunset) and DDC/CI brightness (ddcutil).
+
+**Session & security** — hold-to-confirm power menu, full-screen lock screen with PAM auth, inhibitor-aware idle actions, power profiles (power-profiles-daemon), and a themed polkit authentication dialog.
+
+**Plugins** — drop a folder with `plugin.json` + QML into `plugins/`: `widget` types render in a dedicated bar segment, `daemon` types run headless at boot. State is namespaced and persists across restarts. Two reference plugins ship with the shell.
+
+**Graceful degradation** — every optional backend (cliphist, hyprsunset, ddcutil, hyprpicker, gpu-screen-recorder…) is probed at startup; missing features report through a Health singleton shown as a `!` chip in the bar instead of failing silently.
 
 ## Requirements
 
-- Arch Linux (or similar), Hyprland
-- `quickshell` >= 0.3.1
-- Fonts: `JetBrainsMono Nerd Font` (required), `noto-fonts-cjk` (recommended — enables the Japanese micro-labels):
-
-  ```
-  sudo pacman -S --needed ttf-jetbrains-mono-nerd noto-fonts-cjk
-  ```
-
-- Optional (needed for wallpaper theming): `matugen`, `awww` — used by the scheme engine:
-
-  ```
-  sudo pacman -S --needed matugen awww
-  ```
-
-- Optional feature backends (each degrades gracefully if absent — the shell hides the surface instead of crashing):
-  - `grim`, `slurp`, `wl-clipboard`, `cliphist` — screenshot + clipboard (future phases)
-  - `hyprsunset` — night light
-  - `ddcutil` — external monitor brightness (DDC/CI)
-  - `power-profiles-daemon` — power plans
-  - `papirus-folders` — papirus icon theming (needs a passwordless sudoers drop-in for its post hook)
-
-## Run
-
-```
-quickshell -p ~/.config/quickshell/yuta-qs
-```
-
-Or set it as your session shell by launching that command from your Hyprland/Helmsman autostart (this machine runs it as `qs -c yuta-qs`).
-
-The installer is `scripts/install.sh` (or `make install`) — see the packaging table below.
-
-### Make targets & packaging
-
-| target | what it does |
+| dependency | why |
 |---|---|
-| `make install` | distro-aware installer (`scripts/install.sh`): detects pacman/dnf/apt/zypper/emerge, probes real dependency binaries, prints exact install commands for anything missing (`--yes` runs them), reports optional backends, rsyncs the config into `~/.config/quickshell/yuta-qs` (never touches runtime `state.json`; `--dry-run`/`--dest` supported) |
-| `make dist` | release tarball via `git archive` → `dist/yuta-qs-<rev>.tar.gz` |
-| `make test` | QML integration smoke test: spawns an isolated instance (refuses to run beside a live one), drives core IPC targets, greps the authoritative log for errors, checks RSS |
-| `make lint-qml` | Qt6 `qmllint` across all sources with quickshell's qmltypes + a `qs.*` import shim; fails on syntax errors, reports known tooling-friction warnings |
-| `make fmt` | opt-in `qmlformat` pass (4-space indent) — reflows the whole tree, review before committing |
+| [Hyprland](https://hyprland.pl) ≥ 0.56 **with the Helmsman Lua dispatcher** | compositor; all shell→compositor dispatches use Helmsman's `hl.dsp.*` Lua forms |
+| `quickshell` ≥ 0.3.1 | shell runtime |
+| `matugen` ≥ 4.x | wallpaper theming pipeline |
+| `awww` | wallpaper painting |
+| JetBrainsMono Nerd Font | required typeface |
+| `noto-fonts-cjk` *(optional)* | enables Japanese micro-labels (romaji fallback otherwise) |
 
-Arch packaging: see [`packaging/PKGBUILD`](packaging/PKGBUILD). A Nix flake with a home-manager module lives in [`flake.nix`](flake.nix); `.envrc` sets `QS_CONFIG_DIR` and enters the flake dev shell.
+Optional feature backends — each hides its feature cleanly when absent:
+
+`grim` + `slurp` (screenshots) · `wl-clipboard` + `cliphist` (clipboard manager) · `cava` (visualizer) · `hyprsunset` (night light) · `ddcutil` (external monitor brightness) · `power-profiles-daemon` (power plans) · `gpu-screen-recorder` (recording indicator) · `hyprpicker` (color picker) · `checkupdates` from pacman-contrib (update counter)
+
+> **Helmsman note**: this config drives Hyprland through the Helmsman Lua dispatcher's `hl.dsp.*` API rather than raw IPC dispatch strings. On a stock Hyprland install without Helmsman, compositor-facing features (workspace switching, window management, scratchpad, tiling presets) will not function; panels, widgets and theming are unaffected. Porting the handful of dispatch wrappers in `modules/bar/Workspaces.qml`, `modules/dock/Dock.qml`, `modules/overview/Overview.qml` and `modules/common/{FocusMonitor,Compositor}.qml` to raw dispatches is straightforward if you don't run Helmsman.
+
+## Installation
+
+**Scripted (Arch, Debian, Fedora, openSUSE, Gentoo):**
+
+```sh
+git clone https://github.com/braxtonculver/yuta-qs
+cd yuta-qs
+make install          # detects your package manager, checks deps,
+                      # prints exact install commands, then rsyncs
+                      # the config into ~/.config/quickshell/yuta-qs
+```
+
+Run it again at any time to sync updates — your state in `~/.local/state/yutashell/` is never touched.
+
+**Manual:**
+
+```sh
+git clone https://github.com/braxtonculver/yuta-qs ~/.config/quickshell/yuta-qs
+```
+
+**Arch (AUR-style):** a `PKGBUILD` is provided in [`packaging/`](packaging/PKGBUILD).
+
+**Nix:** a flake with a home-manager module is provided in [`flake.nix`](flake.nix) (`programs.yutashell.enable`; pulls quickshell + runtime deps, registers the autostart entry).
+
+Then start it from your Hyprland autostart:
+
+```
+exec-once = qs -c yuta-qs
+```
+
+or test in place:
+
+```sh
+qs -p ~/.config/quickshell/yuta-qs
+```
 
 ## Keybinds & IPC
 
-Every user-facing action is exposed over Quickshell's IPC, so keybinds, CLI, and the settings panel all drive the same functions. The general form is:
+Everything user-facing is exposed over Quickshell IPC — keybinds, CLI and the settings panel all call the same functions:
 
-```
+```sh
 qs ipc call <target> <function> [args...]
 ```
 
-| target | function | what it does |
+| target | function | action |
 |---|---|---|
-| `launcher` | `toggle` / `open` / `close` | app launcher overlay (fuzzy search, `:` commands, calc) |
-| `panel` | `toggle` / `open` / `close` | settings drawer |
-| `picker` | `toggle` / `open` / `close` | standalone wallpaper picker panel |
-| `scheme` | `set <name>` | apply a preset — see `scheme list` for all 12 ids |
-| `scheme` | `list` | print available preset ids |
-| `scheme` | `wallpaper` | re-follow the last applied wallpaper's palette |
-| `wallpaper` | `set <path>` | set + paint + regenerate palette for an image |
-| `wallpaper` | `next` | cycle to the next indexed wallpaper |
-| `wallpaper` | `random` | jump to a random indexed wallpaper |
-| `wallpaper` | `list` | print every indexed wallpaper path |
-| `theme` | `generate <image>` | same as `wallpaper set` (explicit alias) |
-| `theme` | `dark on\|off\|toggle` | light/dark mode — light palettes are regenerated live from the active scheme or wallpaper |
-| `theme` | `accent <#hex\|none>` | override the acid accent (persisted; `none` follows the scheme again) |
-| `templates` | `list` | show template catalog with enabled state |
-| `templates` | `on <id>` / `off <id>` | enable/disable a template (rewrites matugen.toml, injects/strips app-config snippet, re-applies; refuses absent apps) |
-| `templates` | `add <id> <input> <output>` | register a custom matugen template |
-| `templates` | `remove <id>` | remove one |
-| `plugins` | `list` | discovered plugins with enabled state (`[x] id — name (type vX.Y.Z)`) |
-| `plugins` | `rescan` | re-scan `<config>/plugins/` for manifests |
-| `plugins` | `enable <id>` / `disable <id>` | toggle a plugin (daemons start/stop, widgets join the bar segment) |
-| `compositor` | `info` | one-line capability report: compositor kind, screens, focused output, toplevel/workspace counts, external-tool availability |
-| `compositor` | `dsp <lua>` | warm-client dispatch passthrough — `window.close()`, `focus({ workspace = "2" })`, `raw:<keyword>` escapes the Lua wrapper (verification/debug tool) |
-| `dnd` | `on` / `off` / `toggle` | do-not-disturb: normals/lows held to history, criticals break through |
-| `dnd` | `status` | print dnd state + suppressed count + history size |
-| `notifycenter` | `toggle` / `open` / `close` | notification history center |
-| `notifycenter` | `clear` | dismiss all live toasts + wipe history |
-| `notifycenter` | `test <urgency>` | send a test toast (`normal`/`low`/`critical`) |
-| `network` | `toggle` / `open` / `close` | network panel (wifi/wired/vpn/dns) |
-| `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
-| `audio` | `open` / `close` | audio console (devices, streams, mic) |
-| `audio` | `volup` / `voldown` | master volume ±5 % with OSD |
-| `audio` | `mute` / `micmute` | toggle output / input mute (OSD variant per kind) |
-| `audio` | `status` | print sink name + volume + mute state |
-| `audio` | `nl` / `nltemp <K>` | night light toggle / set temperature (hyprsunset; hides when absent) |
-| `display` | `bright <0-100>` | external monitor brightness over DDC/CI (ddcutil; hides when absent) |
-| `session` | `toggle` / `open` / `close` | power menu overlay (hold-to-confirm tiles) |
-| `session` | `lock` | engage the lock screen (PAM auth) |
-| `session` | `logout` / `suspend` / `hibernate` / `reboot` / `poweroff` | end-session actions (logout flushes state first) |
-| `session` | `profile <saver\|balanced\|performance\|cycle>` | set/cycle power profile (power-profiles-daemon) |
-| `session` | `idle <none\|lock\|suspend\|shutdown> <secs>` | idle action + timeout (off by default) |
-| `session` | `status` | lock state, inhibitors, profile, idle config |
-| `notify` | `show <app> <summary> <body>` | post a toast through the shell daemon (for scripts/Helmsman) |
-| `dock` | `toggle` / `enable` / `disable` | master switch for the bottom dock (OFF by default) |
-| `dock` | `pin <id>` / `unpin <id>` | pin/unpin an app by desktop-entry id |
-| `dock` | `hide <never\|dodge\|always>` | intellihide mode |
-| `dock` | `mode <overlay\|exclusive>` | float overlay vs reserve a bottom strip |
-| `dock` | `status` | enabled state, mode, hide mode, pin count |
-| `overview` | `toggle` / `open` / `close` | workspace overview grid |
-| `overview` | `alttab` | open/advance the window switcher (ALT+Tab) |
-| `overview` | `scratchpad` / `scratchsend` | toggle `special:magic` / send focused window to it |
-| `overview` | `tile <float\|fullscreen\|pseudo\|center\|left\|right\|top\|bottom>` | quick-tile the focused window |
-| `overview` | `status` | window + workspace counts |
-| `calendar` | `toggle` / `open` / `close` | calendar popup (also bound to the bar clock click) |
-| `clipboard` | `toggle` / `open` / `close` / `status` | cliphist history manager |
-| `weather` | `toggle` / `open` / `close` / `refresh` / `status` | weather panel |
-| `weather` | `set <lat> <lon> <label>` | configure the location (open-meteo) |
-| `shot` | `region` / `full` / `window` | screenshot (grim/slurp, saved to the configured dir) |
-| `shot` | `copy` / `dir` | re-copy the last shot / print save config |
-| `updates` | `check` / `list` / `open` / `status` | pacman update counter (pacman-contrib) |
-| `recording` | `stop` / `status` | stop gpu-screen-recorder / query its state |
-| `colorpicker` | `pick` | grab a screen color (hyprpicker; hides when absent) |
-| `emoji` | `toggle` / `open` / `close` | emoji / kaomoji picker |
+| `launcher` | `toggle` / `open` / `close` | app launcher |
+| `panel` | `toggle` / `open` / `close` | settings panel |
 | `cc` | `toggle` / `open` / `close` | control center |
-| `bar` | `seg <id> on\|off\|left\|center\|right` | enable/disable or re-zone a bar segment |
-| `bar` | `move <id> up\|down` | reorder a segment within its zone |
-| `bar` | `scale <0.8-1.4>` / `position <top\|bottom>` | bar size + edge |
-| `bar` | `click <id> <action>` / `status` | set a segment's click-action / print bar state |
+| `picker` | `toggle` / `open` / `close` | wallpaper archive |
+| `overview` | `toggle` / `alttab` / `scratchpad` / `tile <preset>` | overview grid, window switcher, scratchpad, quick-tile |
+| `scheme` | `set <name>` / `list` / `wallpaper` | preset schemes; re-follow wallpaper palette |
+| `wallpaper` | `set <path>` / `next` / `random` / `list` | set/cycle wallpapers (runs the whole theming pipeline) |
+| `theme` | `dark on\|off\|toggle` / `accent <#hex\|none>` | light-dark mode; accent override |
+| `templates` | `list` / `on <id>` / `off <id>` / `add …` / `remove <id>` | matugen template registry |
+| `plugins` | `list` / `rescan` / `enable <id>` / `disable <id>` | plugin lifecycle |
+| `audio` | `volup` / `voldown` / `mute` / `micmute` / `status` | master audio with OSD |
+| `session` | `lock` / `logout` / `suspend` / `reboot` / `poweroff` / `profile …` / `idle …` | session actions |
+| `dnd` | `on` / `off` / `toggle` / `status` | do not disturb |
+| `notifycenter` | `toggle` / `clear` / `test <urgency>` | history center |
+| `network` / `bluetooth` | `toggle` / `open` / `close` | connectivity panels |
+| `shot` | `region` / `full` / `window` / `copy` | screenshots |
+| `weather` | `set <lat> <lon> <label>` / `refresh` / `status` | weather widget |
+| `calendar` / `emoji` / `clipboard` | `toggle` / `open` / `close` | popups |
+| `bar` | `seg <id> on\|off\|left\|center\|right` / `move` / `scale` / `position` / `click` | bar layout |
+| `dock` | `toggle` / `pin` / `unpin` / `hide` / `mode` | bottom dock |
+| `compositor` | `info` / `dsp <lua>` | capability report / warm-client dispatch passthrough |
 
-### Hyprland binds (standard setup)
-
-Add to your `hyprland.conf` (or Helmsman equivalent):
+Example Hyprland keybinds:
 
 ```
 bind = SUPER, A, exec, qs ipc call launcher toggle
 bind = SUPER, S, exec, qs ipc call panel toggle
 bind = SUPER, W, exec, qs ipc call wallpaper next
 bind = SUPERSHIFT, W, exec, qs ipc call picker toggle
-bind = SUPERSHIFT, C, exec, qs ipc call scheme set crimson
 bind = SUPER, N, exec, qs ipc call notifycenter toggle
 bind = SUPERSHIFT, N, exec, qs ipc call dnd toggle
-bind = SUPER, G, exec, qs ipc call network toggle
-bind = SUPER, B, exec, qs ipc call bluetooth toggle
 bindl = , XF86AudioRaiseVolume, exec, qs ipc call audio volup
 bindl = , XF86AudioLowerVolume, exec, qs ipc call audio voldown
 bindl = , XF86AudioMute, exec, qs ipc call audio mute
-bindl = , XF86AudioMicMute, exec, qs ipc call audio micmute
 ```
 
-If your config wraps dispatches in a dispatcher layer (e.g. this machine's Helmsman Lua dispatcher), route the command through that layer's exec wrapper instead — the shell side is plain `exec`, no special dispatch strings needed.
+## Configuration
 
-## Project structure
-
-```
-yutashell/
-├── shell.qml                  # entry point + per-screen Variants + IpcHandlers
-├── theme/
-│   ├── qmldir                 # singleton registration
-│   ├── Theme.qml              # design tokens + scheme engine + contrast check
-│   ├── schemes/               # static preset palettes (12 schemes)
-│   └── matugen/               # our own template + vendored catalog → theme.json
-├── modules/
-│   ├── bar/                   # taskbar: identity, workspaces, active window,
-│   │                          # tray, media ticker, stats, clock + ui/
-│   ├── common/
-│   │   ├── ShellState.qml     # runtime state + persisted prefs singleton
-│   │   ├── TemplateCatalog.qml# vendored matugen-themes registry
-│   │   ├── Wallpaper.qml      # index/apply pipeline, template registry
-│   │   └── ui/                # YButton/YSwitch/YRow/YSection/YField/YChip/YScroll
-│   ├── picker/                # standalone wallpaper picker + ui/
-│   ├── launcher/              # app launcher overlay (AppLauncher + fuzzy.js)
-│   ├── notify/                # notification daemon: Notify singleton,
-│   │                          # toast stack, history center + ui/
-│   ├── net/                   # connectivity: NetBlock/BtBlock bar segments,
-│   │                          # NetworkPanel, BluetoothPanel
-│   ├── audio/                 # PH.07: AudioService (Pipewire), AudioBlock bar
-│   │                          # segment, audio console, MediaWidget, OSDs,
-│   │                          # NightLight (hyprsunset), DisplayService (ddcutil)
-│   ├── session/               # PH.08: power menu, lock screen (PAM), idle,
-│   │                          # power profiles, polkit agent dialog
-│   ├── dock/                  # PH.09: bottom dock (Dock logic + DockBar)
-│   ├── overview/              # PH.10: workspace grid, alt-tab, scratchpad,
-│   │                          # quick-tile presets
-│   ├── widgets/               # PH.11: calendar, clipboard, weather, screenshot,
-│   │                          # emoji, updates, recording, color picker
-│   └── settings/              # control-core drawer + ui/
-```
-
-## Environment notes
-
-This shell is tuned to this machine's setup; two quirks are load-bearing:
-
-1. **Helmsman Lua dispatcher.** This system's Hyprland wraps all IPC dispatches in Lua, so plain dispatch strings like `workspace 3` fail. All compositor actions go through wrapper functions using Lua-form dispatches, e.g. `Workspaces.switchTo(id)` sends `hl.dsp.focus({ workspace = "N" })`. If you ever remove Helmsman, change those wrappers back to standard dispatch strings.
-2. **`Hyprland.activeToplevel` stays null** on this Quickshell build, so the focused-window title is derived from `activewindow` / `activewindowv2` raw events plus a one-shot `hyprctl -j activewindow` query at startup.
-
-## Files written at runtime
-
-Everything the shell writes lives under `~/.local/state/yutashell/`:
+All user preferences persist to `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | persisted prefs: active scheme, wallpaper path, follow-wallpaper, dark mode, accent override, bar segment toggles, template registry, launcher (mode/anchor/width/pins/recents), settings panel (placement/width/last page), notifications, audio/OSD, session/lock/idle/hold, dock (enabled/mode/hide/monitors/pins) |
-| `theme.json` | matugen output for the shell's own palette (watched, live-reloads) |
-| `matugen.toml` | generated matugen config assembled from the template registry |
-| `snippet.stage` | transient staging file used to move managed config snippets into app configs |
+| `state.json` | every pref: scheme, wallpaper, bar segments, launcher pins/recents, notification rules, session/idle config, dock layout, plugin data |
+| `theme.json` | current matugen-generated palette (watched; edits hot-reload) |
+| `matugen.toml` | generated matugen config assembled from the enabled templates |
 
-## Theming contract
+Day-to-day configuration happens in the settings panel (`SUPER,S` or `qs ipc call panel toggle`) — appearance, bar segments, notifications, OSD, session behavior, dock, plugins. Nothing needs hand-editing.
 
-Modules never hardcode colors. Everything reads from the `Theme` singleton so the matugen pipeline only rewrites token values. The `acid` preset baseline:
+### Theming contract
 
-| token | value | role |
-|---|---|---|
-| `bg` | `#0a0a0c` | surfaces |
-| `ink` | `#eae8e0` | primary text |
-| `acid` | `#c8ff3d` | accent |
-| `alert` | `#ff3b52` | urgent/destructive |
+Modules read colors exclusively from the `Theme` singleton, which is why live recoloring is free: changing scheme, applying a wallpaper, toggling light mode or setting an accent only rewrites token values. Baseline tokens of the `acid` scheme: `bg #0a0a0c`, `ink #eae8e0`, `acid #c8ff3d`, `alert #ff3b52`.
 
-Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`, `cyberpunk`, `doom`, `gruvbox`, `mono`, `tokyonight`, `kanagawa`, `dracula`) plus wallpaper-driven palettes from matugen; light mode is regenerated at runtime from any palette. An accent override can swap the acid slot for any hex.
+## Plugins
 
-## Roadmap
+Create a folder under `plugins/<your-plugin>/` with a manifest:
 
-**ROADMAP v2.0 — "Operation Perfection"** ([ROADMAP.md](ROADMAP.md)): a 10-phase plan integrating the best features of three reference shells (DankMaterialShell, Ryoku, caelestia) so yutashell needs no other config. Progress:
+```json
+{
+    "id": "my-plugin",
+    "name": "My Plugin",
+    "version": "1.0.0",
+    "type": "widget",
+    "component": "./main.qml"
+}
+```
 
-- ✅ **Phase 1 — Foundation & module infrastructure**: qmldir ↔ singleton cross-audit (all 13 modules, 23 singletons), boot probes verified on every binary-detecting service, warm-up Timer extended to all lazily-referenced services, fresh-instance verification (clean load, warm IPC, RSS in range)
-- ✅ **Phase 2 — Service layer audit & hardening**: all 16 service items verified live over IPC; fixed multi-display brightness drops, night-light restart race, boot-stale VPN/DNS snapshots, network-panel poll that never rested, and update toasts that re-fired every 6 h
-- ✅ **Phase 3 — Module suite audit**: all 23 module items verified against contract + live IPC exercise of every surface; fixed Bluetooth device-delegate null crashes during scan churn
-- ✅ **Phase 4 — Widget kit completeness**: all 13 kit components audited against contract; fixed 3 zero-sized YScroll rails (notify/BT/network panels), added 4 missing FastWheel handlers (launcher ×3, notify center), launcher scroll rail; verified zero hand-rolled controls and 12/12 YClickAway adoption
-- ✅ **Phase 5 — Plugin system**: PluginService discovers `<config>/plugins/*/plugin.json`, daemon + widget types with namespaced settings, Settings PLUGINS page (15 tabs now), bar PLUGIN WIDGETS segment, `plugins` IPC target; reference daemon (wallpaper watcher) + widget (pulse dot) shipped; enabled state survives restarts with boot-time daemon start
-- ✅ **Phase 6 — Multi-monitor & surface architecture**: per-screen Bar/Dock verified with full layer audit (Overlay chrome vs Top popups); new FocusMonitor makes all 19 popup windows, the OSD and toasts open on the focused monitor — placement latches at open so cards never jump screens mid-display; shared tooltip now follows its anchor's bar instance
-- ✅ **Phase 7 — Compositor integration**: every Hyprland dispatch form live-verified through the new `compositor dsp` warm-client passthrough (`compositor info` capability report too); found + fixed that `toggle_special`, focus-to-special and raw keywords are inert under Helmsman 0.56.2 — Overview's scratchpad toggle rewritten on verified verbs (hide focused window to `special:magic` / restore via `move previous`); new Compositor singleton reports kind + external-tool availability and degrades honestly via Health; D-Bus surface audited (bluez/NM/login1/Accounts/portal present, iwd unused, ScreenSaver inhibition skipped — nothing blanks here); non-Hyprland compositors and raw protocol clients documented as N/A for this machine
-- ✅ **Phase 8 — Nix & distribution support**: `Makefile` with install/dist/test/lint-qml targets (smoke test verified SMOKE OK — 0 log errors, ~420 MB RSS; lint gate green across 85 files with real Qt6 qmllint + quickshell qmltypes), distro-detecting installer with honest dep probing, Arch PKGBUILD, untested-but-standard `flake.nix` home-manager module and `.envrc`; qmlformat left opt-in by design
-- ✅ **Phase 9 — Advanced theming & wallpaper pipeline**: full live audit — 12 preset schemes cycled in dark AND light with zero contrast warnings, matugen pipeline renders templates end-to-end (custom template add→render→remove round-trip over IPC), accent override persists across restarts and clears cleanly, follow-wallpaper async re-apply confirmed; user prefs restored exactly after the run
-- ✅ **Phase 10 — Polish, QA & edge cases**: final audit of every hard-won invariant — OOM guards (all images sourceSize'd + gated, single-decode picker), race fixes (async token apply, dead-flag notification closes), persistence (flushNow on logout/plugin mutations, seed-only-if-empty), process discipline (exact-PID kills, --pid IPC targeting, fresh-instance verification). Final battery: qmllint green across 85 files, YUTA_DEBUG_CYCLE walk of all 15 settings pages 0 errors, smoke test SMOKE OK, RSS 367–418 MB throughout
+- `"type": "widget"` — a `Rectangle`-rooted QML component rendered inside the bar's PLUGIN WIDGETS segment
+- `"type": "daemon"` — instantiated invisibly at boot while enabled; persist state via `PluginService.loadPluginData()` / `savePluginData()`
+- optional `settings[]` array describes per-plugin options surfaced in Settings → PLUGINS
 
-Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+Plugin QML can import the shell's own kit (`qs.theme`, `qs.modules.common.ui`). See `plugins/PulseDot/` (widget) and `plugins/WallpaperWatcherDaemon/` (daemon) for reference implementations. Plugins execute with full shell privileges — only install ones you trust.
+
+## Development
+
+```sh
+make lint-qml   # qmllint gate (fails on syntax errors)
+make test       # integration smoke test: spawns an isolated instance,
+                # drives the IPC surface, greps the log, checks RSS
+make dist       # release tarball
+```
+
+The smoke test refuses to run while another instance is live and always terminates the instance it spawns.
+
+```
+yuta-qs/
+├── shell.qml              entry point, per-screen instances, IPC handlers
+├── theme/                 Theme singleton, 12 preset palettes, matugen setup
+├── modules/
+│   ├── bar/               taskbar segments + segment framework
+│   ├── common/            ShellState, Theme consumers, Wallpaper/template
+│   │                      pipeline, SystemStats, PluginService,
+│   │                      FocusMonitor, Compositor, Health, ui kit
+│   ├── settings/          settings panel (15 pages)
+│   ├── control/           control center (11 tabs)
+│   ├── launcher/          app launcher
+│   ├── picker/            wallpaper archive
+│   ├── notify/            notification daemon, toasts, history center
+│   ├── net/               network + bluetooth panels, bar chips
+│   ├── audio/             PipeWire service, audio console, OSDs, media,
+│   │                      night light, display brightness
+│   ├── session/           power menu, lock screen, idle, polkit dialog
+│   ├── dock/              bottom dock
+│   ├── overview/          workspace grid, alt-tab, tile presets
+│   └── widgets/           calendar, weather, clipboard, screenshots,
+│                          emoji, updates, recording, color picker
+└── plugins/               reference widget + daemon plugins
+```
+
+## Acknowledgments
+
+Design and feature inspiration from [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell), Ryoku and [caelestia-shell](https://github.com/caelestia-dots/shell). Built on [Quickshell](https://quickshell.outfoxxed.me) by outfoxxed.
+
+## License
+
+[GPL-3.0-only](LICENSE)

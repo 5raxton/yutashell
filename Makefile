@@ -39,8 +39,7 @@ test:
 # a qs.* shim so config-root imports resolve. Findings are reported; the
 # target FAILS only on syntax/hard errors — the warning stream contains
 # known qmllint-vs-quickshell friction (uncreatable PanelWindow, Process
-# signal params, dynamic Loader/inline-component members) tracked in
-# ROADMAP PH.08 notes.
+# signal params, dynamic Loader/inline-component members).
 .PHONY: lint-qml
 lint-qml:
 	@mkdir -p .qlint && ln -sfn "$(CURDIR)" .qlint/qs

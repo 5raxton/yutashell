@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Quickshell config for Hyprland. Entry: `shell.qml`. Design tokens in `theme/Theme.qml` (import as `qs.theme`). ROADMAP.md is the master checklist — work top to bottom, keep checkboxes honest.
+Quickshell config for Hyprland. Entry: `shell.qml`. Design tokens in `theme/Theme.qml` (import as `qs.theme`). README.md is the public-facing doc — keep it accurate when features change.
 
 ## Verified environment facts (this machine)
 
@@ -16,7 +16,7 @@ Quickshell config for Hyprland. Entry: `shell.qml`. Design tokens in `theme/Them
 - Wallpaper engine is **awww** (`awww-daemon`, not swww/hyprpaper). matugen installed.
 - No CJK font → `Theme.jpEnabled` false → romaji fallbacks everywhere.
 - `~/.local/state/yutashell/` holds all runtime files: state.json, theme.json, matugen.toml. Nothing else writes dotfiles.
-- Deps present: grim, slurp, wl-copy, cliphist (0.7), curl, checkupdates, nvidia-smi (RTX 5080 — GPU stats via batched `nvidia-smi --query-gpu=...`), gpu-screen-recorder 6.x, notify-send, pactl, nmcli, bluetoothctl, rfkill, cava, hyprsunset, ddcutil, powerprofilesctl. Absent: hyprpicker. Features needing absent deps must hide gracefully (ROADMAP tracks which phase gates each).
+- Deps present: grim, slurp, wl-copy, cliphist (0.7), curl, checkupdates, nvidia-smi (RTX 5080 — GPU stats via batched `nvidia-smi --query-gpu=...`), gpu-screen-recorder 6.x, notify-send, pactl, nmcli, bluetoothctl, rfkill, cava, hyprsunset, ddcutil, powerprofilesctl. Absent: hyprpicker. Features needing absent deps must hide gracefully.
 - Network reality: **wired ethernet is primary** (enp133s0), wlan0 exists but rfkill soft-blocked + NM wifi disabled (panel shows radio state honestly), `wg0-mullvad` wireguard ACTIVE (externally managed — visible via nmcli, not Quickshell.Networking). Bluetooth controller hci0 present, bluetoothd active.
 - `Quickshell.Services.Notifications` verified: `NotificationServer` claims the bus when no other daemon runs; caps props (`bodySupported`/`actionsSupported`/`imageSupported`/…); `onNotification(n)` → n has appName/appIcon/summary/body/urgency enum/expireTimeout/actions/**`tracked` (set true to hold)**/`expire()`/`dismiss()`; `closed` signal. Used by `modules/notify/`.
 - `Quickshell.Networking`: `Networking.devices.values` → WifiDevice (`networks`, `scannerEnabled`, `mode`) / WiredDevice (`hasLink`, `linkSpeed`, `address`); `wifiEnabled`+`wifiHardwareEnabled` writable-ish; connectivity compares against `NetworkConnectivity.Full`. Enum name is **NetworkConnectivity** (not Connectivity).
@@ -87,7 +87,7 @@ A fixed `sleep 0.4` after spawning the daemon raced daemon startup and dropped p
 - Launcher/picker deliberately skip content cascade (transient tools must be ready to type); they still carry the full card ritual.
 
 ### 4b++. Organism layer ("the machine is alive")
-- The binding spec lives at the top of ROADMAP.md (VIBE CHARTER). Implementation inventory: `YPulse.qml` (opacity breathing, lo 0.62, movDrift) for idle chrome pulses — currently the bar's 132 px acid strip; media equalizer bars + net-arrow activity flashes + BT scan blink + breathing clock colon in the bar; kit interrogation language (YSwitch fill-wipe + OutBack knob 0.45, YButton hover underline, YRow hover wipe + tick growth + sub→note crossfade, YField focus underline, YChip label pop, YScroll sleeping rails); toast stagger (70 ms/card) + retire-based exit send-off.
+- The binding spec (VIBE CHARTER) is implemented; inventory: `YPulse.qml` (opacity breathing, lo 0.62, movDrift) for idle chrome pulses — currently the bar's 132 px acid strip; media equalizer bars + net-arrow activity flashes + BT scan blink + breathing clock colon in the bar; kit interrogation language (YSwitch fill-wipe + OutBack knob 0.45, YButton hover underline, YRow hover wipe + tick growth + sub→note crossfade, YField focus underline, YChip label pop, YScroll sleeping rails); toast stagger (70 ms/card) + retire-based exit send-off.
 - Perf guardrails: animations gate on `visible`; pulses are opacity-only; staggered reveals clean up their dynamic objects; transforms over layout properties where possible.
 
 ### 4c. Template snippet engine (Wallpaper.qml)
