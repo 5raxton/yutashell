@@ -439,12 +439,14 @@ PanelWindow {
                     navKeys: true
 
                     onAccepted: card.acceptCurrent()
-                    onNavUp: card.moveSel(-1)
-                    onNavDown: card.moveSel(1)
+                    // grid mode: up/down travel a full row, left/right one
+                    // column; list/command modes keep single-row stepping
+                    onNavUp: card.mode === 0 && !card.commandMode ? card.moveSel(-gridView.cols) : card.moveSel(-1)
+                    onNavDown: card.mode === 0 && !card.commandMode ? card.moveSel(gridView.cols) : card.moveSel(1)
                     onNavLeft: if (!card.commandMode && card.mode === 0)
-                        card.moveSel(-gridView.cols)
+                        card.moveSel(-1)
                     onNavRight: if (!card.commandMode && card.mode === 0)
-                        card.moveSel(gridView.cols)
+                        card.moveSel(1)
                     onNavTab: {
                         ShellState.set("launcherMode", ShellState.launcherMode === "grid" ? "list" : "grid");
                         card.clampSel();

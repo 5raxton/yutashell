@@ -85,6 +85,9 @@ Singleton {
     readonly property bool _probeRunning: conProbe.running || dnsProbe.running
 
     function refresh() {
+        // overlapping refreshes would reassign command mid-run and be dropped
+        if (root._probeRunning)
+            return;
         conProbe.command = ["nmcli", "-t", "-f", "NAME,TYPE,DEVICE,ACTIVE", "con", "show"];
         conProbe.running = true;
         dnsProbe.command = ["nmcli", "-t", "dev", "show"];

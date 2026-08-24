@@ -42,7 +42,7 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 ## Hard-won lessons (do not regress)
 
 ### 1. Never decode full-res images for thumbnails — OOM incident
-Full-res decode of 194 wallpapers hit **7–13 GB RSS** and the kernel OOM-killed the session. Rules: every preview `Image` sets `sourceSize` (PickerTile: 256×160); gate `source` on visibility (`root.visible ? url : ""`); remember components inside always-instantiated singletons run at startup even when "closed". Picker now uses a spine+stage design: one clamped preview decode total. Watch RSS after opening model-heavy surfaces (healthy ≈ 370–420 MB).
+Full-res decode of 194 wallpapers hit **7–13 GB RSS** and the kernel OOM-killed the session. Rules: every preview `Image` sets `sourceSize`; gate `source` on visibility (`root.visible ? url : ""`); remember components inside always-instantiated singletons run at startup even when "closed". Picker uses a spine+stage design: one clamped preview decode total (stage preview 1024×640, `WallpaperPicker.qml`). Watch RSS after opening model-heavy surfaces (healthy ≈ 370–420 MB).
 
 ### 2. awww socket race
 Fixed sleeps race daemon startup and drop paints silently. Spawn detached (`setsid`), retry `awww img` up to 8× with 0.25 s gaps (Wallpaper.qml).
@@ -75,7 +75,7 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 ### 5. Surfaces: compose the kit, don't hand-animate
 - Bar sits at `WlrLayer.Overlay`; popups at `Top`; entrances emerge from behind the bar.
 - Floating surfaces MUST compose **YSurface** (drop-in choreography, scanline, power line, optional `cascade:` stagger) — never re-animate a popup by hand. Cascade children expose `reveal()`; dynamic animations come from `Component { id: kidAnim … }` + createObject (**inline `component X:` cannot be createObject'd**) and self-destruct in `onStopped`.
-- Closing: ESC/keybind/IPC + **YClickAway** (fullscreen catcher as FIRST child, card after; window `mask: Region { item: open ? clickAway : null }`; YSurface's swallow MouseArea keeps in-card clicks local). PolkitDialog/LockScreen stay modal; Toasts/Osd/Dock skip the catcher. Windows linger ~190 ms post-close (hideDelay) so the exit ceremony renders while the mask nulls instantly.
+- Closing: ESC/keybind/IPC + **YClickAway** (fullscreen catcher as FIRST child, card after; window `mask: Region { item: open ? clickAway : null }`; YSurface's swallow MouseArea keeps in-card clicks local). PolkitDialog/LockScreen stay modal; Toasts/Osd/Dock skip the catcher. Windows linger `Theme.lingerMs` (190 ms) post-close so the exit ceremony renders while the mask nulls instantly.
 - FastWheel is the standard wheel handler for every Flickable/GridView/ListView.
 - Perf guardrails: animate opacity/transforms, never layout of anchored items (YSection scales xScale instead of width); pulses gate on `visible`; toast cards are stable in-place QtObjects across countdown ticks (reassigning arrays kills hover-pause).
 

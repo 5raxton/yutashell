@@ -39,6 +39,7 @@ ShellRoot {
             void Recording.available;
             void ColorPicker.available;
             void Weather.available;
+            void Geo.available;
             void Clipboard.available;
             void SystemStats.hostname;
             void DisplayService.available;
@@ -387,6 +388,48 @@ ShellRoot {
         }
     }
 
+    // per-profile binds: qs ipc -c yuta-qs call power saver|balanced|performance
+    // (+ cycle for a single rotating keybind). Every switch announces a toast so
+    // keybind-driven changes are visible without opening any panel.
+    IpcHandler {
+        target: "power"
+
+        function saver(): string {
+            return _apply("saver");
+        }
+
+        function balanced(): string {
+            return _apply("balanced");
+        }
+
+        function performance(): string {
+            return _apply("performance");
+        }
+
+        function cycle(): string {
+            if (!Session.ppdAvailable)
+                return "unavailable (power-profiles-daemon)";
+            Session.cycleProfile();
+            const p = Session.profileName.toUpperCase();
+            Notify.announce("POWER PROFILE", "switched to " + p, 0);
+            return p;
+        }
+
+        function status(): string {
+            return Session.ppdAvailable ? Session.profileName : "unavailable (power-profiles-daemon)";
+        }
+
+        function _apply(name: string): string {
+            if (!Session.ppdAvailable)
+                return "unavailable (power-profiles-daemon)";
+            if (!Session.setProfile(name))
+                return "unknown profile: " + name;
+            const p = Session.profileName.toUpperCase();
+            Notify.announce("POWER PROFILE", "switched to " + p, 0);
+            return p;
+        }
+    }
+
     IpcHandler {
         target: "media"
 
@@ -590,7 +633,7 @@ ShellRoot {
         }
 
         function status(): string {
-            return DisplayService.available ? "ddcutil · " + DisplayService.displays.length + " display(s) · " + DisplayService.brightPct + "%" : "unavailable (install ddcutil)";
+            return DisplayService.available ? DisplayService.displays.map(d => d.label).join(", ") + " · " + DisplayService.brightPct + "%" : "unavailable (install brightnessctl or ddcutil)";
         }
     }
 
@@ -610,7 +653,11 @@ ShellRoot {
         }
 
         function temp(k: string): void {
-            NightLight.temp = Math.max(1000, Math.min(6500, parseInt(k)));
+            // garbage input must not int-coerce to 0 and command hyprsunset -t 0
+            const v = parseInt(k);
+            if (isNaN(v))
+                return;
+            NightLight.temp = Math.max(1000, Math.min(6500, v));
         }
 
         function status(): string {
@@ -714,10 +761,21 @@ ShellRoot {
         }
 
         function set(lat: string, lon: string, label: string): void {
+            ShellState.set("weatherMode", "manual");
             ShellState.set("weatherLat", String(lat));
             ShellState.set("weatherLon", String(lon));
             ShellState.set("weatherLabel", String(label ?? ""));
             Weather.refresh();
+        }
+
+        // switch to IP geolocation and resolve now (drives weather + tz)
+        function auto(): void {
+            ShellState.set("weatherMode", "auto");
+            Geo.detect(true);
+        }
+
+        function detect(): void {
+            Geo.detect(true);
         }
 
         function refresh(): void {
@@ -725,7 +783,9 @@ ShellRoot {
         }
 
         function status(): string {
-            return Weather.configured ? "configured · " + (Weather.current ? Weather.current.temp + "°" : "no data") : "no location set";
+            if (!Weather.configured)
+                return "no location set";
+            return "configured · " + Weather.locLabel + (Geo.tz.length > 0 && Geo.effective ? " · " + Geo.tz : "") + " · " + (Weather.current ? Weather.current.temp + "°" : "no data");
         }
     }
 

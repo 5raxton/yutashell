@@ -23,7 +23,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure an
 
 **Notifications** — the shell *is* the notification daemon (`org.freedesktop.Notifications`): themed toasts with timeout underlines and hover-pause, inline action buttons, do-not-disturb with suppressed counter, per-app overrides (quiet/block), and a persisted history ring with replay.
 
-**Connectivity & audio** — native NetworkManager and BlueZ panels (Wi-Fi join/forget, VPN tunnels, DNS override, airplane mode, device pairing/trust/battery) and a PipeWire console (per-device and per-stream volume with perceptual taper, overdrive ceiling, default-device switching). Volume/mic/brightness OSDs. Night light (hyprsunset) and DDC/CI brightness (ddcutil).
+**Connectivity & audio** — native NetworkManager and BlueZ panels (Wi-Fi join/forget, VPN tunnels, DNS override, airplane mode, device pairing/trust/battery) and a PipeWire console (per-device and per-stream volume with perceptual taper, overdrive ceiling, default-device switching). Volume/mic/brightness OSDs with per-kind toggles. Night light (hyprsunset) and display brightness through brightnessctl or DDC/CI. Weather/location resolves by IP automatically or from static coordinates.
 
 **Session & security** — hold-to-confirm power menu, full-screen lock screen with PAM auth, inhibitor-aware idle actions, power profiles (power-profiles-daemon), and a themed polkit authentication dialog.
 
@@ -44,7 +44,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure an
 
 Optional feature backends — each hides its feature cleanly when absent:
 
-`grim` + `slurp` (screenshots) · `wl-clipboard` + `cliphist` (clipboard manager) · `cava` (visualizer) · `hyprsunset` (night light) · `ddcutil` (external monitor brightness) · `power-profiles-daemon` (power plans) · `gpu-screen-recorder` (recording indicator) · `hyprpicker` (color picker) · `checkupdates` from pacman-contrib (update counter)
+`grim` + `slurp` (screenshots) · `wl-clipboard` + `cliphist` (clipboard manager) · `cava` (visualizer) · `hyprsunset` (night light) · `brightnessctl` (internal panel brightness) · `ddcutil` (external monitor brightness over DDC/CI) · `curl` (weather + IP geolocation) · `power-profiles-daemon` (power plans) · `gpu-screen-recorder` (recording indicator) · `hyprpicker` (color picker) · `checkupdates` from pacman-contrib (update counter)
 
 > **Helmsman note**: this config drives Hyprland through the Helmsman Lua dispatcher's `hl.dsp.*` API rather than raw IPC dispatch strings. On a stock Hyprland install without Helmsman, compositor-facing features (workspace switching, window management, scratchpad, tiling presets) will not function; panels, widgets and theming are unaffected. Porting the handful of dispatch wrappers in `modules/bar/Workspaces.qml`, `modules/dock/Dock.qml`, `modules/overview/Overview.qml` and `modules/common/{FocusMonitor,Compositor}.qml` to raw dispatches is straightforward if you don't run Helmsman.
 
@@ -105,12 +105,14 @@ qs ipc call <target> <function> [args...]
 | `templates` | `list` / `on <id>` / `off <id>` / `add …` / `remove <id>` | matugen template registry |
 | `plugins` | `list` / `rescan` / `enable <id>` / `disable <id>` | plugin lifecycle |
 | `audio` | `volup` / `voldown` / `mute` / `micmute` / `status` | master audio with OSD |
+| `brightness` | `up` / `down` / `set <pct>` / `status` | display brightness (internal + DDC/CI) |
+| `power` | `saver` / `balanced` / `performance` / `cycle` / `status` | power profile per keybind; announces a toast on switch |
 | `session` | `lock` / `logout` / `suspend` / `reboot` / `poweroff` / `profile …` / `idle …` | session actions |
 | `dnd` | `on` / `off` / `toggle` / `status` | do not disturb |
 | `notifycenter` | `toggle` / `clear` / `test <urgency>` | history center |
 | `network` / `bluetooth` | `toggle` / `open` / `close` | connectivity panels |
 | `shot` | `region` / `full` / `window` / `copy` | screenshots |
-| `weather` | `set <lat> <lon> <label>` / `refresh` / `status` | weather widget |
+| `weather` | `set <lat> <lon> <label>` / `auto` / `detect` / `refresh` / `status` | weather widget; `auto` switches to IP geolocation (drives weather + timezone), `set` pins static coords |
 | `calendar` / `emoji` / `clipboard` | `toggle` / `open` / `close` | popups |
 | `bar` | `seg <id> on\|off\|left\|center\|right` / `move` / `scale` / `position` / `click` | bar layout |
 | `dock` | `toggle` / `pin` / `unpin` / `hide` / `mode` | bottom dock |
@@ -119,15 +121,20 @@ qs ipc call <target> <function> [args...]
 Example Hyprland keybinds:
 
 ```
-bind = SUPER, A, exec, qs ipc call launcher toggle
-bind = SUPER, S, exec, qs ipc call panel toggle
-bind = SUPER, W, exec, qs ipc call wallpaper next
-bind = SUPERSHIFT, W, exec, qs ipc call picker toggle
-bind = SUPER, N, exec, qs ipc call notifycenter toggle
-bind = SUPERSHIFT, N, exec, qs ipc call dnd toggle
-bindl = , XF86AudioRaiseVolume, exec, qs ipc call audio volup
-bindl = , XF86AudioLowerVolume, exec, qs ipc call audio voldown
-bindl = , XF86AudioMute, exec, qs ipc call audio mute
+_G.yuta = "qs -c yuta-qs ipc call"
+```
+
+```
+hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd(yuta .. " launcher toggle"))
+hl.bind(mainMod .. " + ALT + SPACE", hl.dsp.exec_cmd(yuta .. " panel toggle"))
+hl.bind(mainMod .. " + CTRL + SPACE", hl.dsp.exec_cmd(yuta .. " picker toggle"))
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(yuta .. " clipboard toggle"))
+hl.bind(mainMod .. " + COMMA", hl.dsp.exec_cmd(yuta ..  " session poweroff"))
+hl.bind(mainMod .. " + PERIOD", hl.dsp.exec_cmd(yuta .. " cc toggle"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(yuta .. " session lock"))
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd(yuta .. " shot region"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(yuta .. " notifycenter toggle"))
+hl.bind("ALT + Tab", hl.dsp.exec_cmd(yuta .. " overview alttab"))
 ```
 
 ## Configuration
@@ -137,6 +144,8 @@ All user preferences persist to `~/.local/state/yutashell/`:
 | file | purpose |
 |---|---|
 | `state.json` | every pref: scheme, wallpaper, bar segments, launcher pins/recents, notification rules, session/idle config, dock layout, plugin data |
+| `geo.json` | cached IP-geolocation fix (lat/lon/city/timezone) for auto location |
+| `weather.json` | last open-meteo payload (boot-time conditions before first refresh) |
 | `theme.json` | current matugen-generated palette (watched; edits hot-reload) |
 | `matugen.toml` | generated matugen config assembled from the enabled templates |
 

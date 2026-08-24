@@ -278,6 +278,20 @@ Singleton {
                 temp: Math.round(v)
             });
         }
+        // same readings → keep array identity so sensor-row delegates don't
+        // rebuild every SLOW tick while the temps tab is open
+        const old = root.temps;
+        if (old.length === out.length) {
+            let same = true;
+            for (let j = 0; j < out.length; j++) {
+                if (!old[j] || old[j].id !== out[j].id || old[j].temp !== out[j].temp) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same)
+                return;
+        }
         root.temps = out;
         // hottest temp drives the threshold
         let hot = -1;
@@ -413,6 +427,8 @@ Singleton {
                 if (!isNaN(mem))
                     root.gpuMemUsed = Math.round(mem);
                 root.gpuPresent = !isNaN(util);
+                if (root.gpuPresent)
+                    root._gpuMiss = 0;
                 if (root.gpuTemp >= 0)
                     root._threshold("gpu", root.gpuTemp, root.tempWarn, root.tempCrit);
             }
@@ -457,11 +473,29 @@ Singleton {
             tempProc.command = ["sh", "-c",
                 "for h in /sys/class/hwmon/hwmon*; do n=$(cat \"$h/name\" 2>/dev/null); case \"$n\" in coretemp) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"CPU $((t/1000))\";; nvme) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"NVME $((t/1000))\";; spd5118) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"RAM $((t/1000))\";; acpitz) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"CHIP $((t/1000))\";; esac; done"];
             tempProc.running = true;
-            // GPU: one batched nvidia-smi query
-            gpuProc.command = ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,memory.used,power.draw", "--format=csv,noheader,nounits"];
-            gpuProc.running = true;
+            // GPU: one batched nvidia-smi query — but once absence is proven,
+            // stop paying a failed fork/exec every tick forever. A missing
+            // binary never reaches `exited`, so count silent ticks instead:
+            // three strikes while gpuPresent stays false ⇒ dead until success.
+            if (!root._gpuDead) {
+                if (root.gpuPresent) {
+                    root._gpuMiss = 0;
+                } else {
+                    root._gpuMiss++;
+                    if (root._gpuMiss >= 3)
+                        root._gpuDead = true;
+                }
+            }
+            if (!root._gpuDead) {
+                gpuProc.command = ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,memory.used,power.draw", "--format=csv,noheader,nounits"];
+                gpuProc.running = true;
+            }
         }
     }
+
+    // strike counter + latch for absent nvidia-smi (reset on any success)
+    property int _gpuMiss: 0
+    property bool _gpuDead: false
 
     Component.onCompleted: hostnameFile.reload()
 }

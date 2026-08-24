@@ -19,10 +19,23 @@ Singleton {
         if (!a)
             return;
         root.mru = [a].concat(root.mru.filter(x => x !== a));
+        if (root._live)
+            root._refresh();
     }
 
-    // live window descriptors, most-recent-first; dead addresses dropped
-    readonly property var windows: {
+    // windows/workspaces are rebuilt IMPERATIVELY (never as bindings): a
+    // binding over Hyprland.toplevels re-runs O(windows × desktop-entry
+    // lookups) on every title churn — every keystroke in a browser — even
+    // with no surface open. While closed we simply stop refreshing.
+    property var windows: []
+    property var workspaces: []
+
+    // live while any consumer surface can see the data
+    readonly property bool _live: ShellState.overviewOpen || ShellState.altTabOpen
+
+    on_LiveChanged: _refresh()
+
+    function _refresh() {
         const vals = Hyprland.toplevels.values;
         const byAddr = {};
         for (let i = 0; i < vals.length; i++)
@@ -43,7 +56,37 @@ Singleton {
                 continue;
             out.push(root._desc(vals[i]));
         }
-        return out;
+        root.windows = out;
+
+        const wvals = Hyprland.workspaces.values;
+        const wsOut = [];
+        for (let i = 0; i < wvals.length; i++) {
+            const ws = wvals[i];
+            if (ws.id < 1)
+                continue;
+            wsOut.push({
+                "id": ws.id,
+                "name": ws.name,
+                "focused": ws.focused === true,
+                "windows": root._wsWindows(ws.id)
+            });
+        }
+        wsOut.sort((a, b) => a.id - b.id);
+        root.workspaces = wsOut;
+    }
+
+    Connections {
+        target: Hyprland
+
+        function onToplevelsChanged() {
+            if (root._live)
+                root._refresh();
+        }
+
+        function onWorkspacesChanged() {
+            if (root._live)
+                root._refresh();
+        }
     }
 
     function _desc(tl) {
@@ -62,31 +105,20 @@ Singleton {
     }
 
     function _entry(appId) {
+        // desktop-entry resolution is the expensive half of _desc — memoize
+        // per app id for the session
+        if (root._entryCache.hasOwnProperty(appId))
+            return root._entryCache[appId];
         let e = DesktopEntries.byId(appId);
         if (!e)
             e = DesktopEntries.heuristicLookup(appId);
+        root._entryCache[appId] = e;
         return e;
     }
 
-    // ---- workspaces -------------------------------------------------------
-    readonly property var workspaces: {
-        const vals = Hyprland.workspaces.values;
-        const out = [];
-        for (let i = 0; i < vals.length; i++) {
-            const ws = vals[i];
-            if (ws.id < 1)
-                continue;
-            out.push({
-                "id": ws.id,
-                "name": ws.name,
-                "focused": ws.focused === true,
-                "windows": root._wsWindows(ws.id)
-            });
-        }
-        out.sort((a, b) => a.id - b.id);
-        return out;
-    }
+    property var _entryCache: ({})
 
+    // ---- workspaces -------------------------------------------------------
     function _wsWindows(id) {
         const out = [];
         const vals = Hyprland.toplevels.values;

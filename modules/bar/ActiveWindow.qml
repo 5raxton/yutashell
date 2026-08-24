@@ -40,9 +40,11 @@ Item {
 
         function onRawEvent(evt) {
             if (evt.name === "activewindow") {
-                const idx = evt.data.indexOf(",");
-                root.appClass = idx > 0 ? evt.data.slice(0, idx) : "";
-                root.winTitle = evt.data.slice(idx + 1);
+                // evt.data can arrive null/undefined on some event bursts
+                const d = String(evt.data ?? "");
+                const idx = d.indexOf(",");
+                root.appClass = idx > 0 ? d.slice(0, idx) : "";
+                root.winTitle = idx >= 0 ? d.slice(idx + 1) : "";
             } else if (evt.name === "activewindowv2" && !evt.data) {
                 root.appClass = "";
                 root.winTitle = "";

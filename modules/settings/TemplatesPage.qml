@@ -18,17 +18,29 @@ Column {
     readonly property var rows: Wallpaper.templatesList()
     readonly property int enabledCount: rows.filter(r => r.enabled).length
 
+    // sections rebuild recreates every group header + TemplateRow (~60
+    // delegates) — debounce the search text so typing doesn't do that per key
+    property string settledQuery: ""
+    Timer {
+        id: settleTimer
+
+        interval: 180
+        onTriggered: root.settledQuery = root.query
+    }
+    onQueryChanged: settleTimer.restart()
+
     // groups in catalog order, CUSTOM last; empty groups dropped; query filtered
     readonly property var sections: {
+        const q = root.settledQuery;
         const out = [];
         const gs = TemplateCatalog.groups.concat([{ id: "CUSTOM", jp: "" }]);
         for (const g of gs) {
             const rs = root.rows.filter(r => {
                 if (r.group !== g.id)
                     return false;
-                if (root.query.length === 0)
+                if (q.length === 0)
                     return true;
-                return r.id.includes(root.query) || r.label.toLowerCase().includes(root.query) || String(r.output).toLowerCase().includes(root.query);
+                return r.id.includes(q) || r.label.toLowerCase().includes(q) || String(r.output).toLowerCase().includes(q);
             });
             if (rs.length > 0)
                 out.push({

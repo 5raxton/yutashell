@@ -41,11 +41,17 @@ PanelWindow {
     }
 
     // linger mapped after close so YSurface's exit ceremony renders
+    // rows only exist from the first open — 50 history delegates otherwise
+    // instantiate invisibly at every boot
+    property bool _everOpened: false
+
     Connections {
         target: ShellState
 
         function onNotifyCenterOpenChanged() {
-            if (!ShellState.notifyCenterOpen)
+            if (ShellState.notifyCenterOpen)
+                root._everOpened = true;
+            else
                 hideDelay.restart();
         }
     }
@@ -182,7 +188,7 @@ PanelWindow {
                     spacing: 0
 
                     Repeater {
-                        model: Notify.history
+                        model: root._everOpened ? Notify.history : 0
 
                         delegate: Item {
                             id: rowRoot

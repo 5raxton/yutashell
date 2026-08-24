@@ -15,8 +15,11 @@ Singleton {
 
     property bool _binOk: false
     property bool _probed: false
-    property bool active: ShellState.nlActive
-    property int temp: ShellState.nlTemp
+    // initialize-once from prefs (NOT a binding): start()/stop() assign these
+    // imperatively, which would silently destroy a ShellState binding and
+    // leave the property orphaned from persisted state forever after
+    property bool active: false
+    property int temp: 3000
 
     onActiveChanged: {
         ShellState.set("nlActive", active);
@@ -90,6 +93,9 @@ Singleton {
     }
 
     Component.onCompleted: {
+        // seed from prefs before anything binds to us
+        active = ShellState.nlActive;
+        temp = ShellState.nlTemp;
         binProbe.command = ["sh", "-c", "command -v hyprsunset >/dev/null 2>&1 && echo yes || echo no"];
         binProbe.running = true;
     }

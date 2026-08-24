@@ -59,6 +59,7 @@ Singleton {
     component Entry: QtObject {
         property var n: null // live Notification ref (null for replays)
         property bool dead: false // server-side close already happened
+        property bool alive: true // cleared right before destroy() in Notify
         property bool leaving: false // exit ceremony playing; hard close queued
         property int id: 0
         property string app: ""
@@ -222,8 +223,13 @@ Singleton {
         for (let i = 0; i < n.actions.length && i < vm.acts.length; i++)
             vm.acts[i].ref = n.actions[i];
         // the server may close its side first (client timeout) — mark dead so
-        // we never expire/dismiss a closed object
+        // we never expire/dismiss a closed object. The wrapper can already be
+        // destroyed by _trimLive by the time this fires; guard against that.
+        // (no `destroyed` signal access: this build doesn't expose it on
+        // inline-component QtObjects — aliveness is tracked explicitly)
         n.closed.connect(() => {
+            if (!vm.alive)
+                return;
             vm.dead = true;
         });
         root.live = [vm].concat(root.live).slice();
@@ -291,6 +297,7 @@ Singleton {
         root.live = root.live.filter(v => v.id !== id).slice();
         root.toastRemoved(vm);
         root._closeVm(vm, expire_ === true);
+        vm.alive = false;
         vm.destroy();
     }
 
@@ -342,6 +349,7 @@ Singleton {
             root.live = root.live.slice(0, root.maxVisible).slice();
             root.toastRemoved(old);
             root._closeVm(old, true);
+            old.alive = false;
             old.destroy();
         }
     }

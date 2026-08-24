@@ -3,6 +3,7 @@ ClipboardPanel 1.0 ClipboardPanel.qml
 Calendar 1.0 Calendar.qml
 CalendarGrid 1.0 CalendarGrid.qml
 singleton Weather 1.0 Weather.qml
+singleton Geo 1.0 Geo.qml
 WeatherPanel 1.0 WeatherPanel.qml
 singleton Screenshot 1.0 Screenshot.qml
 ShotFlash 1.0 ShotFlash.qml

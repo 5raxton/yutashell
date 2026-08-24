@@ -6,16 +6,19 @@ import qs.modules.common
 
 // Weather (PH.11) — open-meteo fetch via curl, cached to
 // ~/.local/state/yutashell/weather.json so a cold boot still shows the last
-// conditions. Location is manual (lat/lon + label in ShellState); units follow
-// ShellState.weatherUnit (celsius|fahrenheit). Refreshes every 30 min.
+// conditions. Location comes from Geo (IP-locate or manual coords); units
+// follow ShellState.weatherUnit (celsius|fahrenheit). Refreshes every 30 min.
 Singleton {
     id: root
 
-    readonly property bool available: _probed && _curlOk
+    readonly property bool available: _probed && _curlOk && Geo.configured
     property bool _curlOk: false
     property bool _probed: false
 
-    readonly property bool configured: String(ShellState.weatherLat).length > 0 && String(ShellState.weatherLon).length > 0
+    // display label for the effective location (manual override or IP city)
+    readonly property string locLabel: Geo.locLabel
+
+    readonly property bool configured: Geo.configured
 
     property bool fetching: false
     property string error: ""
@@ -28,9 +31,15 @@ Singleton {
     function refresh() {
         if (!root.configured || !root.available)
             return;
+        // auto mode still resolving — Geo fires refresh when it lands
+        if (Geo.latStr.length === 0 || Geo.lonStr.length === 0)
+            return;
+        // an in-flight curl would lose the command reassignment anyway
+        if (root.fetching)
+            return;
         root.fetching = true;
         fetchProc.command = ["curl", "-s", "--max-time", "10",
-            "https://api.open-meteo.com/v1/forecast?latitude=" + ShellState.weatherLat + "&longitude=" + ShellState.weatherLon + "&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&temperature_unit=" + ShellState.weatherUnit + "&forecast_days=5"];
+            "https://api.open-meteo.com/v1/forecast?latitude=" + Geo.latStr + "&longitude=" + Geo.lonStr + "&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&temperature_unit=" + ShellState.weatherUnit + "&forecast_days=5"];
         fetchProc.running = true;
     }
 
@@ -140,6 +149,16 @@ Singleton {
         path: Quickshell.env("HOME") + "/.local/state/yutashell/weather.json"
         printErrors: false
         blockLoading: true
+    }
+
+    // Geo resolved (or mode flipped) — pull weather for the fresh coords
+    Connections {
+        function onReadyChanged() {
+            if (Geo.ready)
+                root.refresh();
+        }
+
+        target: Geo
     }
 
     // refresh every 30 min

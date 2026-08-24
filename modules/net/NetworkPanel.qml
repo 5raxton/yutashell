@@ -43,12 +43,27 @@ PanelWindow {
     readonly property var wifiDev: Connectivity.wifiDev
     readonly property bool airplane: Connectivity.airplane
 
-    readonly property var nets: {
-        if (!wifiDev || !Networking.wifiEnabled)
-            return [];
+    // rebuilt on the refresh timer below (open-only), NOT bound to
+    // networks.values — scan bursts recreate delegates through a binding
+    // even while this surface is closed
+    property var nets: []
+
+    Timer {
+        interval: 3000
+        running: ShellState.netOpen && wifiDev !== null && Networking.wifiEnabled
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root._rebuildNets()
+    }
+
+    function _rebuildNets() {
+        if (!wifiDev || !Networking.wifiEnabled) {
+            root.nets = [];
+            return;
+        }
         const arr = wifiDev.networks.values.slice();
         arr.sort((a, b) => b.signalStrength - a.signalStrength);
-        return arr.slice(0, 14);
+        root.nets = arr.slice(0, 14);
     }
 
     // selected unknown network awaiting PSK
@@ -119,6 +134,11 @@ PanelWindow {
         followup.running = true;
     }
 
+    // mod + up must run SEQUENTIALLY through the one shared Process:
+    // reassigning `command` while it is still running is silently dropped,
+    // so step two chains off step one's exit
+    property var _dnsStep2: null
+
     Process {
         id: appliedProbe
 
@@ -130,7 +150,15 @@ PanelWindow {
     Process {
         id: followup
 
-        onExited: Connectivity.refresh()
+        onExited: {
+            if (_dnsStep2) {
+                const next = _dnsStep2;
+                _dnsStep2 = null;
+                runNm(next);
+                return;
+            }
+            Connectivity.refresh();
+        }
     }
 
     function vpnToggle(row) {
@@ -140,8 +168,8 @@ PanelWindow {
     function applyDns(val) {
         if (!Connectivity.activeCon)
             return;
+        _dnsStep2 = ["nmcli", "con", "up", Connectivity.activeCon];
         runNm(["nmcli", "con", "mod", Connectivity.activeCon, "ipv4.dns", val]);
-        runNm(["nmcli", "con", "up", Connectivity.activeCon]);
     }
 
     Item {

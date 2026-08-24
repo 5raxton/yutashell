@@ -63,13 +63,16 @@ PanelWindow {
         anchorItem = null;
         hideTimer.stop();
     }
-
     Timer {
         id: hideTimer
+
         interval: 2400
         onTriggered: {
-            // hovering the anchor holds the tip open; leave and it dismisses
-            if (root.anchorItem && root.anchorItem.containsMouse === true) {
+            // hovering the anchor holds the tip open; leave and it dismisses.
+            // MouseAreas expose containsMouse; HoverHandler callers expose
+            // hovered — accept either so the hold isn't dead for half the kit
+            const a = root.anchorItem;
+            if (a && (a.containsMouse === true || a.hovered === true)) {
                 hideTimer.restart();
                 return;
             }

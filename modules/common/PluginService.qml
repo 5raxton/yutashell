@@ -66,6 +66,7 @@ Singleton {
         // The 80ms coalesced flush once let a concurrent reload re-read stale
         // disk and silently revert the flag before it ever persisted.
         ShellState.flushNow();
+        root._enableRev++;
         if (!on) {
             _unload(id);
         } else {
@@ -124,8 +125,17 @@ Singleton {
         // dropped (AGENTS lesson #3). The 80 ms coalesced flush absorbs bursts.
     }
 
-    // widget-type plugins that are enabled → bar hosts these
-    readonly property var enabledWidgets: root.manifests.filter(m => m.type === "widget" && root.isEnabled(m.id))
+    // widget-type plugins that are enabled → bar hosts these.
+    // Deliberately depends on _enableRev (bumped ONLY by setEnabled), NOT on
+    // pluginData — daemon data saves would otherwise recreate the array and
+    // tear down the bar's widget Loaders though enablement never changed.
+    property int _enableRev: 0
+
+    readonly property var enabledWidgets: {
+        const _rev = root._enableRev;
+        const _mf = root.manifests;
+        return _mf.filter(m => m.type === "widget" && root.isEnabled(m.id));
+    }
 
     function componentUrl(mf) {
         return "file://" + root.pluginsRoot + "/" + (mf.dir || "") + "/" + (mf.component || "main.qml");

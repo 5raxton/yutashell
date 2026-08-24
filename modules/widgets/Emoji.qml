@@ -81,6 +81,8 @@ PanelWindow {
         }
     }
 
+    Component.onCompleted: wlProbe.running = true
+
     Process {
         id: copyProc
 

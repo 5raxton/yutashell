@@ -220,12 +220,27 @@ Singleton {
         }
     }
 
+    // Only worth a systemd-inhibit spawn every 20s while its bar chip is on
+    // or the session surface needs the data; otherwise skip the tick.
+    readonly property bool _inhibitWanted: {
+        try {
+            const segs = JSON.parse(ShellState.barSegments);
+            for (let i = 0; i < segs.length; i++)
+                if (segs[i].id === "session" && segs[i].enabled === true)
+                    return true;
+        } catch (e) {}
+        return false;
+    }
+
     Timer {
         running: true
         repeat: true
         interval: 20000
         triggeredOnStart: true
-        onTriggered: inhibProbe.running = true
+        onTriggered: {
+            if (root._inhibitWanted || ShellState.sessionOpen)
+                inhibProbe.running = true;
+        }
     }
 
     // ---- ppd probe --------------------------------------------------------

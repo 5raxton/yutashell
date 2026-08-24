@@ -253,6 +253,10 @@ Singleton {
     readonly property alias osdCorner: adapter.osdCorner
     readonly property alias osdWidth: adapter.osdWidth
     readonly property alias osdFadeMs: adapter.osdFadeMs
+    // per-kind OSD gates (volume / mic / brightness)
+    readonly property alias osdVolume: adapter.osdVolume
+    readonly property alias osdMic: adapter.osdMic
+    readonly property alias osdBright: adapter.osdBright
     readonly property alias nlTemp: adapter.nlTemp
     readonly property alias nlActive: adapter.nlActive
 
@@ -280,6 +284,9 @@ Singleton {
     readonly property alias weatherLat: adapter.weatherLat
     readonly property alias weatherLon: adapter.weatherLon
     readonly property alias weatherLabel: adapter.weatherLabel
+    // location source: "" = legacy auto (manual if coords set, else IP),
+    // "auto" = forced IP geolocation, "manual" = forced static coords
+    readonly property alias weatherMode: adapter.weatherMode
     readonly property alias weatherUnit: adapter.weatherUnit
     readonly property alias clipboardPins: adapter.clipboardPins
 
@@ -377,11 +384,15 @@ Singleton {
     property string launcherRecents: "[]"
 
     // audio: overdrive ceiling percent (100+), OSD corner (tl|tc|tr|bl|bc|br),
-    // OSD card width, OSD fade delay ms, night light temperature (K)
+    // OSD card width, OSD fade delay ms, per-kind OSD gates, night light
+    // temperature (K)
     property int audioCeiling: 130
     property string osdCorner: "bc"
     property int osdWidth: 420
     property int osdFadeMs: 1600
+    property bool osdVolume: true
+    property bool osdMic: true
+    property bool osdBright: true
     property int nlTemp: 4500
     property bool nlActive: false
     // session/power: lock-screen monitor selection ("all"|"primary"|JSON name
@@ -416,6 +427,9 @@ Singleton {
     property string weatherLat: ""
     property string weatherLon: ""
     property string weatherLabel: ""
+    // location source: "" = legacy auto (manual coords win when set, else
+    // IP-locate), "auto" = forced IP geolocation, "manual" = forced static
+    property string weatherMode: ""
     property string weatherUnit: "celsius"
     property string clipboardPins: "[]"
 

@@ -210,7 +210,7 @@ PanelWindow {
                             // width-capped micro-line — long location labels overflowed the card
                             width: parent.width
                             elide: Text.ElideRight
-                            text: (ShellState.weatherLabel.length > 0 ? ShellState.weatherLabel.toUpperCase() : ShellState.weatherLat + "," + ShellState.weatherLon) + " · WIND " + (Weather.current ? Weather.current.wind : 0) + "KM/H"
+                            text: Weather.locLabel.toUpperCase() + " · WIND " + (Weather.current ? Weather.current.wind : 0) + "KM/H"
                             color: Theme.muted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fsMicro

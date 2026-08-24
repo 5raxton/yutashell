@@ -78,6 +78,32 @@ PanelWindow {
 
     readonly property string anchorX: ShellState.ccAnchor === "left" ? "left" : ShellState.ccAnchor === "right" ? "right" : "center"
 
+    // top-8 wifi rows for HOME; rebuilt only by _rebuildWifiTop() (3 s cadence
+    // while the tab is open) and only when the visible tuple set actually changed
+    property var wifiTop: []
+    property string _wifiSig: ""
+
+    function _rebuildWifiTop() {
+        const dev = Connectivity.wifiDev;
+        if (!dev || !Networking.wifiEnabled) {
+            if (root.wifiTop.length !== 0) {
+                root.wifiTop = [];
+                root._wifiSig = "";
+            }
+            return;
+        }
+        const vals = dev.networks.values;
+        const parts = [];
+        for (let i = 0; i < vals.length; i++)
+            parts.push(vals[i].name + ":" + vals[i].signalStrength + ":" + (vals[i].connected ? 1 : 0));
+        const sig = parts.join("|");
+        if (sig === root._wifiSig)
+            return;
+        root._wifiSig = sig;
+        root.wifiTop = vals.slice().sort((a, b) => b.signalStrength - a.signalStrength).slice(0, 8);
+    }
+
+
     // MPRIS player resolution (shared by HOME + MEDIA tabs)
     readonly property var players: Mpris.players.values ?? []
     readonly property var player: players.find(p => p.isPlaying) ?? players[0] ?? null
@@ -390,6 +416,18 @@ PanelWindow {
                         onTriggered: homeClock.text = SystemStats.fmtTime(new Date(), false)
                     }
 
+                    // wifi rows refresh on this cadence instead of binding to
+                    // networks.values — scan bursts repopulate that list even
+                    // when nothing visible changed, and a bound model would
+                    // recreate all row delegates on every burst
+                    Timer {
+                        interval: 3000
+                        running: root.activePageId === "home" && ShellState.ccOpen && Networking.wifiEnabled && Connectivity.wifiDev !== null
+                        repeat: true
+                        triggeredOnStart: true
+                        onTriggered: root._rebuildWifiTop()
+                    }
+
                     // avatar (initial fallback)
                     Rectangle {
                         anchors.right: parent.right
@@ -425,45 +463,37 @@ PanelWindow {
                     columnSpacing: Theme.sp2
                     rowSpacing: Theme.sp2
 
+                    // static keys only — an inline object-literal model is a NEW
+                    // array on every toggle, recreating all four tiles; state
+                    // resolves per-key inside the delegate instead
                     Repeater {
-                        model: [{
-                                key: "wifi",
-                                title: "Wi-Fi",
-                                on: Networking.wifiEnabled,
-                                act: () => {
-                                    Networking.wifiEnabled = !Networking.wifiEnabled;
-                                }
-                            }, {
-                                key: "bt",
-                                title: "Bluetooth",
-                                on: Connectivity.btOn,
-                                act: () => {
-                                    if (Bluetooth.defaultAdapter)
-                                        Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
-                                }
-                            }, {
-                                key: "nightlight",
-                                title: "Night light",
-                                on: NightLight.active,
-                                act: () => NightLight.toggle()
-                            }, {
-                                key: "dnd",
-                                title: "Do not disturb",
-                                on: Notify.dnd,
-                                act: () => Notify.toggleDnd()
-                            }]
+                        model: ["wifi", "bt", "nightlight", "dnd"]
 
                         delegate: Rectangle {
                             id: qtt
 
                             required property int index
-                            required property var modelData
+                            required property string modelData
+
+                            readonly property bool tileOn: modelData === "wifi" ? Networking.wifiEnabled : modelData === "bt" ? (Connectivity.btOn) : modelData === "nightlight" ? NightLight.active : Notify.dnd
+
+                            function act() {
+                                if (modelData === "wifi")
+                                    Networking.wifiEnabled = !Networking.wifiEnabled;
+                                else if (modelData === "bt") {
+                                    if (Bluetooth.defaultAdapter)
+                                        Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
+                                } else if (modelData === "nightlight")
+                                    NightLight.toggle();
+                                else
+                                    Notify.toggleDnd();
+                            }
 
                             width: (homeCol.width - Theme.sp2) / 2
                             height: 52
                             color: qttArea.containsMouse ? Theme.surface : Theme.bg
                             border.width: 1
-                            border.color: modelData.on ? Theme.acid : (qttArea.containsMouse ? Theme.lineStrong : Theme.hairline)
+                            border.color: qtt.tileOn ? Theme.acid : (qttArea.containsMouse ? Theme.lineStrong : Theme.hairline)
 
                             Row {
                                 anchors.fill: parent
@@ -476,8 +506,11 @@ PanelWindow {
                                     spacing: 1
 
                                     Text {
-                                        text: qtt.modelData.title.toUpperCase()
-                                        color: qtt.modelData.on ? Theme.acid : Theme.ink
+                                        text: {
+                                            const t = qtt.modelData === "wifi" ? "Wi-Fi" : qtt.modelData === "bt" ? "Bluetooth" : qtt.modelData === "nightlight" ? "Night light" : "Do not disturb";
+                                            return t.toUpperCase();
+                                        }
+                                        color: qtt.tileOn ? Theme.acid : Theme.ink
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fsLabel
                                         font.weight: Font.Bold
@@ -485,7 +518,7 @@ PanelWindow {
                                     }
 
                                     Text {
-                                        text: qtt.modelData.on ? "ON" : "OFF"
+                                        text: qtt.tileOn ? "ON" : "OFF"
                                         color: Theme.faint
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fsMicro
@@ -494,8 +527,8 @@ PanelWindow {
 
                                 YSwitch {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    checked: qtt.modelData.on
-                                    onToggled: qtt.modelData.act()
+                                    checked: qtt.tileOn
+                                    onToggled: qtt.act()
                                 }
                             }
 
@@ -505,7 +538,7 @@ PanelWindow {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: qtt.modelData.act()
+                                onClicked: qtt.act()
                             }
                         }
                     }
@@ -1198,7 +1231,7 @@ PanelWindow {
                 }
 
                 Repeater {
-                    model: Connectivity.wifiDev && Networking.wifiEnabled ? Connectivity.wifiDev.networks.values.slice().sort((a, b) => b.signalStrength - a.signalStrength).slice(0, 8) : []
+                    model: root.wifiTop
 
                     delegate: YRow {
                         id: nrow
@@ -1371,7 +1404,7 @@ PanelWindow {
                 width: parent.width
                 index: "01"
                 label: "Conditions"
-                chip: Weather.configured ? ShellState.weatherLabel.toUpperCase() : "UNSET"
+                chip: Weather.configured ? Weather.locLabel.toUpperCase() : "UNSET"
             }
 
             Text {

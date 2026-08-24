@@ -551,7 +551,7 @@ PanelWindow {
                 Text {
                     anchors.baseline: pageTitle.baseline
                     anchors.right: parent.right
-                    text: root.activePageId === "appearance" ? Wallpaper.templatesList().filter(t => t.enabled).length + " TPL ON" : ""
+                    text: root.activePageId === "appearance" ? Wallpaper.tplOnCount + " TPL ON" : ""
                     color: Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsMicro
@@ -1116,7 +1116,7 @@ PanelWindow {
                         width: parent.width
                         index: "05"
                         label: "Matugen templates"
-                        chip: Wallpaper.templatesList().filter(t => t.enabled).length + " on"
+                        chip: Wallpaper.tplOnCount + " on"
                     }
 
                     TemplatesPage {
@@ -2161,9 +2161,11 @@ PanelWindow {
                         chip: ShellState.osdCorner.toUpperCase()
                     }
 
-                    Row {
-                        width: parent.width
-                        spacing: Theme.sp1
+                    // 2×3 screen map — pick where the OSD card parks
+                    Grid {
+                        columns: 3
+                        columnSpacing: Theme.sp1
+                        rowSpacing: Theme.sp1
 
                         Repeater {
                             model: ["tl", "tc", "tr", "bl", "bc", "br"]
@@ -2171,7 +2173,7 @@ PanelWindow {
                             delegate: YButton {
                                 required property var modelData
 
-                                width: 40
+                                width: 64
                                 tone: ShellState.osdCorner === modelData ? "acid" : "default"
                                 label: modelData.toUpperCase()
                                 onClicked: ShellState.set("osdCorner", modelData)
@@ -2179,9 +2181,85 @@ PanelWindow {
                         }
                     }
 
+                    Item {
+                        width: parent.width
+                        height: 14
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width
+                            height: 1
+                            color: Theme.hairline
+                        }
+                    }
+
                     YSection {
                         width: parent.width
                         index: "02"
+                        label: "Kinds"
+                        chip: (ShellState.osdVolume ? "V" : "") + (ShellState.osdMic ? "M" : "") + (ShellState.osdBright ? "B" : "")
+                    }
+
+                    YRow {
+                        width: parent.width
+                        title: "Volume"
+                        sub: "sink + player changes"
+
+                        YSwitch {
+                            checked: ShellState.osdVolume
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("osdVolume", checked)
+                        }
+                    }
+
+                    YRow {
+                        width: parent.width
+                        title: "Microphone"
+                        sub: "input level changes"
+
+                        YSwitch {
+                            checked: ShellState.osdMic
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("osdMic", checked)
+                        }
+                    }
+
+                    YRow {
+                        width: parent.width
+                        title: "Brightness"
+                        sub: DisplayService.available ? DisplayService.displays.map(d => d.label).join(", ").toLowerCase() : "no backend (install brightnessctl or ddcutil)"
+
+                        YSwitch {
+                            checked: ShellState.osdBright
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("osdBright", checked)
+                        }
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        YButton {
+                            label: "TEST VOL"
+                            onClicked: AudioService.osdPing("volume")
+                        }
+
+                        YButton {
+                            label: "TEST MIC"
+                            onClicked: AudioService.osdPing("mic")
+                        }
+
+                        YButton {
+                            label: "TEST BRIGHT"
+                            enabled: DisplayService.available
+                            onClicked: AudioService.osdPing("bright")
+                        }
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
                         label: "Size"
                         chip: ShellState.osdWidth + "px"
                     }
@@ -2205,7 +2283,7 @@ PanelWindow {
 
                     YSection {
                         width: parent.width
-                        index: "03"
+                        index: "04"
                         label: "Fade"
                         chip: ShellState.osdFadeMs + "ms"
                     }
@@ -2483,14 +2561,71 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "02"
-                        label: "Weather"
-                        chip: Weather.configured ? ShellState.weatherLabel.toUpperCase() : "UNSET"
+                        label: "Location"
+                        chip: Weather.configured ? Weather.locLabel.toUpperCase() : "UNSET"
                     }
 
+                    // AUTO resolves by IP (drives weather + timezone);
+                    // MANUAL uses static coords. Legacy "" behaves as auto.
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        YButton {
+                            tone: Geo.modeAuto ? "acid" : "default"
+                            label: "AUTO · IP"
+                            onClicked: ShellState.set("weatherMode", "auto")
+                        }
+
+                        YButton {
+                            tone: !Geo.modeAuto ? "acid" : "default"
+                            label: "MANUAL"
+                            onClicked: ShellState.set("weatherMode", "manual")
+                        }
+
+                        Item {
+                            width: Theme.sp2
+                            height: 1
+                        }
+
+                        YButton {
+                            label: Geo.resolving ? "…" : "REDETECT"
+                            enabled: Geo.modeAuto && Geo.available && !Geo.resolving
+                            onClicked: Geo.detect(true)
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        visible: Geo.modeAuto
+                        text: {
+                            if (!Geo.available)
+                                return "curl missing — install curl for IP location";
+                            if (Geo.resolving)
+                                return "resolving by ip…";
+                            if (Geo.error.length > 0)
+                                return "lookup failed — will retry";
+                            return Weather.configured ? Weather.locLabel + "  ·  " + (Geo.tz.length > 0 ? Geo.tz : "tz n/a") + "  ·  " + Geo.latStr + ", " + Geo.lonStr : "no fix yet";
+                        }
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        elide: Text.ElideRight
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 8
+                        visible: Geo.modeManual
+                    }
+
+                    // manual coordinate entry (visible in MANUAL mode; applying
+                    // from AUTO switches modes implicitly via weatherMode=manual)
                     YField {
                         id: weatherLatField
 
                         width: root.contentW
+                        visible: Geo.modeManual
                         placeholder: "latitude (e.g. 35.68)"
                     }
 
@@ -2498,6 +2633,7 @@ PanelWindow {
                         id: weatherLonField
 
                         width: root.contentW
+                        visible: Geo.modeManual
                         placeholder: "longitude (e.g. 139.69)"
                     }
 
@@ -2505,10 +2641,12 @@ PanelWindow {
                         id: weatherLabelField
 
                         width: root.contentW
+                        visible: Geo.modeManual
                         placeholder: "location label (e.g. TOKYO)"
                     }
 
                     YButton {
+                        visible: Geo.modeManual
                         label: "APPLY LOCATION"
                         tone: "acid"
                         onClicked: {
@@ -2516,6 +2654,7 @@ PanelWindow {
                                 ShellState.set("weatherLat", weatherLatField.text.trim());
                                 ShellState.set("weatherLon", weatherLonField.text.trim());
                                 ShellState.set("weatherLabel", weatherLabelField.text.trim());
+                                ShellState.set("weatherMode", "manual");
                                 Weather.refresh();
                             }
                         }

@@ -9,6 +9,13 @@ import "ui"
 // Toast stack — passive popup, no exclusivity. Cards drop from behind the
 // bar in the configured corner (tr|tl); input is masked to the cards only,
 // the rest of the window passes clicks straight through.
+//
+// The ObjectModel holds the CARD ITEMS themselves (never an inline delegate:
+// a Repeater fed by an ObjectModel receives the stored objects directly, so
+// plain Entry QtObjects here crashed the compositor session with recursive
+// instantiation). Cards are created per toast and destroyed on remove —
+// entries stay stable across ticks, so hover-pause and entrance animations
+// survive every countdown tick.
 PanelWindow {
     id: root
 
@@ -55,24 +62,36 @@ PanelWindow {
 
             Repeater {
                 model: toastModel
-
-                ToastCard {}
             }
         }
     }
 
-    // incremental mirror of Notify.live: entries are stable QtObjects, so a
-    // new toast must not reset the whole Repeater (entrance replays + hover
-    // pause lost). _items stays index-aligned with the ObjectModel.
     ObjectModel {
         id: toastModel
     }
 
+    Component {
+        id: cardComp
+
+        ToastCard {}
+    }
+
+    // Entry refs — index-aligned with toastModel (cards at the same slots)
     property var _items: []
 
     function _syncAdd(vm) {
+        const stagger = Math.min(root._items.length, 6) * 70;
+        // parent straight into the live column — creating under the window
+        // leaves the card out of the graphics scene until the ObjectModel
+        // adopts it ("not placed in the graphics scene" warnings)
+        const card = cardComp.createObject(contentCol, {
+                "entry": vm,
+                "staggerMs": stagger
+            });
+        if (!card)
+            return;
         root._items.unshift(vm);
-        toastModel.insert(0, vm);
+        toastModel.insert(0, card);
     }
 
     function _syncRemove(vm) {
@@ -80,6 +99,7 @@ PanelWindow {
         if (i < 0)
             return;
         root._items.splice(i, 1);
+        // removing from the ObjectModel also destroys the card item
         toastModel.remove(i);
     }
 

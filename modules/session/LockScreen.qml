@@ -5,11 +5,13 @@ import QtQuick
 import qs.theme
 import qs.modules.common
 import qs.modules.common.ui
+import "../widgets"
 
 // LockScreen — secure wl_session_lock overlay. The compositor guarantees a
 // surface per screen; monitor selection ("all"/"primary"/explicit list) only
 // decides WHICH surfaces render the full visual (clock + auth). Non-selected
-// screens get an opaque veil — they stay locked either way, that's protocol.
+// screens get an opaque veil with its own minimal chrome — they stay locked
+// either way, that's protocol.
 //
 // Auth: one PamContext here; the handshake STATE lives in Session so the IPC
 // layer could drive it too. Wrong attempts snap the card sideways instantly
@@ -19,6 +21,7 @@ Item {
 
     readonly property string userName: Quickshell.env("USER") || "user"
     readonly property string avatarUrl: ShellState.lockAvatar.length > 0 ? "file://" + ShellState.lockAvatar : "file://" + Quickshell.env("HOME") + "/.face"
+    readonly property string hostName: SystemStats.hostname.length > 0 ? SystemStats.hostname.toUpperCase() : (Quickshell.env("HOSTNAME") || "").toUpperCase()
 
     WlSessionLock {
         id: lock
@@ -29,6 +32,33 @@ Item {
         // render the full visual (clock + auth); all screens stay locked
         WlSessionLockSurface {
             color: Theme.bg
+
+            // veil chrome for NON-selected screens (the full visual covers it
+            // wherever it renders)
+            Column {
+                anchors.centerIn: parent
+                spacing: Theme.sp2
+                visible: !(screen !== null && Session.lockScreenSelected(screen.name))
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 10
+                    height: 10
+                    rotation: 45
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Theme.faint
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: (Theme.jpEnabled ? "施錠中" : "SESSION LOCKED")
+                    color: Theme.faint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                    font.letterSpacing: 3
+                }
+            }
 
             LockVisual {
                 anchors.fill: parent
@@ -113,38 +143,236 @@ Item {
     component LockVisual: Item {
         id: vis
 
-        // ---- clock block ----
-        Column {
-            id: clockCol
+        readonly property bool sel: visible
 
-            anchors.horizontalCenter: parent.horizontalCenter
+        // ---- entrance ceremony: stage drops in, then the card rises ----
+        SequentialAnimation {
+            id: enterAnim
+
+            ParallelAnimation {
+                NumberAnimation {
+                    target: stageWrap
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: Theme.movSlow
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    target: stageShift
+                    property: "y"
+                    from: -14
+                    to: 0
+                    duration: Theme.movSlow
+                    easing.type: Easing.OutCubic
+                }
+            }
+            PauseAnimation {
+                duration: 90
+            }
+            ParallelAnimation {
+                NumberAnimation {
+                    target: cardWrap
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: Theme.movSlow
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    target: cardRise
+                    property: "y"
+                    from: 18
+                    to: 0
+                    duration: Theme.movSlow
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+
+        Component.onCompleted: if (Session.locked)
+            enterAnim.restart()
+
+        Connections {
+            function onLockedChanged() {
+                if (Session.locked)
+                    enterAnim.restart();
+            }
+
+            target: Session
+        }
+
+        // ---- backdrop texture: hairline power-line columns + ghost host ----
+        Repeater {
+            model: Math.floor(parent.width / 120)
+
+            Rectangle {
+                required property int index
+
+                x: index * 120 + 60
+                width: 1
+                height: parent.height
+                color: Theme.hairline
+                opacity: 0.35
+            }
+        }
+
+        Text {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: -Theme.sp3
+            anchors.bottomMargin: -Theme.fsDisplay * 2
+            text: root.hostName.length > 0 ? root.hostName : "YUTA"
+            color: Theme.surface
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fsDisplay * 7
+            font.weight: Font.ExtraBold
+            font.letterSpacing: 6
+        }
+
+        // ---- clock stage ----
+        Item {
+            id: stageWrap
+
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: parent.height * 0.14
-            spacing: Theme.sp2
+            anchors.topMargin: parent.height * 0.13
+            height: 150
 
+            Translate {
+                id: stageShift
+            }
+
+            transform: stageShift
+
+            // micro chrome line
             Text {
-                id: clockText
+                id: chromeLine
 
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatDateTime(new Date(), "HH:mm")
-                color: Theme.ink
+                text: (Theme.jpEnabled ? "システム施錠" : "SYSTEM LOCKED") + (root.hostName.length > 0 ? " · " + root.hostName : "")
+                color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsDisplay * 4
-                font.letterSpacing: 2
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
+                font.letterSpacing: 3
+            }
+
+            // viewfinder corner brackets frame the clock
+            Repeater {
+                model: [
+                        {
+                            "dx": -1,
+                            "dy": -1
+                        },
+                        {
+                            "dx": 1,
+                            "dy": -1
+                        },
+                        {
+                            "dx": -1,
+                            "dy": 1
+                        },
+                        {
+                            "dx": 1,
+                            "dy": 1
+                        }
+                    ]
+
+                delegate: Item {
+                    required property var modelData
+
+                    x: stageWrap.width / 2 + modelData.dx * (clockRow.width / 2 + 26) - (modelData.dx < 0 ? 14 : 0)
+                    y: 22 + (modelData.dy < 0 ? 0 : 96)
+                    width: 14
+                    height: 14
+
+                    Rectangle {
+                        width: 14
+                        height: 1
+                        y: parent.modelData.dy < 0 ? 0 : 13
+                        color: Theme.faint
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 14
+                        x: parent.modelData.dx < 0 ? 0 : 13
+                        color: Theme.faint
+                    }
+                }
+            }
+
+            Row {
+                id: clockRow
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: chromeLine.bottom
+                anchors.topMargin: Theme.sp2 + 6
+                spacing: 0
+
+                property bool colonOn: true
 
                 Timer {
                     interval: 1000
-                    running: Session.locked
+                    running: vis.sel && Session.locked
                     repeat: true
                     triggeredOnStart: true
-                    onTriggered: clockText.text = Qt.formatDateTime(new Date(), "HH:mm")
+                    onTriggered: clockRow.colonOn = !clockRow.colonOn
+                }
+
+                Text {
+                    anchors.baseline: parent.bottom
+                    text: Qt.formatDateTime(new Date(), "HH")
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsDisplay * 4
+                    font.weight: Font.ExtraBold
+                    font.letterSpacing: 2
+
+                    Timer {
+                        interval: 1000
+                        running: vis.sel && Session.locked
+                        repeat: true
+                        triggeredOnStart: true
+                        onTriggered: parent.text = Qt.formatDateTime(new Date(), "HH")
+                    }
+                }
+
+                Text {
+                    anchors.baseline: parent.bottom
+                    visible: clockRow.colonOn
+                    text: ":"
+                    color: Theme.acid
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsDisplay * 4
+                    font.weight: Font.ExtraBold
+                }
+
+                Text {
+                    anchors.baseline: parent.bottom
+                    text: Qt.formatDateTime(new Date(), "mm")
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsDisplay * 4
+                    font.weight: Font.ExtraBold
+                    font.letterSpacing: 2
+
+                    Timer {
+                        interval: 1000
+                        running: vis.sel && Session.locked
+                        repeat: true
+                        triggeredOnStart: true
+                        onTriggered: parent.text = Qt.formatDateTime(new Date(), "mm")
+                    }
                 }
             }
 
             Text {
-                id: dateText
-
                 anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: clockRow.bottom
+                anchors.topMargin: Theme.sp2
                 text: Qt.formatDateTime(new Date(), "dddd · d MMMM yyyy").toUpperCase()
                 color: Theme.muted
                 font.family: Theme.fontFamily
@@ -153,15 +381,17 @@ Item {
 
                 Timer {
                     interval: 60000
-                    running: Session.locked
+                    running: vis.sel && Session.locked
                     repeat: true
                     triggeredOnStart: true
-                    onTriggered: dateText.text = Qt.formatDateTime(new Date(), "dddd · d MMMM yyyy").toUpperCase()
+                    onTriggered: parent.text = Qt.formatDateTime(new Date(), "dddd · d MMMM yyyy").toUpperCase()
                 }
             }
 
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: clockRow.bottom
+                anchors.topMargin: Theme.sp2 + 22
                 width: 42
                 height: 2
                 color: Theme.acid
@@ -169,212 +399,236 @@ Item {
         }
 
         // ---- auth card ----
-        Rectangle {
-            id: card
-
-            property real shakeX: 0
+        Item {
+            id: cardWrap
 
             width: 340
-            height: 190
+            height: 196
+
+            opacity: 1
+            transform: Translate {
+                id: cardRise
+            }
+
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            transform: Translate {
-                x: card.shakeX
-            }
-            color: Theme.surface
-            border.width: 1
-            border.color: Session.authAttempts > 0 ? Theme.alert : Theme.lineStrong
+            anchors.verticalCenterOffset: 46
 
-            function snapShake() {
-                shakeSeq.restart();
-            }
+            Rectangle {
+                id: card
 
-            SequentialAnimation {
-                id: shakeSeq
+                property real shakeX: 0
 
-                NumberAnimation {
-                    target: card
-                    property: "shakeX"
-                    to: -9
-                    duration: 1
-                }
-                PauseAnimation {
-                    duration: 40
-                }
-                NumberAnimation {
-                    target: card
-                    property: "shakeX"
-                    to: 9
-                    duration: 1
-                }
-                PauseAnimation {
-                    duration: 40
-                }
-                NumberAnimation {
-                    target: card
-                    property: "shakeX"
-                    to: -5
-                    duration: 1
-                }
-                PauseAnimation {
-                    duration: 40
-                }
-                NumberAnimation {
-                    target: card
-                    property: "shakeX"
-                    to: 0
-                    duration: 1
-                }
-            }
-
-            Column {
                 anchors.fill: parent
-                anchors.margins: Theme.sp4
-                spacing: Theme.sp3
+                transform: Translate {
+                    x: card.shakeX
+                }
+                color: Theme.surface
+                border.width: 1
+                border.color: Session.authAttempts > 0 ? Theme.alert : Session.authBusy ? Theme.acidDeep : Theme.lineStrong
 
-                Row {
+                function snapShake() {
+                    shakeSeq.restart();
+                }
+
+                SequentialAnimation {
+                    id: shakeSeq
+
+                    NumberAnimation {
+                        target: card
+                        property: "shakeX"
+                        to: -9
+                        duration: 1
+                    }
+                    PauseAnimation {
+                        duration: 40
+                    }
+                    NumberAnimation {
+                        target: card
+                        property: "shakeX"
+                        to: 9
+                        duration: 1
+                    }
+                    PauseAnimation {
+                        duration: 40
+                    }
+                    NumberAnimation {
+                        target: card
+                        property: "shakeX"
+                        to: -5
+                        duration: 1
+                    }
+                    PauseAnimation {
+                        duration: 40
+                    }
+                    NumberAnimation {
+                        target: card
+                        property: "shakeX"
+                        to: 0
+                        duration: 1
+                    }
+                }
+
+                // acid top edge while verifying
+                Rectangle {
+                    visible: Session.authBusy
+                    x: 1
+                    y: 1
+                    width: parent.width - 2
+                    height: 2
+                    color: Theme.acid
+                }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: Theme.sp4
                     spacing: Theme.sp3
-                    anchors.horizontalCenter: parent.horizontalCenter
 
-                    Rectangle {
-                        id: avatarRing
+                    Row {
+                        spacing: Theme.sp3
+                        anchors.horizontalCenter: parent.horizontalCenter
 
-                        width: 44
-                        height: 44
-                        color: Theme.bgAlt
-                        border.width: 1
-                        border.color: Theme.hairline
+                        Rectangle {
+                            id: avatarRing
 
-                        Image {
-                            id: avatarImg
+                            width: 48
+                            height: 48
+                            color: Theme.bgAlt
+                            border.width: 1
+                            border.color: Session.authBusy ? Theme.acid : Theme.hairline
 
-                            anchors.fill: parent
-                            anchors.margins: 2
-                            fillMode: Image.PreserveAspectCrop
-                            sourceSize.width: 88
-                            sourceSize.height: 88
-                            source: root.avatarUrl
-                            visible: status === Image.Ready
+                            Image {
+                                id: avatarImg
+
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                fillMode: Image.PreserveAspectCrop
+                                sourceSize.width: 96
+                                sourceSize.height: 96
+                                source: root.avatarUrl
+                                visible: status === Image.Ready
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                visible: !avatarImg.visible
+                                text: root.userName.charAt(0).toUpperCase()
+                                color: Theme.acid
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsTitle
+                                font.bold: true
+                            }
                         }
 
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 3
+
+                            Text {
+                                text: root.userName
+                                color: Theme.ink
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsBody
+                                font.weight: Font.Bold
+                            }
+
+                            Text {
+                                text: Theme.jpEnabled ? "認証" : "AUTHENTICATE"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsMicro
+                                font.letterSpacing: 2
+                            }
+                        }
+                    }
+
+                    YField {
+                        id: pwField
+
+                        width: parent.width
+                        placeholder: Theme.jpEnabled ? "パスワード" : "password"
+                        echoMode: TextInput.Password
+                        enabled: !Session.authBusy
+
+                        onAccepted: {
+                            if (text.length === 0)
+                                return;
+                            Session.lockSubmit(text);
+                            text = "";
+                        }
+
+                        navKeys: true
+
+                        onNavEscape: text = ""
+
+                        Component.onCompleted: if (Session.locked)
+                            forceFocus()
+
+                        Connections {
+                            target: Session
+
+                            function onLockedChanged() {
+                                if (Session.locked)
+                                    pwField.forceFocus();
+                            }
+                        }
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 16
+
                         Text {
-                            anchors.centerIn: parent
-                            visible: !avatarImg.visible
-                            text: root.userName.charAt(0).toUpperCase()
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: Session.authBusy
+                            text: Theme.jpEnabled ? "確認中…" : "VERIFYING…"
                             color: Theme.acid
                             font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsTitle
-                            font.bold: true
-                        }
-                    }
-
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
-
-                        Text {
-                            text: root.userName
-                            color: Theme.ink
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsBody
-                        }
-
-                        Text {
-                            text: "AUTHENTICATE"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
+                            font.pixelSize: Theme.fsLabel
                             font.letterSpacing: 2
                         }
-                    }
-                }
 
-                YField {
-                    id: pwField
+                        Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !Session.authBusy && Session.authAttempts > 0
+                            text: Theme.jpEnabled ? "拒否 · 再試行" : "DENIED · TRY AGAIN"
+                            color: Theme.alert
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsLabel
+                            font.letterSpacing: 2
+                        }
 
-                    width: parent.width
-                    placeholder: "password"
-                    echoMode: TextInput.Password
-                    enabled: !Session.authBusy
-
-                    onAccepted: {
-                        if (text.length === 0)
-                            return;
-                        Session.lockSubmit(text);
-                        text = "";
-                    }
-
-                    navKeys: true
-
-                    onNavEscape: text = ""
-
-                    Component.onCompleted: if (Session.locked)
-                        forceFocus()
-
-                    Connections {
-                        target: Session
-
-                        function onLockedChanged() {
-                            if (Session.locked)
-                                pwField.forceFocus();
+                        Text {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: Session.authAttempts > 0
+                            text: "×" + Session.authAttempts
+                            color: Theme.alert
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsLabel
                         }
                     }
                 }
 
-                Item {
-                    width: parent.width
-                    height: 16
+                Connections {
+                    target: Session
 
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: Session.authBusy
-                        text: "VERIFYING…"
-                        color: Theme.acid
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        font.letterSpacing: 2
+                    function onAuthAttemptsChanged() {
+                        if (Session.authAttempts > 0)
+                            card.snapShake();
                     }
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: !Session.authBusy && Session.authAttempts > 0
-                        text: "DENIED · TRY AGAIN"
-                        color: Theme.alert
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        font.letterSpacing: 2
-                    }
-
-                    Text {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: Session.authAttempts > 0
-                        text: "×" + Session.authAttempts
-                        color: Theme.alert
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                    }
-                }
-            }
-
-            Connections {
-                target: Session
-
-                function onAuthAttemptsChanged() {
-                    if (Session.authAttempts > 0)
-                        card.snapShake();
                 }
             }
         }
 
-        // bottom chrome: hostname + hint
+        // bottom chrome
         Text {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.margins: Theme.sp4
-            text: Quickshell.env("HOSTNAME") || ""
+            text: root.hostName
             color: Theme.faint
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsMicro
@@ -385,7 +639,7 @@ Item {
             anchors.bottom: parent.bottom
             anchors.right: parent.right
             anchors.margins: Theme.sp4
-            text: "YUTASHELL LOCK"
+            text: "YUTASHELL // " + (ShellState.idleAction !== "none" ? ShellState.idleAction.toUpperCase() + " AFTER IDLE" : "SECURE SHELL")
             color: Theme.faint
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsMicro

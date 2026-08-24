@@ -35,6 +35,10 @@ PanelWindow {
     readonly property bool hot: isMic ? (srcNode && srcNode.audio ? srcNode.audio.muted : false) : isBright ? false : root.sinkMuted || pct > 100
 
     function ping(k) {
+        // per-kind gates (settings → OSD): a disabled kind swallows the ping
+        const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : ShellState.osdVolume;
+        if (!on)
+            return;
         kind = k;
         shown.opacity = 1;
         fadeTimer.restart();

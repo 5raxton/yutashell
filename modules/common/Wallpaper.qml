@@ -18,6 +18,9 @@ Singleton {
     property bool generating: false
 
     function rescan() {
+        // reassigning command mid-find drops the second scan silently
+        if (root.scanning)
+            return;
         root.scanning = true;
         scanProc.command = ["find", wallDir, "-maxdepth", "2", "-type", "f", "(",
             "-iname", "*.png", "-o", "-iname", "*.jpg", "-o", "-iname", "*.jpeg",
@@ -30,9 +33,10 @@ Singleton {
         const p = String(path).trim();
         if (p.length === 0 || root.generating)
             return;
+        // UI reflects the attempt immediately, but state.json only records the
+        // path once matugen succeeded — a failed generate must not leave prefs
+        // claiming a wallpaper that never landed
         root.current = p;
-        if (ShellState.wallpaperPath !== p)
-            ShellState.set("wallpaperPath", p);
 
         // -m dark: our palette is dark-first; --source-color-index 0 picks the
         // most dominant color instead of prompting (matugen 4.x hard-fails
@@ -86,6 +90,20 @@ Singleton {
         } catch (e) {
             return [];
         }
+    }
+
+    // enabled-template count WITHOUT building the full templatesList() —
+    // nav chips used to run the whole catalog through .filter for a number
+    readonly property int tplOnCount: {
+        const on = root.enabledIds();
+        let n = 0;
+        for (const e of TemplateCatalog.entries)
+            if (on.includes(e.id))
+                n++;
+        for (const c of root.customList())
+            if (on.includes(c.id))
+                n++;
+        return n;
     }
 
     function customList() {
@@ -543,6 +561,9 @@ Singleton {
                 console.warn("[wallpaper] matugen failed for", imagePath);
                 return;
             }
+            // success is the only point worth persisting across sessions
+            if (ShellState.wallpaperPath !== imagePath)
+                ShellState.set("wallpaperPath", imagePath);
             Theme.setFollowWallpaper(true);
         }
     }
