@@ -2378,6 +2378,51 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "02"
+                        label: "Workspaces"
+                        chip: (ShellState.wsMode === "active" ? "ACTIVE ONLY" : ShellState.wsMode.toUpperCase())
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "default",
+                                    label: "DEFAULT"
+                                }, {
+                                    id: "numbers",
+                                    label: "NUMBERS"
+                                }, {
+                                    id: "pills",
+                                    label: "PILLS"
+                                }, {
+                                    id: "active",
+                                    label: "ACTIVE ONLY"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.wsMode === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("wsMode", modelData.id)
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "DEFAULT numbered pills · NUMBERS bare digits · PILLS boxes without digits · ACTIVE ONLY occupied/focused workspaces"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "03"
                         label: "Segments"
                         chip: BarSegments.model.length + " · " + (BarSegments.leftVisible.length + BarSegments.rightVisible.length) + " visible"
                     }
@@ -2516,7 +2561,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "hover a row for reorder arrows · L/C/R sets the zone · click actions live in the shell (clock→calendar, stats→control center, …)"
+                        text: "hover a row for reorder arrows · L/C/R sets the zone (C = true screen center) · click actions live in the shell (clock→calendar, stats→control center, …)"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel

@@ -1,6 +1,6 @@
 # YUTASHELL
 
-A complete desktop shell for [Hyprland](https://hyprland.pl), built on [Quickshell](https://quickshell.outfoxxed.me).
+A complete desktop shell for Wayland, built on Quickshell.
 
 Flat black surfaces, bone-white ink, a single acid accent, hairline structure and sparse Japanese micro-labels — no rounded corners, no gradients. Every surface slides out from behind the bar on one shared choreography, every color flows from one theme engine, and every feature degrades gracefully when its backend is missing.
 
@@ -13,7 +13,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure an
 
 ## Features
 
-**Bar** — one per connected screen (hot-plug aware), fully data-driven: an ordered `{id, zone, enabled}` model persisted in state.json controls 18 segments across left/center/right zones. Workspaces with occupied/urgent states, merged pinned+running taskbar, system tray (SNI), MPRIS now-playing ticker, CPU/MEM/NET/BAT stat cells (plus GPU / disk-IO / CPU-temp), clock, night-light and session chips. Scale 0.8–1.4×, top or bottom, per-segment click actions.
+**Bar** — one per connected screen (hot-plug aware), fully data-driven: an ordered `{id, zone, enabled}` model persisted in state.json controls 18 segments across left/center/right zones — center segments hold the true middle of the screen and only yield when the flanks collide. Workspaces with four render modes (numbered pills / bare digits / digit-less pills / occupied-only), occupied/urgent states, merged pinned+running taskbar, system tray (SNI), MPRIS now-playing ticker, CPU/MEM/NET/BAT stat cells (plus GPU / disk-IO / CPU-temp), clock, night-light and session chips. Scale 0.8–1.4×, top or bottom, per-segment click actions with sane fallbacks (no segment is ever a dead button).
 
 **Theme engine** — every color, font and metric lives in a single `Theme` singleton; modules never hardcode values, so the whole shell repaints live when the palette changes. Twelve curated schemes (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`, `cyberpunk`, `doom`, `gruvbox`, `mono`, `tokyonight`, `kanagawa`, `dracula`), wallpaper-derived palettes via matugen, runtime-generated light mode for any palette (with WCAG contrast fitting), and an accent override that lets any hex take the accent slot. Japanese labels fall back to romaji automatically when no CJK font is installed.
 
@@ -114,7 +114,7 @@ qs ipc call <target> <function> [args...]
 | `shot` | `region` / `full` / `window` / `copy` | screenshots |
 | `weather` | `set <lat> <lon> <label>` / `auto` / `detect` / `refresh` / `status` | weather widget; `auto` switches to IP geolocation (drives weather + timezone), `set` pins static coords |
 | `calendar` / `emoji` / `clipboard` | `toggle` / `open` / `close` | popups |
-| `bar` | `seg <id> on\|off\|left\|center\|right` / `move` / `scale` / `position` / `click` | bar layout |
+| `bar` | `seg <id> on\|off\|left\|center\|right` / `move` / `scale` / `position` / `click` / `wsmode default\|numbers\|pills\|active` | bar layout |
 | `dock` | `toggle` / `pin` / `unpin` / `hide` / `mode` | bottom dock |
 | `compositor` | `info` / `dsp <lua>` | capability report / warm-client dispatch passthrough |
 

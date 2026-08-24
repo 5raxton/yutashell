@@ -35,14 +35,19 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        // honor the segment click map (default → bluetooth panel)
-        onClicked: BarActions.dispatch(BarSegments.clickFor("bt"))
+        // honor the segment click map; a cleared action falls back to the panel
+        onClicked: {
+            if (BarActions.dispatch(BarSegments.clickFor("bt")))
+                return;
+            ShellState.toggleBt();
+        }
     }
 
     Row {
         id: btRow
 
         anchors.verticalCenter: parent.verticalCenter
+        spacing: 6
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -52,11 +57,6 @@ Item {
             font.pixelSize: Theme.fsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
-        }
-
-        Item {
-            width: 8
-            height: 1
         }
 
         Text {

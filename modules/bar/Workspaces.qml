@@ -1,19 +1,37 @@
 import Quickshell.Hyprland
 import QtQuick
 import qs.theme
+import qs.modules.common
 
+// Workspace segment. Four persisted render modes (ShellState.wsMode):
+//   default — numbered pills with occupied borders + moving underline
+//   numbers — bare digits, focus carries the accent
+//   pills   — boxes without digits, state read from fill/border alone
+//   active  — default look, but ONLY workspaces that actually exist
 Item {
     id: root
 
-    readonly property int slotW: 30
-    readonly property int slotH: 24
-    readonly property int gap: 5
+    readonly property string mode: {
+        const m = String(ShellState.wsMode ?? "");
+        return m === "numbers" || m === "pills" || m === "active" ? m : "default";
+    }
+    readonly property bool bare: mode === "numbers"
+    readonly property bool pillOnly: mode === "pills"
+
+    readonly property int slotW: mode === "numbers" ? 21 : pillOnly ? 18 : 30
+    readonly property int slotH: pillOnly ? 18 : 24
+    readonly property int gap: pillOnly ? 7 : 5
 
     readonly property var ids: {
-        const s = new Set();
+        const live = new Set();
         for (const w of Hyprland.workspaces.values)
             if (w.id > 0 && w.id <= 24)
-                s.add(w.id);
+                live.add(w.id);
+        if (mode === "active") {
+            const list = Array.from(live).sort((a, b) => a - b);
+            return list.length > 0 ? list : [1];
+        }
+        const s = new Set(live);
         let i = 1;
         while (s.size < 6)
             s.add(i++);
@@ -105,12 +123,35 @@ Item {
 
                     width: root.slotW
                     height: root.slotH
-                    color: isActive ? Theme.acid : area.containsMouse ? Theme.surface : "transparent"
-                    border.width: !isActive && (isOccupied || area.containsMouse) && !isUrgent ? 1 : 0
-                    border.color: Theme.lineStrong
+                    radius: root.pillOnly ? 3 : 0
+                    color: {
+                        if (root.bare)
+                            return "transparent";
+                        if (isActive)
+                            return Theme.acid;
+                        return area.containsMouse ? Theme.surface : "transparent";
+                    }
+                    border.width: {
+                        if (root.bare)
+                            return 0;
+                        if (isActive)
+                            return 0;
+                        if (isUrgent && root.blinkOn)
+                            return 0;
+                        return (isOccupied || area.containsMouse) ? 1 : 0;
+                    }
+                    border.color: isUrgent ? Theme.alert : Theme.lineStrong
 
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.movFast
+                        }
+                    }
+
+                    // digits — hidden in pills mode entirely
                     Text {
                         anchors.centerIn: parent
+                        visible: !root.pillOnly
                         text: String(btn.modelData).padStart(2, "0")
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
@@ -118,12 +159,44 @@ Item {
                         font.letterSpacing: 1
                         color: {
                             if (btn.isActive)
-                                return Theme.bg;
+                                return root.bare ? Theme.acid : Theme.bg;
                             if (btn.isUrgent)
                                 return root.blinkOn ? Theme.alert : Theme.faint;
                             if (btn.isOccupied)
                                 return Theme.ink;
-                            return Theme.faint;
+                            return area.containsMouse ? Theme.muted : Theme.faint;
+                        }
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.movFast
+                            }
+                        }
+                    }
+
+                    // pills-mode state glyph: filled block when focused,
+                    // hollow outline when windows live there, dim dot otherwise
+                    Rectangle {
+                        anchors.centerIn: parent
+                        visible: root.pillOnly
+                        width: btn.isActive ? 10 : 6
+                        height: width
+                        radius: 1
+                        color: {
+                            if (btn.isActive)
+                                return btn.isUrgent && root.blinkOn ? Theme.alert : Theme.acid;
+                            if (btn.isOccupied)
+                                return "transparent";
+                            return area.containsMouse ? Theme.faint : Theme.hairline;
+                        }
+                        border.width: btn.isOccupied && !btn.isActive ? 1 : 0
+                        border.color: btn.isUrgent && root.blinkOn ? Theme.alert : Theme.muted
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.movSnap
+                                easing.type: Easing.OutCubic
+                            }
                         }
                     }
 
@@ -152,8 +225,9 @@ Item {
             y: root.slotH + 4
             height: 2
             width: root.slotW
+            radius: root.pillOnly ? 1 : 0
             color: Theme.acid
-            visible: root.ids.includes(root.focusedId)
+            visible: !root.pillOnly && root.ids.includes(root.focusedId)
             x: Math.max(0, root.ids.indexOf(root.focusedId)) * (root.slotW + root.gap)
 
             Behavior on x {

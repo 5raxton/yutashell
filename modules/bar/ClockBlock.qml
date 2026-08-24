@@ -56,8 +56,8 @@ Item {
             text: ShellState.clock24h ? String(root.now.getHours()).padStart(2, "0") : String(root.hour12)
             color: Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: 15
-            font.weight: Font.DemiBold
+            font.pixelSize: Theme.fsTitle
+            font.weight: Font.Bold
         }
 
         Text {
@@ -68,8 +68,8 @@ Item {
             opacity: root.colonOn ? 1 : 0.2
             color: Theme.acid
             font.family: Theme.fontFamily
-            font.pixelSize: 15
-            font.weight: Font.DemiBold
+            font.pixelSize: Theme.fsTitle
+            font.weight: Font.Bold
 
             // breathe, don't strobe
             Behavior on opacity {
@@ -87,8 +87,8 @@ Item {
             text: String(root.now.getMinutes()).padStart(2, "0")
             color: Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: 15
-            font.weight: Font.DemiBold
+            font.pixelSize: Theme.fsTitle
+            font.weight: Font.Bold
         }
 
         Text {
@@ -99,14 +99,14 @@ Item {
             text: ShellState.clock24h ? ":" + String(root.now.getSeconds()).padStart(2, "0") : " " + root.ampm
             color: Theme.acid
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.fsLabel
         }
     }
 
     Column {
         id: dateCol
         anchors.left: timeBlock.right
-        anchors.leftMargin: 14
+        anchors.leftMargin: Theme.sp3
         anchors.verticalCenter: parent.verticalCenter
         spacing: 3
 
@@ -114,7 +114,7 @@ Item {
             text: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][root.now.getDay()] + " " + Qt.formatDate(root.now, "MM.dd")
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 8
+            font.pixelSize: Theme.fsMicro
             font.letterSpacing: 1
         }
 
@@ -127,7 +127,7 @@ Item {
             }
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 8
+            font.pixelSize: Theme.fsMicro
             font.letterSpacing: 1
         }
     }

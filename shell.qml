@@ -904,8 +904,17 @@ ShellRoot {
             BarSegments.setClick(String(id), String(action ?? ""));
         }
 
+        // workspace segment render mode: default|numbers|pills|active
+        function wsmode(m: string): string {
+            const v = String(m).toLowerCase();
+            if (["default", "numbers", "pills", "active"].indexOf(v) < 0)
+                return "usage: bar wsmode default|numbers|pills|active";
+            ShellState.set("wsMode", v);
+            return "wsmode " + v;
+        }
+
         function status(): string {
-            return "scale " + ShellState.barScale + " · " + ShellState.barPosition + " · " + BarSegments.leftVisible.length + "/" + BarSegments.rightVisible.length + " visible";
+            return "scale " + ShellState.barScale + " · " + ShellState.barPosition + " · ws " + ShellState.wsMode + " · " + BarSegments.leftVisible.length + "/" + BarSegments.rightVisible.length + " visible";
         }
     }
 

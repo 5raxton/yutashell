@@ -1,33 +1,19 @@
 import QtQuick
 import qs.theme
 
+// Uniform segment separator: a single centered hairline tick floating in a
+// fixed-width gutter. Every zone gap in the bar uses exactly this rhythm.
 Item {
     id: root
 
-    implicitWidth: 13
+    implicitWidth: 17
     implicitHeight: Theme.barHeight
 
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         width: 1
-        height: 20
+        height: 14
         color: Theme.lineStrong
-    }
-
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: 8
-        width: 7
-        height: 1
-        color: Theme.faint
-    }
-
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: 5
-        width: 1
-        height: 7
-        color: Theme.faint
     }
 }

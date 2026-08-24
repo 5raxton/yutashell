@@ -37,14 +37,19 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        // honor the segment click map (default → network panel)
-        onClicked: BarActions.dispatch(BarSegments.clickFor("net"))
+        // honor the segment click map; a cleared action falls back to the panel
+        onClicked: {
+            if (BarActions.dispatch(BarSegments.clickFor("net")))
+                return;
+            ShellState.toggleNet();
+        }
     }
 
     Row {
         id: netRow
 
         anchors.verticalCenter: parent.verticalCenter
+        spacing: 6
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -54,11 +59,6 @@ Item {
             font.pixelSize: Theme.fsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
-        }
-
-        Item {
-            width: 8
-            height: 1
         }
 
         // wired glyph: two stacked bars (primary link wins the slot)

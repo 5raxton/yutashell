@@ -38,7 +38,7 @@ Item {
     Row {
         id: contentRow
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 9
+        spacing: Theme.sp2
 
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
@@ -84,7 +84,7 @@ Item {
                 text: "YUTA.SHELL // v" + Theme.version
                 color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 7
+                font.pixelSize: Theme.fsMicro
                 font.letterSpacing: 2
             }
         }

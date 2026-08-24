@@ -129,7 +129,12 @@ Singleton {
             "cputemp": "controlcenter",
             "gpu": "controlcenter",
             "disk": "controlcenter",
-            "identity": "settings"
+            "identity": "settings",
+            "nightlight": "nightlight",
+            "session": "power",
+            "tray": "",
+            "workspaces": "",
+            "taskbar": ""
         })
 
     function clickFor(id) {

@@ -86,18 +86,41 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
-                    model: BarSegments.leftVisible
+                    model: root.rowModel("left")
 
                     delegate: segDelegate
                 }
             }
 
-            // ---- CENTER (active window fill) ----
+            // ---- CENTER ZONE — true center, yields only on collision ------
+            // Segments assigned zone "center" hold the exact middle of the
+            // bar regardless of how wide the flanks grow; if the three zones
+            // can't fit side by side the cluster slides right until it clears
+            // the left row (clamped before it may kiss the right row).
+            Row {
+                id: centerRow
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenterOffset: root.centerOffset
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.centerList.length > 0
+
+                Repeater {
+                    model: root.centerList
+
+                    delegate: segDelegate
+                }
+            }
+
+            // ---- ACTIVE WINDOW — the elastic fill between zones ----------
+            // Alone in the center it stretches across the whole middle; with
+            // real center segments present it hands the middle over and hugs
+            // the left cluster instead.
             ActiveWindow {
                 anchors.left: leftRow.right
-                anchors.leftMargin: 18
-                anchors.right: rightRow.left
-                anchors.rightMargin: 18
+                anchors.leftMargin: Theme.sp3
+                anchors.right: root.centerList.length > 0 ? centerRow.left : rightRow.left
+                anchors.rightMargin: Theme.sp3
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 visible: BarSegments.present("activewindow")
@@ -112,7 +135,7 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Repeater {
-                    model: BarSegments.rightVisible
+                    model: root.rowModel("right")
 
                     delegate: segDelegate
                 }
@@ -120,7 +143,40 @@ PanelWindow {
         }
     }
 
-    // ---- segment delegate: divider (except first) + the segment ----------
+    // center-zone segments minus the active-window fill, which is anchored
+    // geometry and must never sit inside a Row
+    readonly property var centerList: {
+        const list = BarSegments.centerVisible;
+        const out = [];
+        for (let i = 0; i < list.length; i++)
+            if (list[i].id !== "activewindow")
+                out.push(list[i]);
+        return out;
+    }
+
+    function rowModel(zone) {
+        const list = BarSegments.zoneList(zone);
+        const out = [];
+        for (let i = 0; i < list.length; i++)
+            if (list[i].id !== "activewindow")
+                out.push(list[i]);
+        return out;
+    }
+
+    // 0 when the centered cluster owns its natural slot; otherwise the smallest
+    // rightward shift that clears the left row, clamped so it never overlaps
+    // the right row either.
+    readonly property real centerOffset: {
+        const mid = content.width / 2;
+        const half = centerRow.width / 2 + Theme.sp3;
+        const minOffset = leftRow.width + Theme.outerPad + half - mid;
+        const maxOffset = mid - rightRow.width - Theme.outerPad - half;
+        if (minOffset <= 0)
+            return 0;
+        return Math.min(minOffset, Math.max(0, maxOffset));
+    }
+
+    // ---- segment delegate: divider gutter (except first) + the segment ----
     Component {
         id: segDelegate
 
@@ -320,43 +376,50 @@ PanelWindow {
     Component {
         id: recComp
 
-        Row {
-            spacing: 6
-            anchors.verticalCenter: parent.verticalCenter
+        Item {
+            implicitWidth: recRow.width
+            implicitHeight: Theme.barHeight
 
-            Rectangle {
+            Row {
+                id: recRow
+
+                spacing: 6
                 anchors.verticalCenter: parent.verticalCenter
-                width: 7
-                height: 7
-                color: Theme.alert
 
-                SequentialAnimation on opacity {
-                    running: true
-                    loops: Animation.Infinite
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 7
+                    height: 7
+                    color: Theme.alert
 
-                    NumberAnimation {
-                        from: 1.0
-                        to: 0.25
-                        duration: 620
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        from: 0.25
-                        to: 1.0
-                        duration: 620
-                        easing.type: Easing.InOutSine
+                    SequentialAnimation on opacity {
+                        running: true
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            from: 1.0
+                            to: 0.25
+                            duration: 620
+                            easing.type: Easing.InOutSine
+                        }
+                        NumberAnimation {
+                            from: 0.25
+                            to: 1.0
+                            duration: 620
+                            easing.type: Easing.InOutSine
+                        }
                     }
                 }
-            }
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "REC"
-                color: Theme.alert
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsMicro
-                font.weight: Font.Bold
-                font.letterSpacing: 1.5
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "REC"
+                    color: Theme.alert
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
             }
 
             MouseArea {

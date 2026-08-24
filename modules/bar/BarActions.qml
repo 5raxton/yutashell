@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import qs.modules.common
+import "../widgets"
 
 // BarActions — the single dispatcher for segment click-actions (PH.14). Maps an
 // action string to the shell's open/toggle functions; `ipc:<target>/<fn>`
@@ -52,6 +53,9 @@ Singleton {
             break;
         case "picker":
             ShellState.togglePicker();
+            break;
+        case "nightlight":
+            NightLight.toggle();
             break;
         default:
             return false;

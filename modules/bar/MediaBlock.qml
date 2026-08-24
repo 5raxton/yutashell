@@ -74,7 +74,8 @@ Item {
             text: "MEDIA"
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 7
+            font.pixelSize: Theme.fsMicro
+            font.weight: Font.Bold
             font.letterSpacing: 1.5
         }
 

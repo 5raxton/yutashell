@@ -44,9 +44,8 @@ Item {
                 AudioService.toggleMute(root.sink);
                 return;
             }
-            // honor the segment click map (default → audio panel)
-            const a = BarSegments.clickFor("audio");
-            if (a.length > 0 && BarActions.dispatch(a))
+            // honor the segment click map; a cleared action falls back to the panel
+            if (BarActions.dispatch(BarSegments.clickFor("audio")))
                 return;
             ShellState.toggleAudio();
         }
@@ -63,6 +62,7 @@ Item {
         id: audRow
 
         anchors.verticalCenter: parent.verticalCenter
+        spacing: 6
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -78,11 +78,6 @@ Item {
                     duration: Theme.movFast
                 }
             }
-        }
-
-        Item {
-            width: 8
-            height: 1
         }
 
         // output level bars — the fifth tier only exists past 100 %
@@ -112,11 +107,6 @@ Item {
                     }
                 }
             }
-        }
-
-        Item {
-            width: 8
-            height: 1
         }
 
         // mic state: slashed ring when muted, acid dot when live

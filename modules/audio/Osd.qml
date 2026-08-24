@@ -39,6 +39,11 @@ PanelWindow {
         const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : ShellState.osdVolume;
         if (!on)
             return;
+        // key-hold bursts land here dozens of times a second — keep this path
+        // free of animation restarts: cancel the outro (so the fade-in
+        // Behavior owns the property again), pin opacity, rewind the clock
+        if (outro.running)
+            outro.stop();
         kind = k;
         shown.opacity = 1;
         fadeTimer.restart();
@@ -70,7 +75,10 @@ PanelWindow {
     Timer {
         id: fadeTimer
 
-        interval: ShellState.osdFadeMs + 300
+        // floor at 1.4 s: key-repeat bursts can gap when the IPC queue backs
+        // up, and the OSD must ride out any pause shorter than a deliberate
+        // stop — the configured fade only ever extends it
+        interval: Math.max(ShellState.osdFadeMs + 300, 1400)
         onTriggered: {
             if (!outro.running)
                 outro.restart();
@@ -95,13 +103,40 @@ PanelWindow {
         anchors.fill: parent
         color: Theme.bgAlt
         border.width: 1
-        border.color: Theme.lineStrong
+        border.color: root.hot ? Theme.alert : Theme.lineStrong
         opacity: 0
+
+        // drifts toward its edge as it fades — a pure function of opacity, so
+        // entrance/exit ride the one animation with zero extra cost
+        transform: Translate {
+            y: (1 - shown.opacity) * (root.topSide ? -5 : 5)
+        }
 
         Behavior on opacity {
             NumberAnimation {
                 duration: Theme.movFast
                 easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on border.color {
+            ColorAnimation {
+                duration: Theme.movFast
+            }
+        }
+
+        // accent spine — the tooltip's signature, shared language
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 2
+            color: root.hot ? Theme.alert : Theme.acid
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.movFast
+                }
             }
         }
 

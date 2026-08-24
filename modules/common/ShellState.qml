@@ -294,6 +294,8 @@ Singleton {
     readonly property alias barSegments: adapter.barSegments
     readonly property alias barScale: adapter.barScale
     readonly property alias barPosition: adapter.barPosition
+    // workspace segment rendering: default | numbers | pills | active
+    readonly property alias wsMode: adapter.wsMode
     // plugins (PH.05): namespaced per-plugin state
     readonly property alias pluginData: adapter.pluginData
     readonly property alias barClick: adapter.barClick
@@ -440,6 +442,9 @@ Singleton {
     property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"stats\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
     property real barScale: 1.0
     property string barPosition: "top"
+    // workspace segment: "default" pills+numbers · "numbers" bare digits ·
+    // "pills" boxes without digits · "active" only occupied/focused
+    property string wsMode: "default"
     property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"stats\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)

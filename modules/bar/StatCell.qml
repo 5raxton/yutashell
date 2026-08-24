@@ -79,7 +79,12 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: BarActions.dispatch(BarSegments.clickFor(root.kind))
+        onClicked: {
+            // honor the segment click map; a cleared action falls back to CC
+            if (BarActions.dispatch(BarSegments.clickFor(root.kind)))
+                return;
+            ShellState.toggleCc();
+        }
         onContainsMouseChanged: {
             if (containsMouse)
                 root.showCol(root, root.tipText);
@@ -96,7 +101,8 @@ Item {
             text: root.label
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 7
+            font.pixelSize: Theme.fsMicro
+            font.weight: Font.Bold
             font.letterSpacing: 1.5
         }
 
@@ -106,7 +112,7 @@ Item {
             text: root.value
             color: root.hot ? Theme.alert : Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.fsLabel
 
             Behavior on color {
                 ColorAnimation {

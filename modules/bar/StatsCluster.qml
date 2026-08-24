@@ -56,9 +56,11 @@ Item {
         }
     }
 
-    // every stat cell routes through the segment click map (default → control center)
+    // every stat cell routes through the segment click map (default → control
+    // center); a cleared action still falls back so no cell is ever dead
     function dispatchClick() {
-        BarActions.dispatch(BarSegments.clickFor("stats"));
+        if (!BarActions.dispatch(BarSegments.clickFor("stats")))
+            ShellState.toggleCc();
     }
 
     Row {
@@ -78,7 +80,8 @@ Item {
                 text: "NET"
                 color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 7
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
                 font.letterSpacing: 1.5
             }
 
@@ -164,7 +167,8 @@ Item {
                 text: "CPU"
                 color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 7
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
                 font.letterSpacing: 1.5
             }
 
@@ -219,7 +223,8 @@ Item {
                 text: "MEM"
                 color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 7
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
                 font.letterSpacing: 1.5
             }
 
@@ -244,7 +249,8 @@ Item {
                 text: "BAT"
                 color: SystemStats.batCharging ? Theme.acid : Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 7
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
                 font.letterSpacing: 1.5
             }
 
