@@ -2438,6 +2438,31 @@ PanelWindow {
 
                             readonly property var meta: BarSegments.meta[modelData.id] ?? { label: modelData.id, jp: "" }
                             readonly property bool on_: modelData.enabled !== false
+                            // these three render inside the stats cluster box,
+                            // not as placeable bar blocks
+                            readonly property bool embedded: ["cputemp", "gpu", "disk"].indexOf(modelData.id) >= 0
+                            // state-driven chips only appear while active — tell
+                            // the user why the bar looks unchanged after enabling
+                            readonly property string inactiveWhy: {
+                                if (!segRow.on_ || BarSegments.present(modelData.id))
+                                    return "";
+                                switch (modelData.id) {
+                                case "media":
+                                    return "inactive · shows when media plays";
+                                case "bt":
+                                    return "inactive · shows when bluetooth is on";
+                                case "nightlight":
+                                    return "inactive · toggle night light first";
+                                case "session":
+                                    return "inactive · shows while idle inhibitors run";
+                                case "recording":
+                                    return "inactive · shows while recording";
+                                case "pluginwidgets":
+                                    return "inactive · enable a plugin first";
+                                default:
+                                    return "";
+                                }
+                            }
 
                             width: root.contentW
                             height: 40
@@ -2448,10 +2473,12 @@ PanelWindow {
                             }
 
                             Text {
+                                id: segLabel
+
                                 anchors.left: parent.left
                                 anchors.leftMargin: Theme.sp2
-                                anchors.right: actChip.left
-                                anchors.rightMargin: Theme.sp2
+                                anchors.right: statusNote.left
+                                anchors.rightMargin: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight
                                 text: segRow.meta.label
@@ -2459,6 +2486,20 @@ PanelWindow {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel
                                 font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                id: statusNote
+
+                                anchors.right: actChip.left
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: visible ? contentWidth : 0
+                                visible: segRow.inactiveWhy.length > 0
+                                text: segRow.inactiveWhy
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsMicro
                             }
 
                             // click-action chip — cycles the segment's click
@@ -2485,7 +2526,7 @@ PanelWindow {
                                     BarSegments.setClick(segRow.modelData.id, cycle[(idx + 1) % cycle.length]);
                                 }
 
-                                anchors.right: zoneChips.left
+                                anchors.right: rightCluster.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: actText.width + 14
@@ -2515,45 +2556,77 @@ PanelWindow {
                                 }
                             }
 
-                            // zone chips
-                            Row {
-                                id: zoneChips
+                            // zone chips — replaced by a static STATS tag on
+                            // the cluster-embedded rows
+                            Item {
+                                id: rightCluster
 
                                 anchors.right: segSwitch.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
+                                height: 16
+                                width: segRow.embedded ? statsTag.width : zoneChips.width
 
-                                Repeater {
-                                    model: ["left", "center", "right"]
+                                Row {
+                                    id: zoneChips
 
-                                    delegate: Item {
-                                        required property var modelData
+                                    visible: !segRow.embedded
+                                    spacing: 2
 
-                                        width: 22
-                                        height: 16
+                                    Repeater {
+                                        model: ["left", "center", "right"]
 
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: segRow.modelData.zone === modelData ? Theme.acid : "transparent"
-                                            border.width: 1
-                                            border.color: Theme.lineStrong
+                                        delegate: Item {
+                                            required property var modelData
+
+                                            width: 22
+                                            height: 16
+
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                color: segRow.modelData.zone === modelData ? Theme.acid : "transparent"
+                                                border.width: 1
+                                                border.color: Theme.lineStrong
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.charAt(0).toUpperCase()
+                                                color: segRow.modelData.zone === modelData ? Theme.bg : Theme.muted
+                                                font.family: Theme.fontFamily
+                                                font.pixelSize: Theme.fsMicro
+                                                font.weight: Font.Bold
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: BarSegments.setZone(segRow.modelData.id, modelData)
+                                            }
                                         }
+                                    }
+                                }
 
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.charAt(0).toUpperCase()
-                                            color: segRow.modelData.zone === modelData ? Theme.bg : Theme.muted
-                                            font.family: Theme.fontFamily
-                                            font.pixelSize: Theme.fsMicro
-                                            font.weight: Font.Bold
-                                        }
+                                Rectangle {
+                                    id: statsTag
 
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: BarSegments.setZone(segRow.modelData.id, modelData)
-                                        }
+                                    visible: segRow.embedded
+                                    width: tagText.width + 12
+                                    height: 16
+                                    color: "transparent"
+                                    border.width: 1
+                                    border.color: Theme.lineStrong
+
+                                    Text {
+                                        id: tagText
+
+                                        anchors.centerIn: parent
+                                        text: "STATS+"
+                                        color: Theme.muted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                        font.weight: Font.Bold
+                                        font.letterSpacing: 0.5
                                     }
                                 }
                             }
@@ -2573,7 +2646,7 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
                                 anchors.leftMargin: Theme.sp2
-                                visible: segArea.containsMouse
+                                visible: segArea.containsMouse && !segRow.embedded
                                 spacing: 1
 
                                 Text {
@@ -2616,9 +2689,27 @@ PanelWindow {
                         }
                     }
 
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            label: "RESET SEGMENTS"
+                            onClicked: BarSegments.reset()
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "restore the default order, zones and toggles"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                        }
+                    }
+
                     Text {
                         width: parent.width
-                        text: "hover a row for reorder arrows · L/C/R sets the zone (C = true screen center) · the action chip cycles what a click opens — DEFAULT restores the built-in"
+                        text: "hover a row for ▲▼ reorder · L/C/R picks which zone it renders in (C = true screen center) · state chips (media/bluetooth/night light/inhibit/recording) only appear on the bar while their condition is active · STATS+ rows render inside the stats box · the action chip cycles what a click opens — DEFAULT restores the built-in"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel

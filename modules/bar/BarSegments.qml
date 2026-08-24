@@ -29,9 +29,9 @@ Singleton {
             "bt": { label: "Bluetooth chip", jp: "歯" },
             "audio": { label: "Audio chip", jp: "音" },
             "stats": { label: "Stats (net/cpu/mem/bat)", jp: "計" },
-            "cputemp": { label: "CPU temp", jp: "熱" },
-            "gpu": { label: "GPU", jp: "画" },
-            "disk": { label: "Disk IO", jp: "盤" },
+            "cputemp": { label: "CPU temp (in stats)", jp: "熱" },
+            "gpu": { label: "GPU (in stats)", jp: "画" },
+            "disk": { label: "Disk IO (in stats)", jp: "盤" },
             "nightlight": { label: "Night light chip", jp: "夜" },
             "session": { label: "Inhibit chip", jp: "阻" },
             "recording": { label: "Recording chip", jp: "録" },
@@ -165,15 +165,13 @@ Singleton {
         ShellState.set("barSegments", JSON.stringify(list));
     }
 
+    // free reorder across the whole model — the segment's zone travels with
+    // it, so stepping over a zone boundary relocates the segment too
     function move(id, delta) {
         const ids = root.model.map(s => s.id);
         const idx = ids.indexOf(id);
         const j = idx + delta;
         if (idx < 0 || j < 0 || j >= ids.length)
-            return;
-        // move within the same zone only
-        const cur = root.model[idx];
-        if (root.model[j].zone !== cur.zone)
             return;
         ids.splice(idx, 1);
         ids.splice(j, 0, id);
@@ -185,6 +183,10 @@ Singleton {
                         zone: byId[x].zone,
                         enabled: byId[x].enabled !== false
                     }))));
+    }
+
+    function reset() {
+        ShellState.set("barSegments", JSON.stringify(root.defaultModel));
     }
 
     function setClick(id, action) {

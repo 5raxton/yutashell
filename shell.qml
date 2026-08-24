@@ -904,6 +904,12 @@ ShellRoot {
             BarSegments.setClick(String(id), String(action ?? ""));
         }
 
+        // restore default segment order, zones and toggles
+        function reset(): string {
+            BarSegments.reset();
+            return "segments reset";
+        }
+
         // workspace segment render mode: default|numbers|pills|active
         function wsmode(m: string): string {
             const v = String(m).toLowerCase();

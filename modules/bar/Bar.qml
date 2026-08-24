@@ -143,13 +143,19 @@ PanelWindow {
         }
     }
 
-    // center-zone segments minus the active-window fill, which is anchored
-    // geometry and must never sit inside a Row
+    // ids that render INSIDE the stats cluster instead of as their own block
+    readonly property var embeddedStats: ["cputemp", "gpu", "disk"]
+
+    function _renderable(id) {
+        return id !== "activewindow" && root.embeddedStats.indexOf(id) < 0 && BarSegments.present(id);
+    }
+
+    // center-zone segments minus the active-window fill and stat embeds
     readonly property var centerList: {
         const list = BarSegments.centerVisible;
         const out = [];
         for (let i = 0; i < list.length; i++)
-            if (list[i].id !== "activewindow")
+            if (root._renderable(list[i].id))
                 out.push(list[i]);
         return out;
     }
@@ -158,7 +164,7 @@ PanelWindow {
         const list = BarSegments.zoneList(zone);
         const out = [];
         for (let i = 0; i < list.length; i++)
-            if (list[i].id !== "activewindow")
+            if (root._renderable(list[i].id))
                 out.push(list[i]);
         return out;
     }
@@ -216,12 +222,7 @@ PanelWindow {
             return audioComp;
         case "stats":
             return statsComp;
-        case "cputemp":
-            return cputempComp;
-        case "gpu":
-            return gpuComp;
-        case "disk":
-            return diskComp;
+        // cputemp / gpu / disk render as columns inside the stats cluster
         case "nightlight":
             return nlComp;
         case "session":
@@ -305,58 +306,29 @@ PanelWindow {
     }
 
     Component {
-        id: cputempComp
-
-        StatCell {
-            kind: "cputemp"
-            tip: root.tip
-        }
-    }
-
-    Component {
-        id: gpuComp
-
-        StatCell {
-            kind: "gpu"
-            tip: root.tip
-        }
-    }
-
-    Component {
-        id: diskComp
-
-        StatCell {
-            kind: "disk"
-            tip: root.tip
-        }
-    }
-
-    Component {
         id: nlComp
 
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "☾"
-            color: Theme.acid
-            font.family: Theme.fontFamily
-            font.pixelSize: 12
+        // Item root so the block fills the bar line like every other segment —
+        // a bare Text inside the zone Row would top-align and ride high
+        Item {
+            implicitWidth: moonText.width
+            implicitHeight: Theme.barHeight
 
-            SequentialAnimation on opacity {
-                running: true
-                loops: Animation.Infinite
+            Text {
+                id: moonText
 
-                NumberAnimation {
-                    from: 1.0
-                    to: 0.45
-                    duration: 1600
-                    easing.type: Easing.InOutSine
-                }
-                NumberAnimation {
-                    from: 0.45
-                    to: 1.0
-                    duration: 1600
-                    easing.type: Easing.InOutSine
-                }
+                anchors.verticalCenter: parent.verticalCenter
+                text: "☾"
+                color: Theme.acid
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: BarActions.dispatch(BarSegments.clickFor("nightlight"))
             }
         }
     }
@@ -364,12 +336,44 @@ PanelWindow {
     Component {
         id: sessComp
 
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "󰤄 " + Session.inhibitCount
-            color: Theme.acid
-            font.family: Theme.fontFamily
-            font.pixelSize: 12
+        // ASCII-safe rendering — the nerd-font glyph this chip used is missing
+        // from common installs and rendered as a dead box
+        Item {
+            implicitWidth: sessRow.width
+            implicitHeight: Theme.barHeight
+
+            Row {
+                id: sessRow
+
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "INHIBIT"
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: String(Session.inhibitCount)
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsLabel
+                    font.weight: Font.DemiBold
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: BarActions.dispatch(BarSegments.clickFor("session"))
+            }
         }
     }
 
@@ -440,17 +444,25 @@ PanelWindow {
     Component {
         id: pluginWidgetsComp
 
-        Row {
-            spacing: Theme.sp2
+        Item {
+            implicitWidth: plugRow.width
+            implicitHeight: Theme.barHeight
 
-            Repeater {
-                model: PluginService.enabledWidgets
+            Row {
+                id: plugRow
 
-                Loader {
-                    required property var modelData
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Theme.sp2
 
-                    source: PluginService.componentUrl(modelData)
-                    asynchronous: true
+                Repeater {
+                    model: PluginService.enabledWidgets
+
+                    Loader {
+                        required property var modelData
+
+                        source: PluginService.componentUrl(modelData)
+                        asynchronous: true
+                    }
                 }
             }
         }
