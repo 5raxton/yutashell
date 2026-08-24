@@ -12,7 +12,7 @@ PanelWindow {
     id: root
 
     // primary display of whatever screens exist at boot
-    readonly property var targetScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    readonly property var targetScreen: FocusMonitor.screen
     screen: targetScreen
 
     readonly property string corner: ShellState.osdCorner

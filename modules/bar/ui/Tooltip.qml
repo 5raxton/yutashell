@@ -6,6 +6,10 @@ import qs.theme
 PanelWindow {
     id: root
 
+    // follow the anchor item's bar instance — the shared tooltip window must
+    // not sit on one fixed screen (PH.06)
+    screen: anchorItem && anchorItem.Window.window && anchorItem.Window.window.screen ? anchorItem.Window.window.screen : null
+
     anchors {
         top: true
         left: true

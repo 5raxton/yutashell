@@ -270,7 +270,7 @@ Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`,
 - ✅ **Phase 3 — Module suite audit**: all 23 module items verified against contract + live IPC exercise of every surface; fixed Bluetooth device-delegate null crashes during scan churn
 - ✅ **Phase 4 — Widget kit completeness**: all 13 kit components audited against contract; fixed 3 zero-sized YScroll rails (notify/BT/network panels), added 4 missing FastWheel handlers (launcher ×3, notify center), launcher scroll rail; verified zero hand-rolled controls and 12/12 YClickAway adoption
 - ✅ **Phase 5 — Plugin system**: PluginService discovers `<config>/plugins/*/plugin.json`, daemon + widget types with namespaced settings, Settings PLUGINS page (15 tabs now), bar PLUGIN WIDGETS segment, `plugins` IPC target; reference daemon (wallpaper watcher) + widget (pulse dot) shipped; enabled state survives restarts with boot-time daemon start
-- ⬜ Phase 6 — Multi-monitor & surface architecture
+- ✅ **Phase 6 — Multi-monitor & surface architecture**: per-screen Bar/Dock verified with full layer audit (Overlay chrome vs Top popups); new FocusMonitor makes all 19 popup windows, the OSD and toasts open on the focused monitor — placement latches at open so cards never jump screens mid-display; shared tooltip now follows its anchor's bar instance
 - ⬜ Phase 7 — Compositor integration breadth
 - ⬜ Phase 8 — Distribution & packaging support
 - ⬜ Phase 9 — Advanced theming & wallpaper pipeline

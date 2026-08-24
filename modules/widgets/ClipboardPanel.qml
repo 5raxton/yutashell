@@ -13,6 +13,8 @@ import "."
 PanelWindow {
     id: root
 
+    screen: FocusMonitor.screen
+
     readonly property bool open: ShellState.clipboardOpen
     property bool everOpened: false
 

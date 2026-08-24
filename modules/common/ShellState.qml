@@ -26,6 +26,10 @@ Singleton {
 
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
+        // freeze popup placement at the moment something opens (PH.06) — a
+        // mid-display focus move must never drag a visible card across screens
+        if (name.length > 0)
+            FocusMonitor.latch();
         root.panelOpen = name === "panel";
         root.pickerOpen = name === "picker";
         root.launcherOpen = name === "launcher";

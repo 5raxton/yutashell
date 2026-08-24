@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
+import qs.modules.common
 import QtQuick
 import qs.theme
 import "."
@@ -9,6 +10,8 @@ import "."
 // and invisible between shots.
 PanelWindow {
     id: root
+
+    screen: FocusMonitor.screen
 
     anchors {
         top: true

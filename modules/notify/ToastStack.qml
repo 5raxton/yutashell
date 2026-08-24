@@ -11,6 +11,8 @@ import "ui"
 PanelWindow {
     id: root
 
+    screen: FocusMonitor.screen
+
     readonly property bool right: ShellState.notifyCorner !== "tl"
     readonly property int pad: Theme.sp2 + 2
 

@@ -15,6 +15,8 @@ import "fuzzy.js" as Fuzzy
 PanelWindow {
     id: root
 
+    screen: FocusMonitor.screen
+
     readonly property bool open: ShellState.launcherOpen
     property bool everOpened: false
 

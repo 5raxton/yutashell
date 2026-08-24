@@ -18,6 +18,8 @@ import "../common/ui"
 PanelWindow {
     id: root
 
+    screen: FocusMonitor.screen
+
     readonly property bool open: ShellState.pickerOpen
     property bool everOpened: false
 

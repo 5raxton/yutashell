@@ -11,6 +11,8 @@ import "../common/ui"
 PanelWindow {
     id: root
 
+    screen: FocusMonitor.screen
+
     anchors {
         top: true
         bottom: true

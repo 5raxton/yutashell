@@ -143,20 +143,29 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 ---
 
-## PHASE 6: Multi-Monitor & Surface Architecture
+## PHASE 6: Multi-Monitor & Surface Architecture — ✅ COMPLETE
 
 **Objective**: Full per-monitor support with proper layer management and surface choreography.
 
-- [ ] **6.1** `Variants` per screen — `Quickshell.screens` model drives `Bar` and `DockBar` instances, each with `modelData` (screen info)
-- [ ] **6.2** Bar layer — `WlrLayershell.layer: WlrLayer.Overlay` (topmost), popups on `WlrLayer.Top`, anything sliding down emerges from behind the bar
-- [ ] **6.3** YSurface entrance ritual — drop from behind bar with OutBack overshoot, acid scanline sweep, border burn acid→cool to hairline, power line left→right, family tick down left edge, ~400ms
-- [ ] **6.4** YSurface exit ceremony — reverse scanline up as card lifts, outro scanline + opacity fade, ~190ms hideDelay
-- [ ] **6.5** Content cascade — `cascade: <content Item>` on YSurface; direct children stagger-rise (26ms apart, opacity + Translate y14→0) after 140ms revealDelay; `kidAnim.createObject()` + `SequentialAnimation` with `PauseAnimation`; `onStopped` cleans up transforms
-- [ ] **6.6** YClickAway pattern — fullscreen transparent `MouseArea` as FIRST child of content root; `onOutsideClicked: <close>`; card (YSurface) AFTER it; keeps in-card clicks from reaching catcher
-- [ ] **6.7** No scrims by default — popups fullscreen transparent, input confined to card via `mask: Region { item: open ? clickAway : null }`
-- [ ] **6.8** Dolphin/standard surface — every floating surface composes YSurface instead of re-animating by hand
-- [ ] **6.9** FastWheel on all Flickables/GridViews/ListViews — drop-in child with `notchStep 132`, clamped
-- [ ] **6.10** Bar v2 data-driven — `ShellState.barSegments` ordered `[{id,zone,enabled}]` array; `BarSegments.present(id)` runtime visibility; 17 segments across 3 zones; `BarActions.dispatch(action)` for click-actions
+- [x] **6.1** `Variants` per screen — `Quickshell.screens` drives one `Bar` and one `DockBar` instance per screen (`screen: modelData`); DockBar scopes its window list via `workspace.monitor.name === screen.name` and dodges fullscreen per-monitor
+- [x] **6.2** Layer sandwich audited across all 23 windows — bar/tooltip/osd/polkit/shotflash on `WlrLayer.Overlay`, every popup + dock on `WlrLayer.Top`; nothing slides from negative-y except through the bar line
+- [x] **6.3** YSurface entrance ritual — drop from behind bar OutBack(0.12), scanline sweep, border burn→cool @230 ms, power line draw, family tick (~400 ms compound gesture) — read end-to-end in PH.04
+- [x] **6.4** Exit ceremony — reverse scanline up as the card lifts; panels hold the window ~190 ms post-close so the outro renders while the input mask is already gone
+- [x] **6.5** Content cascade — `cascade` item's children stagger-rise 26 ms apart (opacity + Translate y14→0 after 140 ms revealDelay), `kidAnim.createObject()` from Component wrapper, transforms destroyed `onStopped`, `reveal()` hooks fire section rules
+- [x] **6.6** YClickAway — first child of content root, card after it, card swallow keeps in-card clicks local; 12/12 floating surfaces carry it
+- [x] **6.7** No scrims — popups are fullscreen transparent; input confined via `mask: Region { item: open ? clickAway : null }`; desktop around the card stays clickable until the catcher takes over
+- [x] **6.8** Every floating surface composes YSurface (audited PH.04) — no hand-animated popups anywhere
+- [x] **6.9** FastWheel on every scrollable (completed in PH.04: 12/12 files)
+- [x] **6.10** Bar v2 data-driven — ordered `[{id,zone,enabled}]` array, `present()` runtime conditions, now 18 segments across 3 zones (incl. pluginwidgets), `BarActions.dispatch` click-actions
+
+**New this phase — focus-following placement (`modules/common/FocusMonitor.qml`)**:
+- Tracks the compositor-focused monitor via `focusedmonv2` raw events + delayed boot probe (`hyprctl -j monitors`, focused:true output)
+- Placement LATCHES at open: `ShellState._exclusive()` calls `latch()` whenever any popup opens, freezing the target screen so a mid-display focus move never drags a visible card across monitors
+- All 19 popup windows bind `screen: FocusMonitor.screen` (settings/picker/audio/media/cc/launcher/net/bt/notifycenter/toasts/alttab/overview/polkit/power/calendar/clipboard/emoji/shotflash/weather); Osd moved off hardcoded screens[0]
+- Toasts re-latch per notification arrival (Notify.onNotification) — stacks land where attention was, stay put
+- Shared Tooltip window now follows its anchor item's bar instance (`anchorItem.Window.window.screen`) instead of living on one fixed screen
+
+**Verification note**: this machine runs a single display (eDP-1). Structural verification on fresh instances ×2: clean boots, 17 open/close IPC cycles across all popup types + toast send/clear → 0 QML errors, RSS ~404 MB. The focusedmonv2 remap path is verified by construction (same raw-event pattern as the working activewindow tracker) but not visually exercised with two displays.
 
 **Cool bits from references**:
 - DankMaterialShell: Multi-compositor support (6), per-output workspaces, `wlr-layer-shell` layers (Overlay/Top), `Variants` per-screen, `DankBar` with zone system

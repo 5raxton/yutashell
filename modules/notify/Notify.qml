@@ -387,7 +387,11 @@ Singleton {
         actionIconsSupported: true
         imageSupported: true
 
-        onNotification: n => root._receive(n)
+        onNotification: n => {
+            // toast stack lands where attention was at arrival, then stays put
+            FocusMonitor.latch();
+            root._receive(n);
+        }
     }
 
     Component {
