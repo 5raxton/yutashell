@@ -49,24 +49,41 @@ Item {
         target: Hyprland
 
         function onRawEvent(evt) {
-            if (evt.name !== "urgent")
-                return;
-            const addr = String(evt.data ?? "").replace(/^0x/, "");
-            const tl = Hyprland.toplevels.values.find(t => String(t.address).replace(/^0x/, "") === addr);
-            if (tl?.workspace && tl.workspace.id > 0)
-                root.markUrgent(tl.workspace.id);
+            if (evt.name === "urgent") {
+                const addr = String(evt.data ?? "").replace(/^0x/, "");
+                const tl = Hyprland.toplevels.values.find(t => String(t.address).replace(/^0x/, "") === addr);
+                if (tl?.workspace && tl.workspace.id > 0)
+                    root.markUrgent(tl.workspace.id);
+            } else if (evt.name === "destroyworkspace") {
+                // the workspace itself is gone — nothing left to blink for
+                const id = parseInt(String(evt.data ?? ""));
+                if (!isNaN(id))
+                    root.clearUrgent(id);
+            } else if (evt.name === "closewindow") {
+                // the model may still carry the closing window — sweep after
+                // it settles so latches never blink at a dead workspace
+                urgentSweep.restart();
+            }
         }
 
         function onFocusedWorkspaceChanged() {
             root.clearUrgent(Hyprland.focusedWorkspace?.id ?? -1);
         }
+    }
 
-        // a workspace vanishing means its urgent window is gone — drop the latch
-        // or the slot blinks at nothing forever
-        function onWorkspacesChanged() {
-            const live = new Set(Hyprland.workspaces.values.map(w => w.id));
-            if (root.urgentIds.some(id => !live.has(id)))
-                root.urgentIds = root.urgentIds.filter(id => live.has(id));
+    Timer {
+        id: urgentSweep
+
+        interval: 400
+        onTriggered: {
+            const live = new Set();
+            const vals = Hyprland.toplevels.values;
+            for (let i = 0; i < vals.length; i++) {
+                const ws = vals[i].workspace;
+                if (ws && ws.id > 0)
+                    live.add(ws.id);
+            }
+            root.urgentIds = root.urgentIds.filter(id => live.has(id));
         }
     }
 

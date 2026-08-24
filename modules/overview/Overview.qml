@@ -75,20 +75,6 @@ Singleton {
         root.workspaces = wsOut;
     }
 
-    Connections {
-        target: Hyprland
-
-        function onToplevelsChanged() {
-            if (root._live)
-                root._refresh();
-        }
-
-        function onWorkspacesChanged() {
-            if (root._live)
-                root._refresh();
-        }
-    }
-
     function _desc(tl) {
         const appId = tl.wayland?.appId || tl.lastIpcObject?.class || "";
         const e = root._entry(appId);
