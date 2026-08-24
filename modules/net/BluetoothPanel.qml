@@ -249,7 +249,7 @@ PanelWindow {
                                 x: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
                                 implicitSize: 20
-                                source: root.modelData.icon.length > 0 ? Quickshell.iconPath(root.modelData.icon) : ""
+                                source: root.modelData !== undefined && root.modelData.icon !== undefined && root.modelData.icon.length > 0 ? Quickshell.iconPath(root.modelData.icon) : ""
                                 visible: status === Image.Ready
                             }
 
@@ -277,24 +277,24 @@ PanelWindow {
                                     spacing: Theme.sp2
 
                                     Text {
-                                        text: devRow.modelData.deviceName.length > 0 ? devRow.modelData.deviceName : devRow.modelData.name
-                                        color: devRow.modelData.connected ? Theme.acid : Theme.ink
+                                        text: devRow.modelData !== undefined && devRow.modelData.deviceName !== undefined && devRow.modelData.deviceName.length > 0 ? devRow.modelData.deviceName : (devRow.modelData?.name ?? "")
+                                        color: (devRow.modelData?.connected ?? false) ? Theme.acid : Theme.ink
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fsBody
-                                        font.weight: devRow.modelData.connected ? Font.DemiBold : Font.Normal
+                                        font.weight: (devRow.modelData?.connected ?? false) ? Font.DemiBold : Font.Normal
                                         elide: Text.ElideRight
                                         width: Math.min(220, root.contentW - 120)
                                     }
 
                                     YChip {
-                                        visible: devRow.modelData.batteryAvailable
-                                        label: Math.round(devRow.modelData.battery * 100) + "%"
-                                        tone: devRow.modelData.battery > 0.5 ? "outline" : "alert"
+                                        visible: devRow.modelData?.batteryAvailable ?? false
+                                        label: Math.round((devRow.modelData?.battery ?? 0) * 100) + "%"
+                                        tone: (devRow.modelData?.battery ?? 0) > 0.5 ? "outline" : "alert"
                                     }
                                 }
 
                                 Text {
-                                    text: devRow.modelData.state === BluetoothDeviceState.Connected ? "connected" : devRow.modelData.paired ? "paired · idle" : devRow.modelData.pairing ? "pairing…" : "unpaired"
+                                    text: devRow.modelData?.state === BluetoothDeviceState.Connected ? "connected" : (devRow.modelData?.paired ?? false) ? "paired · idle" : (devRow.modelData?.pairing ?? false) ? "pairing…" : "unpaired"
                                     color: Theme.faint
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
@@ -311,27 +311,27 @@ PanelWindow {
                                 visible: devRow.hovered
 
                                 YButton {
-                                    visible: !devRow.modelData.paired && !devRow.modelData.pairing
+                                    visible: !(devRow.modelData?.paired ?? false) && !(devRow.modelData?.pairing ?? false)
                                     label: "PAIR"
                                     onClicked: devRow.modelData.pair()
                                 }
 
                                 YSwitch {
-                                    visible: devRow.modelData.paired
-                                    checked: devRow.modelData.trusted
+                                    visible: devRow.modelData?.paired ?? false
+                                    checked: devRow.modelData?.trusted ?? false
                                     anchors.verticalCenter: parent.verticalCenter
                                     onToggled: devRow.modelData.trusted = !devRow.modelData.trusted
                                 }
 
                                 YButton {
-                                    visible: devRow.modelData.paired
-                                    label: devRow.modelData.connected ? "DISC" : "CONN"
-                                    tone: devRow.modelData.connected ? "danger" : "acid"
+                                    visible: devRow.modelData?.paired ?? false
+                                    label: (devRow.modelData?.connected ?? false) ? "DISC" : "CONN"
+                                    tone: (devRow.modelData?.connected ?? false) ? "danger" : "acid"
                                     onClicked: devRow.modelData.connected ? devRow.modelData.disconnect() : devRow.modelData.connect()
                                 }
 
                                 YButton {
-                                    visible: devRow.modelData.paired
+                                    visible: devRow.modelData?.paired ?? false
                                     label: "×"
                                     tone: "danger"
                                     onClicked: devRow.modelData.forget()

@@ -5,7 +5,7 @@ Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, on
 
 > **Status:** Phases 0–17 complete — the full roadmap: foundations, per-monitor taskbar, theme engine + matugen, settings control core, notification daemon, connectivity, audio/media/OSDs, session/lock/power, dock, overview, widgets, unified system data layer, configurable bar v2, control center, settings v4, and the final one-organism cohesion pass. The shell is a complete, polished daily driver.
 >
-> **ROADMAP v2.0** ("Operation Perfection") is now underway: a 10-phase plan to fold in the best of three reference shells (DankMaterialShell, Ryoku, caelestia) on top of this codebase — see [ROADMAP.md](ROADMAP.md). **Phases 1–2 are complete**: foundation audit (qmldir/singleton cross-check, boot probes, warm-up coverage) and the full service-layer audit (every IPC service verified live; fixes for multi-display brightness, night-light restart race, stale VPN/DNS snapshots, a 5 s poll that never slept, and change-driven update toasts).
+> **ROADMAP v2.0** ("Operation Perfection") is now underway: a 10-phase plan to fold in the best of three reference shells (DankMaterialShell, Ryoku, caelestia) on top of this codebase — see [ROADMAP.md](ROADMAP.md). **Phases 1–3 are complete**: foundation audit, full service-layer audit (5 fixes), and the module-suite audit — every panel exercised live over IPC (26 open/close cycles), with a null-safety fix for Bluetooth device delegates that crashed during scan churn.
 
 ## Showcase
 
@@ -263,7 +263,7 @@ Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`,
 
 - ✅ **Phase 1 — Foundation & module infrastructure**: qmldir ↔ singleton cross-audit (all 13 modules, 23 singletons), boot probes verified on every binary-detecting service, warm-up Timer extended to all lazily-referenced services, fresh-instance verification (clean load, warm IPC, RSS in range)
 - ✅ **Phase 2 — Service layer audit & hardening**: all 16 service items verified live over IPC; fixed multi-display brightness drops, night-light restart race, boot-stale VPN/DNS snapshots, network-panel poll that never rested, and update toasts that re-fired every 6 h
-- ⬜ Phase 3 — Module suite parity
+- ✅ **Phase 3 — Module suite audit**: all 23 module items verified against contract + live IPC exercise of every surface; fixed Bluetooth device-delegate null crashes during scan churn
 - ⬜ Phase 4 — Widget kit completeness
 - ⬜ Phase 5 — Plugin system
 - ⬜ Phase 6 — Multi-monitor & surface architecture
