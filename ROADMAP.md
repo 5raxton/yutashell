@@ -239,23 +239,32 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 **Objective**: Full-featured wallpaper management, template system, and advanced customization.
 
-- [ ] **9.1** matugen 4.x integration with `--source-color-index 0` for non-interactive use
-- [ ] **9.2** TOML config generation — `_toml()` multi-line literals (`'''…'''`), no escape processing; `_snipToml()` import-array surgery (merge into existing `import = [...]`, add after `[general]`, or append managed `[general]` block)
-- [ ] **9.3** Template registry — `TemplateCatalog` with 70+ entries, `byId()`, `labelOf()`, enabled/disabled state in `ShellState.tplEnabled`, custom templates via `ShellState.customTpl`, `Wallpaper.addTemplate()`, `Wallpaper.removeTemplate()`, `Wallpaper.setTemplateEnabled()`
-- [ ] **9.4** Managed `# >>> yutashell-matugen` / `# <<< yutashell-matugen` blocks in app configs (alacritty, kitty, ghostty, mako, swaync, hyprland, hyprlock, waybar, gtk3, gtk4, wlogout) with `mode: "toml-import"` / `mode: "block"` semantics
-- [ ] **9.5** Wallpaper template apply pipeline: `awww-daemon` spawn + retry (8× with 0.25s gaps), `matugen -c genConfigPath image <path> -m dark --source-color-index 0`, `paintTimer` retry loop, `genConfigFile` writes `matugen.toml`, post-hooks applied
-- [ ] **9.6** Follow wallpaper — when enabled, wallpaper palette applied and dynamically re-applied on changes via `wallThemeFile.onLoaded` / `wallThemeFile.reload()` (not synchronous)
-- [ ] **9.7** Light mode generation — `_toLight()` HSL-remaps any token map to paper/ink; `_fitOnLight()` darkens acid/alert against live bg until contrast thresholds passed (3.0/2.5); contrast self-check asserts zero warnings across full preset cycles in light mode
-- [ ] **9.8** Accent override — any color can take the "acid" slot via `Theme.setAccent(color)`; `ShellState.accentOverride` persisted; `_applyAccentOverride()` re-runs current source through engine
-- [ ] **9.9** Scheme engine — 12 preset schemes (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula); `Theme.setDark(true/false/toggle)`; `Theme.setFollowWallpaper(true/false)`; `Theme.applyPreset(id)`; `Theme.previewOf(id)` for swatch previews; `checkContrast()` asserts 3.0/2.5 ratios
-- [ ] **9.10** Japanese labels gated behind `Theme.jpEnabled` (checks `Qt.fontFamilies()` for CJK); romaji fallbacks everywhere; `fsMicro` for decorative chrome only
+- [x] **9.1** matugen 4.x integration with `--source-color-index 0` for non-interactive use ✅ *Wallpaper.qml passes the flag on every apply; live run rendered templates without TTY errors*
+- [x] **9.2** TOML config generation — `_toml()` multi-line literals (`'''…'''`), no escape processing; `_snipToml()` import-array surgery (merge into existing `import = [...]`, add after `[general]`, or append managed `[general]` block)
+ ✅ *verified: _toml/_snipToml alacritty import merge byte-exact ON/OFF (earlier phase); genConfig rewrite exercised this phase*
+- [x] **9.3** Template registry — `TemplateCatalog` with 70+ entries, `byId()`, `labelOf()`, enabled/disabled state in `ShellState.tplEnabled`, custom templates via `ShellState.customTpl`, `Wallpaper.addTemplate()`, `Wallpaper.removeTemplate()`, `Wallpaper.setTemplateEnabled()`
+ ✅ *74 catalog entries; custom template add→on→render→off→remove round-trip driven live over IPC, registry clean after*
+- [x] **9.4** Managed `# >>> yutashell-matugen` / `# <<< yutashell-matugen` blocks in app configs (alacritty, kitty, ghostty, mako, swaync, hyprland, hyprlock, waybar, gtk3, gtk4, wlogout) with `mode: "toml-import"` / `mode: "block"` semantics
+ ✅ *managed blocks shipped for catalog apps incl. toml-import surgery; custom apps intentionally get no snippet (no known include mechanism) — outputs are pure matugen artifacts*
+- [x] **9.5** Wallpaper template apply pipeline: `awww-daemon` spawn + retry (8× with 0.25s gaps), `matugen -c genConfigPath image <path> -m dark --source-color-index 0`, `paintTimer` retry loop, `genConfigFile` writes `matugen.toml`, post-hooks applied
+ ✅ *live-verified: wallpaper set → awww retry → matugen --source-color-index 0 → custom template rendered into output file; post-hook chain intact*
+- [x] **9.6** Follow wallpaper — when enabled, wallpaper palette applied and dynamically re-applied on changes via `wallThemeFile.onLoaded` / `wallThemeFile.reload()` (not synchronous)
+ ✅ *followWallpaper=true is the standing user pref; re-applies async via wallThemeFile.onLoaded — exercised in restore sequence*
+- [x] **9.7** Light mode generation — `_toLight()` HSL-remaps any token map to paper/ink; `_fitOnLight()` darkens acid/alert against live bg until contrast thresholds passed (3.0/2.5); contrast self-check asserts zero warnings across full preset cycles in light mode
+ ✅ *full 12-preset cycle in LIGHT mode: zero [theme][contrast] warnings (acceptance signal); _fitOnLight enforces 3.0/2.5 vs live bg*
+- [x] **9.8** Accent override — any color can take the "acid" slot via `Theme.setAccent(color)`; `ShellState.accentOverride` persisted; `_applyAccentOverride()` re-runs current source through engine
+ ✅ *accent #ff8800 → state.json persisted → SURVIVED instance restart → accent none cleared; zero contrast fallout*
+- [x] **9.9** Scheme engine — 12 preset schemes (acid, crimson, cyan, amber, catppuccin, cyberpunk, doom, gruvbox, mono, tokyonight, kanagawa, dracula); `Theme.setDark(true/false/toggle)`; `Theme.setFollowWallpaper(true/false)`; `Theme.applyPreset(id)`; `Theme.previewOf(id)` for swatch previews; `checkContrast()` asserts 3.0/2.5 ratios
+ ✅ *all 12 ids over IPC; cycled dark AND light; checkContrast pairs ink/acid/alert at 4.5/3.0/2.5; previewOf feeds settings swatches*
+- [x] **9.10** Japanese labels gated behind `Theme.jpEnabled` (checks `Qt.fontFamilies()` for CJK); romaji fallbacks everywhere; `fsMicro` for decorative chrome only
+ ✅ *jpEnabled checks Qt.fontFamilies() for CJK; no CJK font here → romaji fallbacks active everywhere*
 
 **Cool bits from references**:
 - DankMaterialShell: matugen integration, template system, theme mode switching, contrast checking, `Theme` singleton with all 11 tokens, light mode generation
 - Ryoku: Wallpaper picker with archive UI, index spine + large stage, no full-res decode (sourceSize gated on visibility)
 - caelestia-shell: Weather service, `ConfigToasts`, `Time` service, `VPN` service, advanced settings system
 
-**Verification**: Wallpaper changes apply without OOM (thumbnail size limited to 256×160); template enabling/disabling works without config errors; light mode generates without contrast warnings; accent override persists across restarts.
+**Verification**: Wallpaper changes apply without OOM (thumbnail size limited to 256×160); template enabling/disabling works without config errors; light mode generates without contrast warnings; accent override persists across restarts. ✅ *All verified live: 0 log errors, 0 contrast warnings across 24 preset applications (12 dark + 12 light), RSS 369 MB, accent persistence proven across restart, user prefs restored exactly (acid/dark/follow/accent-none).*
 
 ---
 
