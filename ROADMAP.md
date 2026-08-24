@@ -6,24 +6,24 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 ---
 
-## PHASE 1: Foundation & Module Infrastructure
+## PHASE 1: Foundation & Module Infrastructure — ✅ COMPLETE
 
 **Objective**: Establish the core architecture that all other phases depend on.
 
-- [ ] **1.1** Ensure all modules have `qmldir` declarations (already fixed: launcher, picker, settings, widgets)
-- [ ] **1.2** Audit all `pragma Singleton` declarations — ensure every singleton has `id: root` and `import QtQuick / import Quickshell` at top
-- [ ] **1.3** Add `Component.onCompleted` startup probes to all service singletons that need binary detection (DisplayService, Weather, NightLight, ColorPicker, Updates, Recording, ColorPicker) — see `DisplayService.qml` fix as template
-- [ ] **1.4** Implement `ShellState.set()` coalescing flush timer (80ms) across all modules — already in place, verify no warnings in logs
-- [ ] **1.5** Add warm-up `Timer` in `shell.qml` that reads `*.available` properties to pre-instantiate lazy singletons at boot (already present, verify it runs at startup)
-- [ ] **1.6** Ensure `UseQApplication` pragma only takes effect on fresh start (document in AGENTS.md lesson 9)
-- [ ] **1.7** Verify `qmldir` files in ALL modules declare types correctly (singleton vs regular) — run `ls modules/*/qmldir` and confirm each
+- [x] **1.1** All 13 modules have `qmldir` files; cross-check script confirms every top-level `.qml` is declared. Fixed: added `TemplatesPage` to `modules/settings/qmldir` (referenced at SettingsPanel.qml:1087/1101 but missing from the strict import list — would have broken the templates tab).
+- [x] **1.2** Audited all 23 `pragma Singleton` files: every one has `id: root`, proper imports, and a matching `singleton X 1.0 X.qml` qmldir entry. Reverse check (qmldir singleton entries → pragma present) caught and fixed `Emoji`: it is a PanelWindow, not a singleton — declaration reverted to plain type.
+- [x] **1.3** Startup probes verified on DisplayService, NightLight, Weather, ColorPicker, Updates, Recording (all fire `binProbe` in `Component.onCompleted`). Screenshot intentionally hardcodes `available: true` with documented rationale (grim/slurp are core deps). AudioService root hardened `QtObject` → `Singleton` per AGENTS.md convention (it carries a child object via property; bare children would have failed cryptically).
+- [x] **1.4** `ShellState.set()` coalescing verified: 80 ms flush Timer + `flushNow()` for session-ending paths. Fresh-instance log shows zero dropped-operation warnings.
+- [x] **1.5** Boot warm-up Timer extended: was covering only Updates/Recording/ColorPicker/Weather/Clipboard/SystemStats — now also touches `DisplayService.available`, `NightLight.available`, `Session.ppdAvailable` (all three are referenced ONLY inside IpcHandler functions and probe async; first IPC call previously raced the probe).
+- [x] **1.6** UseQApplication fresh-start caveat already documented in AGENTS.md lesson 15 ("the pragma only takes effect on a fresh start"). Verified pragma present in shell.qml line 3.
+- [x] **1.7** Full qmldir correctness sweep: files↔declarations both directions across all modules — PASS after the two fixes above.
 
 **Cool bits from references**:
 - DankMaterialShell: `Variants` per-screen bar/dock instances via `Quickshell.screens`
 - Ryoku: `ShellRoot` with per-monitor `ShellState` slices via `barkit` pattern
 - caelestia-shell: Modular `ShellRoot` with `GSFLoader` / `ServiceLoader` singletons
 
-**Verification**: `qs -p .` starts clean; `pgrep -af 'qs -c'` shows correct PID; RSS in 250-500 MB range.
+**Verification (2026-08-24, fresh instance pid 30904)**: "Configuration Loaded" with zero QML errors; IPC first-calls return live state (no probe race); RSS 399 MB. Known-honest warnings only: absent binaries degrade gracefully (`cliphist`/`ddcutil`/`hyprsunset`/`hyprpicker`/`nvidia-smi` no longer installed on this machine — UI reports "unavailable (install …)" as designed); org.freedesktop.Notifications + polkit agent owned by other daemons on this session; one benign empty tray-icon lookup at boot.
 
 ---
 

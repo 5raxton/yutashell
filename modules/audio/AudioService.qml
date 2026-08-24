@@ -11,7 +11,7 @@ import qs.modules.common
 // Volume math: PipeWire amplitudes are LINEAR (1.0 = 100 %). UI sliders run
 // on a CUBIC taper (perceptual) mapped across 0..audioCeiling — the overdrive
 // region above 100 % rides the same curve.
-QtObject {
+Singleton {
     id: root
 
     readonly property bool ready: Pipewire.ready

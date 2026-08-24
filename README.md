@@ -4,6 +4,8 @@ A full desktop shell for Hyprland, built on [Quickshell](https://quickshell.outf
 Neo-brutalist Japanese cyber-minimalist: flat black surfaces, bone-white ink, one acid accent, hairline structure, uppercase mono type, sparse Japanese micro-labels. No rounded corners.
 
 > **Status:** Phases 0–17 complete — the full roadmap: foundations, per-monitor taskbar, theme engine + matugen, settings control core, notification daemon, connectivity, audio/media/OSDs, session/lock/power, dock, overview, widgets, unified system data layer, configurable bar v2, control center, settings v4, and the final one-organism cohesion pass. The shell is a complete, polished daily driver.
+>
+> **ROADMAP v2.0** ("Operation Perfection") is now underway: a 10-phase plan to fold in the best of three reference shells (DankMaterialShell, Ryoku, caelestia) on top of this codebase — see [ROADMAP.md](ROADMAP.md). **Phase 1 (foundation & module infrastructure) is complete**: full qmldir/singleton cross-audit, boot-probe coverage for every binary-detecting service, and an extended lazy-singleton warm-up verified against a fresh instance (clean load, warm IPC first-calls, ~400 MB RSS).
 
 ## Showcase
 
@@ -257,6 +259,17 @@ Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`,
 
 ## Roadmap
 
-The full phased build plan — launcher, notifications, WiFi/BT panels, audio/media OSDs, dock, lock screen, settings core, matugen theming, control center, and the PH.16 settings suite — lives in [ROADMAP.md](ROADMAP.md). Phases 0–10 are complete; 11+ are next.
+**ROADMAP v2.0 — "Operation Perfection"** ([ROADMAP.md](ROADMAP.md)): a 10-phase plan integrating the best features of three reference shells (DankMaterialShell, Ryoku, caelestia) so yutashell needs no other config. Progress:
+
+- ✅ **Phase 1 — Foundation & module infrastructure**: qmldir ↔ singleton cross-audit (all 13 modules, 23 singletons), boot probes verified on every binary-detecting service, warm-up Timer extended to all lazily-referenced services, fresh-instance verification (clean load, warm IPC, RSS in range)
+- ⬜ Phase 2 — Service layer audit & hardening
+- ⬜ Phase 3 — Module suite parity
+- ⬜ Phase 4 — Widget kit completeness
+- ⬜ Phase 5 — Plugin system
+- ⬜ Phase 6 — Multi-monitor & surface architecture
+- ⬜ Phase 7 — Compositor integration breadth
+- ⬜ Phase 8 — Distribution & packaging support
+- ⬜ Phase 9 — Advanced theming & wallpaper pipeline
+- ⬜ Phase 10 — Polish, QA & edge cases
 
 Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

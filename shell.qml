@@ -40,6 +40,9 @@ ShellRoot {
             void Weather.available;
             void Clipboard.available;
             void SystemStats.hostname;
+            void DisplayService.available;
+            void NightLight.available;
+            void Session.ppdAvailable;
         }
     }
 
