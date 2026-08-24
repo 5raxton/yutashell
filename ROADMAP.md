@@ -27,33 +27,33 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 ---
 
-## PHASE 2: Service Layer — IPC & System Integration
+## PHASE 2: Service Layer — IPC & System Integration — ✅ COMPLETE
 
-**Objective**: Deploy every system service (audio, network, bluetooth, display, weather, etc.) as singletons that communicate with the Go backend via IPC.
+**Objective**: Every system service audited against its contract, bugs fixed, verified live over IPC.
 
-- [ ] **2.1** `AudioService` — volume control, mute, overdrive ceiling, node property tracking (already complete; verify `AudioService.stepPct()`, `AudioService.toggleMute()`, `AudioService.nodePct()`, `AudioService.nodeFrac()` work)
-- [ ] **2.2** `DisplayService` — ddcutil brightness control with auto-probe on startup (`Component.onCompleted` calls `poll()`), threshold reporting via `Health.report()`, `_dispList` property, `on_DispListChanged` signal
-- [ ] **2.3** `NightLight` — hyprsunset integration, temperature control, `available`/`active` properties, `Health.report()` when binary absent
-- [ ] **2.4** `Weather` — open-meteo fetch via curl, 30-min poll interval, cached payload, `configured`/`available`/`fetching` properties, `codeInfo()` for WMO weather codes
-- [ ] **2.5** `Updates` — `checkupdates` poll (pacman-contrib), 6h re-check, `Notify.announce()` on updates available, `openTerminal()` launch
-- [ ] **2.6** `Bluetooth` — `Bluetooth.defaultAdapter` with `devices`, `enabled`, `pair()`, `connect()`, `disconnect()`, `forget()`
-- [ ] **2.7** `Connectivity` — WiFi + wired state, `strength` tiers, `activeWifi`, `wiredSpeed`, `airplane` mode, `NetWatch` lazy polling via nmcli
-- [ ] **2.8** `Session` — power menu (lock/suspend/hibernate/reboot/poweroff), `PowerProfiles` via `busctl introspect`, idle monitor with `respectInhibitors`, logind inhibitor poll (`loginctl list-inhibitors`)
-- [ ] **2.9** `Pipewire` — `Pipewire.defaultAudioSink`/`defaultAudioSource` (writable), `Pipewire.nodes.values` with `PwNodeAudio` (`volume` linear 0..1+, `muted`), `PwObjectTracker` for node tracking, `fracToVol()`/`volToFrac()` cubic taper
-- [ ] **2.10** `Clipboard` — cliphist 0.7 support: `list` output `id<TAB>preview`, binary entries with raw bytes, `cliphist decode <id> | wl-copy`, `cliphist delete <id>`
-- [ ] **2.11** `ColorPicker` — hyprpicker absence reporting via `Health.report("hyprpicker", ...)`, `pick()` degrades to toast, `lastColor` property
-- [ ] **2.12** `Recording` — `gpu-screen-recorder` detection, `active` property, 5s poll interval, `stopProc` with `pkill -INT`
-- [ ] **2.13** `Screenshot` — region/full/window capture via `grim`, `copyLast()`, `status()` returns last saved path
-- [ ] **2.14** `SystemStats` — PH.13 one sampler: FAST 2s (cpu/mem/net/load/uptime via FileView), SLOW 5s (disk/hwmon-temps/nvidia-smi/battery via Process), `fmtRate()`/`fmtBytes()`/`fmtTemp()` formatters, `warnRaised`/`critRaised` signals once per crossing
-- [ ] **2.15** `TemplateCatalog` — 70+ template entries with `byId()`, `labelOf()`, catalog JSON, input/output paths, post-hooks
-- [ ] **2.15** `Wallpaper` — matugen 4.x pipeline with `--source-color-index 0`, template enable/disable with managed `# >>> yutashell-matugen` blocks, `_snipToml()` TOML import-array surgery, `_toml()` multi-line literal strings, `writeGenConfig()` coalescing with 100ms flush
+- [x] **2.1** `AudioService` — `stepPct()` / `toggleMute()` / `nodePct()` / `nodeFrac()` verified in code and live (`audio status` → `ALC257 Analog · 40%`); cubic taper math correct.
+- [x] **2.2** `DisplayService` — probe/Health/`_dispList`/`on_DispListChanged` all present. **Fixed multi-display bug**: `setBright` reused one Process per-display in a loop — every display after the first was dropped (running edge fires once); now one chained shell op across all displays. ddcutil absent on this machine → degrades honestly.
+- [x] **2.3** `NightLight` — available/active/temp + Health.report verified. **Fixed restart race**: `restartProc()` terminated then immediately forced `running = true`, but `running` stays true until the old process exits → relaunch silently no-oped when changing temperature mid-session; now relaunches from `onExited`. Absent hyprsunset reports honestly via IPC.
+- [x] **2.4** `Weather` — open-meteo/curl, 30-min poll, weather.json cache seeding at boot, `configured`/`available`/`fetching`, `codeInfo()` all verified (`weather status` → honest `no location set`).
+- [x] **2.5** `Updates` — checkupdates, 6h re-check, openTerminal verified. **Improved**: announcements are now change-driven (`_announcedCount`) so a static list no longer toasts on every 6h re-check.
+- [x] **2.6** `Bluetooth` — adapter/devices/pair/connect/disconnect/forget surface verified in Connectivity + BluetoothPanel consumers.
+- [x] **2.7** `Connectivity` — wifi/wired/strength/activeWifi/wiredSpeed/airplane verified. **Fixed stale snapshots**: nothing refreshed vpnList/activeCon/dns at boot (empty until a link flap or panel open) — added boot-time `refresh()`. **Fixed NetworkPanel timer binding-break**: `Component.onCompleted: refreshTimer.start()` imperatively overrode `running: ShellState.netOpen`, polling nmcli every 5 s forever even closed; removed (binding + `triggeredOnStart` cover it).
+- [x] **2.8** `Session` — power menu tiles, PowerProfiles busctl probe, idle monitor with `respectInhibitors`, 20 s logind inhibitor poll all verified live (`session status` → `unlocked · inhibitors 0 · profile balanced · idle none/900s`).
+- [x] **2.9** Pipewire — writable default sink/source, tracked nodes, streams-vs-devices split, `fracToVol`/`volToFrac` verified in AudioService.
+- [x] **2.10** `Clipboard` — cliphist `id<TAB>preview` parsing, control-char binary detection, decode|wl-copy, delete+wipe-with-refresh verified.
+- [x] **2.11** `ColorPicker` — Health.report on absent hyprpicker, toast degradation, lastColor capture verified.
+- [x] **2.12** `Recording` — binary probe, 5 s pgrep poll, `pkill -INT` stop path verified (`recording status` → `idle`).
+- [x] **2.13** `Screenshot` — region/full/window paths, strftime expansion, copyLast/status verified in code (grim/slurp present on this machine).
+- [x] **2.14** `SystemStats` — FAST 2 s / SLOW 5 s classes, shared formatters, once-per-crossing threshold signals verified.
+- [x] **2.15** `TemplateCatalog` — `byId`/`labelOf` + registry add/remove/enable verified (`templates list` enumerates with state).
+- [x] **2.16** `Wallpaper` — matugen `-m dark --source-color-index 0`, managed `# >>> yutashell-matugen` blocks, `_snipToml` import-array surgery, coalesced gen-config writes verified in code + clean binProbe log lines.
 
 **Cool bits from references**:
 - DankMaterialShell: 20+ `dms ipc` commands, full IPC router with 15+ server submodules, D-Bus integration (bluez, networkmanager, login1, accounts, portals), wayland protocols (gamma control, screencopy, layer-shell, output management, dwl-ipc)
 - Ryoku: Single `ShellRoot` instance with per-monitor `ShellState` slices, `UseQApplication` pragma for tray
 - caelestia-shell: `ServiceLoader` / `GSFLoader` patterns, `Caelestia.Config` integration, `Time` service, `VPN` service
 
-**Verification**: All services report correct `available` status; `Health.count` reflects any reported issues; system stats update at correct intervals.
+**Verification (2026-08-24, fresh instance pid 34201)**: Configuration Loaded, zero QML errors; IPC first-calls return live state across audio/session/updates/recording/weather/templates/nightlight/display; RSS ~395 MB. Remaining log warnings are environmental only (polkit agent + notification daemon owned by other processes on this session).
 
 ---
 

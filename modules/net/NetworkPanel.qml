@@ -77,8 +77,6 @@ PanelWindow {
         }
     }
 
-    Component.onCompleted: refreshTimer.start()
-
     // periodic re-poll of nmcli-derived data while open
     Timer {
         id: refreshTimer

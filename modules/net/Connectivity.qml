@@ -135,4 +135,8 @@ Singleton {
 
         onExited: root.refresh()
     }
+
+    // populate vpnList/activeCon/dns at boot so NetWatch's announcer and the
+    // control center see real state before any panel opens or link flaps
+    Component.onCompleted: root.refresh()
 }

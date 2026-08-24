@@ -29,10 +29,13 @@ Singleton {
         brightPct = v;
         if (!available)
             return;
-        for (let i = 0; i < displays.length; i++) {
-            setProc.command = ["ddcutil", "-d", String(displays[i].idx), "setvcp", "10", String(v), "--noverify"];
-            setProc.running = true;
-        }
+        // one chained shell op — reusing a single Process per-display would
+        // drop every display after the first (running edge fires once)
+        const ops = [];
+        for (let i = 0; i < displays.length; i++)
+            ops.push("ddcutil -d " + String(parseInt(displays[i].idx)) + " setvcp 10 " + v + " --noverify");
+        setProc.command = ["sh", "-c", ops.join(" && ")];
+        setProc.running = true;
     }
 
     function poll() {

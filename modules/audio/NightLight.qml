@@ -52,12 +52,35 @@ Singleton {
     }
 
     function restartProc() {
-        try {
-            sunsetProc.terminate();
-        } catch (e) {
+        // running stays true until the old process actually exits — relaunch
+        // from onExited instead of forcing the edge (which would be a no-op)
+        if (sunsetProc.running) {
+            _relaunch = true;
+            try {
+                sunsetProc.terminate();
+            } catch (e) {
+            }
+            return;
         }
+        _launch();
+    }
+
+    function _launch() {
         sunsetProc.command = ["hyprsunset", "-t", String(temp)];
         sunsetProc.running = true;
+    }
+
+    property bool _relaunch: false
+
+    Process {
+        id: sunsetProc
+
+        onExited: {
+            if (_relaunch) {
+                _relaunch = false;
+                _launch();
+            }
+        }
     }
 
     Component.onCompleted: {
@@ -81,9 +104,5 @@ Singleton {
                     root.restartProc();
             }
         }
-    }
-
-    Process {
-        id: sunsetProc
     }
 }

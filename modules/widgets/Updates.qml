@@ -67,12 +67,17 @@ Singleton {
                 const lines = text.trim().length ? text.trim().split("\n") : [];
                 root.packages = lines;
                 root.lastCheck = new Date();
-                if (lines.length > 0)
+                // narrate only transitions — a static list must not toast
+                // every 6h re-check
+                if (lines.length > 0 && lines.length !== root._announcedCount)
                     Notify.announce("UPDATES", lines.length + " package update(s) available", 1);
+                root._announcedCount = lines.length;
             }
         }
         stderr: StdioCollector {}
     }
+
+    property int _announcedCount: -1
 
     Process {
         id: termProc
