@@ -1,0 +1,540 @@
+#!/usr/bin/env python3
+
+import sys
+import json
+import os
+import subprocess
+from pathlib import Path
+from urllib import request, parse
+
+REPO_ROOT = Path(__file__).parent.parent
+EN_JSON = REPO_ROOT / "translations" / "en.json"
+TEMPLATE_JSON = REPO_ROOT / "translations" / "template.json"
+POEXPORTS_DIR = REPO_ROOT / "translations" / "poexports"
+SYNC_STATE = REPO_ROOT / ".git" / "i18n_sync_state.json"
+
+# dank-qml-common terms live in the same DMS POEditor project (tagged
+# dank-qml-common); their translations ship inside the submodule so every
+# consumer gets them with the pointer. dankcalendar merges from this project.
+COMMON_ROOT = REPO_ROOT.parent / "dank-qml-common"
+COMMON_EN_JSON = COMMON_ROOT / "translations" / "en.json"
+COMMON_POEXPORTS_DIR = COMMON_ROOT / "DankCommon" / "translations" / "poexports"
+
+# Plugin checkouts under quickshell/ are scanned by extraction (terms tagged
+# plugin-<dir>); their per-language exports are written back into each
+# checkout's translations/ dir, which ships with the plugin repo.
+PLUGIN_CHECKOUT_DIRS = [REPO_ROOT / "dms-plugins", REPO_ROOT / "dms-plugins-external"]
+
+# Flip once official plugins ship their own translations/ dirs: app poexports
+# then stop carrying terms owned exclusively by plugins.
+EXCLUDE_PLUGIN_ONLY_TERMS = False
+
+LANGUAGES = {
+    "ja": "ja.json",
+    "zh-Hans": "zh_CN.json",
+    "zh-Hant": "zh_TW.json",
+    "pt-br": "pt.json",
+    "tr": "tr.json",
+    "it": "it.json",
+    "pl": "pl.json",
+    "es": "es.json",
+    "he": "he.json",
+    "hu": "hu.json",
+    "fa": "fa.json",
+    "fr": "fr.json",
+    "nl": "nl.json",
+    "ru": "ru.json",
+    "de": "de.json",
+    "sv": "sv.json",
+    "vi": "vi.json",
+    "eo": "eo.json",
+    "ko": "ko.json",
+    "ar": "ar.json",
+    "uk": "uk.json"
+}
+
+def error(msg):
+    print(f"\033[91mError: {msg}\033[0m", file=sys.stderr)
+    sys.exit(1)
+
+def warn(msg):
+    print(f"\033[93mWarning: {msg}\033[0m", file=sys.stderr)
+
+def info(msg):
+    print(f"\033[94m{msg}\033[0m")
+
+def success(msg):
+    print(f"\033[92m{msg}\033[0m")
+
+def get_env_or_error(var):
+    value = os.environ.get(var)
+    if not value:
+        error(f"{var} environment variable not set")
+    return value
+
+def poeditor_request(endpoint, data):
+    url = f"https://api.poeditor.com/v2/{endpoint}"
+    data_bytes = parse.urlencode(data).encode()
+    req = request.Request(url, data=data_bytes, method="POST")
+
+    try:
+        with request.urlopen(req) as response:
+            return json.loads(response.read().decode())
+    except Exception as e:
+        error(f"POEditor API request failed: {e}")
+
+def extract_strings():
+    info("Extracting strings from QML files...")
+    extract_script = REPO_ROOT / "translations" / "extract_translations.py"
+
+    if not extract_script.exists():
+        error(f"Extract script not found: {extract_script}")
+
+    result = subprocess.run([sys.executable, str(extract_script)], cwd=REPO_ROOT)
+    if result.returncode != 0:
+        error("String extraction failed")
+
+    if not EN_JSON.exists():
+        error(f"Extraction did not produce {EN_JSON}")
+
+def normalize_json(file_path):
+    if not file_path.exists():
+        return {}
+    with open(file_path) as f:
+        return json.load(f)
+
+def json_changed(file_path, new_data):
+    old_data = normalize_json(file_path)
+    return json.dumps(old_data, sort_keys=True) != json.dumps(new_data, sort_keys=True)
+
+def load_common_entries():
+    if not COMMON_EN_JSON.exists():
+        error("dank-qml-common submodule not initialized (git submodule update --init)")
+    with open(COMMON_EN_JSON) as f:
+        entries = json.load(f)
+    return [{**e, "tags": sorted(set(e.get("tags", [])) | {"dank-qml-common"})} for e in entries]
+
+# dms-greeter terms live in this POEditor project but are owned by the
+# dank-greeter repo. They must ride along in every upload so prune
+# (sync_terms) does not delete them and tag-less uploads do not strip
+# their tag.
+GREETER_TAG = "dms-greeter"
+
+def load_greeter_entries(api_token, project_id):
+    resp = poeditor_request('terms/list', {
+        'api_token': api_token,
+        'id': project_id
+    })
+    if resp.get('response', {}).get('status') != 'success':
+        error(f"POEditor terms list failed: {resp}")
+    terms = resp.get('result', {}).get('terms', [])
+    return [
+        {'term': t['term'], 'context': t.get('context', ''), 'tags': sorted(set(t.get('tags', [])))}
+        for t in terms
+        if GREETER_TAG in t.get('tags', [])
+    ]
+
+def entry_keys(entries):
+    return {(e.get('context') or e['term'], e['term']) for e in entries}
+
+def plugin_checkouts():
+    checkouts = {}
+    for base in PLUGIN_CHECKOUT_DIRS:
+        if not base.is_dir():
+            continue
+        for child in base.iterdir():
+            if child.is_dir() and not child.name.startswith('.'):
+                checkouts['plugin-' + child.name.lower()] = child
+    return checkouts
+
+def plugin_term_owners(entries):
+    owners = {}
+    excluded = set()
+    for e in entries:
+        tags = e.get('tags', [])
+        ptags = [t for t in tags if t.startswith('plugin-')]
+        if not ptags:
+            continue
+        key = (e.get('context') or e['term'], e['term'])
+        owners.setdefault(key, set()).update(ptags)
+        if EXCLUDE_PLUGIN_ONLY_TERMS and all(t.startswith('plugin-') for t in tags):
+            excluded.add(key)
+    return owners, excluded
+
+def combine_entries(app_entries, common_entries):
+    common_by_key = {(e.get('context') or e['term'], e['term']): e for e in common_entries}
+    combined = []
+    for entry in app_entries:
+        key = (entry.get('context') or entry['term'], entry['term'])
+        overlap = common_by_key.pop(key, None)
+        if overlap:
+            entry = {**entry, "tags": sorted(set(entry.get("tags", [])) | set(overlap.get("tags", [])))}
+        combined.append(entry)
+    return combined + list(common_by_key.values())
+
+def split_export(data, common_keys, greeter_keys, plugin_owners, plugin_excluded):
+    app_part = {}
+    common_part = {}
+    plugin_parts = {}
+    for context, terms in data.items():
+        if not isinstance(terms, dict):
+            continue
+        for term, value in terms.items():
+            key = (context, term)
+            if key in common_keys:
+                common_part.setdefault(context, {})[term] = value
+                continue
+            if key in greeter_keys:
+                continue
+            for tag in plugin_owners.get(key, ()):
+                plugin_parts.setdefault(tag, {}).setdefault(context, {})[term] = value
+            if key in plugin_excluded:
+                continue
+            app_part.setdefault(context, {})[term] = value
+    return app_part, common_part, plugin_parts
+
+def upload_source_strings(api_token, project_id, entries, prune=False):
+    if not entries:
+        warn("No terms to upload")
+        return False
+
+    info("Uploading source strings to POEditor..." + (" (pruning terms not present locally)" if prune else ""))
+
+    upload_bytes = json.dumps(entries, ensure_ascii=False).encode()
+    boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
+    sync_part = (
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="sync_terms"\r\n\r\n'
+        f'1\r\n'
+    ) if prune else ''
+    body = (
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="api_token"\r\n\r\n'
+        f'{api_token}\r\n'
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="id"\r\n\r\n'
+        f'{project_id}\r\n'
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="updating"\r\n\r\n'
+        f'terms\r\n'
+        f'{sync_part}'
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="file"; filename="en.json"\r\n'
+        f'Content-Type: application/json\r\n\r\n'
+    ).encode() + upload_bytes + f'\r\n--{boundary}--\r\n'.encode()
+
+    req = request.Request(
+        'https://api.poeditor.com/v2/projects/upload',
+        data=body,
+        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'}
+    )
+
+    try:
+        with request.urlopen(req) as response:
+            result = json.loads(response.read().decode())
+    except Exception as e:
+        error(f"Upload failed: {e}")
+
+    if result.get('response', {}).get('status') != 'success':
+        error(f"POEditor upload failed: {result}")
+
+    terms = result.get('result', {}).get('terms', {})
+    added = terms.get('added', 0)
+    updated = terms.get('updated', 0)
+    deleted = terms.get('deleted', 0)
+
+    if added or updated or deleted:
+        success(f"POEditor updated: {added} added, {updated} updated, {deleted} deleted")
+        return True
+    else:
+        info("No changes uploaded to POEditor")
+        return False
+
+def write_if_changed(repo_file, new_data):
+    if not json_changed(repo_file, new_data):
+        return False
+    with open(repo_file, 'w') as f:
+        json.dump(new_data, f, ensure_ascii=False, indent=2, sort_keys=True)
+        f.write('\n')
+    return True
+
+def download_translations(api_token, project_id, common_keys, greeter_keys, plugin_owners, plugin_excluded):
+    info("Downloading translations from POEditor...")
+
+    POEXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    COMMON_POEXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    checkouts = plugin_checkouts()
+    any_changed = False
+    common_changed = []
+    plugin_changed = {}
+
+    for po_lang, filename in LANGUAGES.items():
+        repo_file = POEXPORTS_DIR / filename
+        common_file = COMMON_POEXPORTS_DIR / filename
+
+        info(f"Fetching {po_lang}...")
+
+        export_resp = poeditor_request('projects/export', {
+            'api_token': api_token,
+            'id': project_id,
+            'language': po_lang,
+            'type': 'key_value_json'
+        })
+
+        if export_resp.get('response', {}).get('status') != 'success':
+            warn(f"Export request failed for {po_lang}")
+            continue
+
+        url = export_resp.get('result', {}).get('url')
+        if not url:
+            warn(f"No export URL for {po_lang}")
+            continue
+
+        try:
+            with request.urlopen(url) as response:
+                new_data = json.loads(response.read().decode())
+        except Exception as e:
+            warn(f"Failed to download {po_lang}: {e}")
+            continue
+
+        app_part, common_part, plugin_parts = split_export(new_data, common_keys, greeter_keys, plugin_owners, plugin_excluded)
+
+        if write_if_changed(repo_file, app_part):
+            success(f"Updated {filename}")
+            any_changed = True
+        else:
+            info(f"No changes for {filename}")
+
+        if write_if_changed(common_file, common_part):
+            success(f"Updated dank-qml-common {filename}")
+            common_changed.append(filename)
+
+        for tag, part in sorted(plugin_parts.items()):
+            checkout = checkouts.get(tag)
+            if not checkout:
+                continue
+            target_dir = checkout / "translations"
+            target_dir.mkdir(parents=True, exist_ok=True)
+            if write_if_changed(target_dir / filename, part):
+                success(f"Updated {checkout.name} {filename}")
+                plugin_changed.setdefault(checkout.name, []).append(filename)
+
+    return any_changed, common_changed, plugin_changed
+
+def check_sync_status():
+    api_token = get_env_or_error('POEDITOR_API_TOKEN')
+    project_id = get_env_or_error('POEDITOR_PROJECT_ID')
+
+    extract_strings()
+
+    current_en = normalize_json(EN_JSON)
+    common_entries = load_common_entries()
+    common_keys = entry_keys(common_entries)
+    greeter_keys = entry_keys(load_greeter_entries(api_token, project_id))
+    plugin_owners, plugin_excluded = plugin_term_owners(current_en)
+
+    if not SYNC_STATE.exists():
+        return True
+
+    with open(SYNC_STATE) as f:
+        state = json.load(f)
+
+    last_en = state.get('en_json', {})
+    last_common_en = state.get('common_en_json', {})
+    last_translations = state.get('translations', {})
+    last_common_translations = state.get('common_translations', {})
+
+    if json.dumps(current_en, sort_keys=True) != json.dumps(last_en, sort_keys=True):
+        return True
+
+    if json.dumps(common_entries, sort_keys=True) != json.dumps(last_common_en, sort_keys=True):
+        return True
+
+    for po_lang, filename in LANGUAGES.items():
+        if json_changed(POEXPORTS_DIR / filename, last_translations.get(filename, {})):
+            return True
+        if json_changed(COMMON_POEXPORTS_DIR / filename, last_common_translations.get(filename, {})):
+            return True
+
+    export_resp = poeditor_request('projects/export', {
+        'api_token': api_token,
+        'id': project_id,
+        'language': list(LANGUAGES.keys())[0],
+        'type': 'key_value_json'
+    })
+
+    if export_resp.get('response', {}).get('status') == 'success':
+        url = export_resp.get('result', {}).get('url')
+        if url:
+            try:
+                with request.urlopen(url) as response:
+                    remote_data = json.loads(response.read().decode())
+                    app_part, common_part, _ = split_export(remote_data, common_keys, greeter_keys, plugin_owners, plugin_excluded)
+                    first_file = LANGUAGES[list(LANGUAGES.keys())[0]]
+
+                    if json_changed(POEXPORTS_DIR / first_file, app_part):
+                        return True
+                    if json_changed(COMMON_POEXPORTS_DIR / first_file, common_part):
+                        return True
+            except:
+                pass
+
+    return False
+
+def save_sync_state():
+    state = {
+        'en_json': normalize_json(EN_JSON),
+        'common_en_json': load_common_entries() if COMMON_EN_JSON.exists() else {},
+        'translations': {},
+        'common_translations': {}
+    }
+
+    for filename in LANGUAGES.values():
+        state['translations'][filename] = normalize_json(POEXPORTS_DIR / filename)
+        state['common_translations'][filename] = normalize_json(COMMON_POEXPORTS_DIR / filename)
+
+    SYNC_STATE.parent.mkdir(parents=True, exist_ok=True)
+    with open(SYNC_STATE, 'w') as f:
+        json.dump(state, f, indent=2)
+
+def main():
+    if len(sys.argv) < 2:
+        error("Usage: i18nsync.py [check|sync [--prune]|test|local]")
+
+    command = sys.argv[1]
+
+    if command == "test":
+        info("Running in test mode (no POEditor upload/download)")
+        extract_strings()
+
+        current_en = normalize_json(EN_JSON)
+        current_template = normalize_json(TEMPLATE_JSON)
+
+        success(f"✓ Extracted {len(current_en)} terms")
+
+        terms_with_context = sum(1 for entry in current_en if entry.get('context') and entry['context'] != entry['term'])
+        if terms_with_context > 0:
+            success(f"✓ Found {terms_with_context} terms with custom contexts")
+
+        info("\nFiles generated:")
+        info(f"  - {EN_JSON}")
+        info(f"  - {TEMPLATE_JSON}")
+
+        sys.exit(0)
+    elif command == "check":
+        try:
+            if check_sync_status():
+                error("i18n out of sync - run 'python3 scripts/i18nsync.py sync' first")
+            else:
+                success("i18n in sync")
+                sys.exit(0)
+        except SystemExit:
+            raise
+        except Exception as e:
+            error(f"Check failed: {e}")
+
+    elif command == "sync":
+        api_token = get_env_or_error('POEDITOR_API_TOKEN')
+        project_id = get_env_or_error('POEDITOR_PROJECT_ID')
+        prune = "--prune" in sys.argv[2:]
+        if prune:
+            warn("--prune deletes every POEditor term missing from the local en.json, including its translations.")
+            warn("Terms from dms-plugins/ and dms-plugins-external/ are machine-dependent: make sure all official and approved external plugins are present before pruning.")
+            warn("dank-qml-common terms are included from the submodule, so pruning keeps them as long as the submodule is current.")
+            warn("dms-greeter terms are fetched from POEditor and re-included, so pruning keeps them.")
+
+        common_entries = load_common_entries()
+        common_keys = entry_keys(common_entries)
+        greeter_entries = load_greeter_entries(api_token, project_id)
+        greeter_keys = entry_keys(greeter_entries)
+
+        extract_strings()
+
+        current_en = normalize_json(EN_JSON)
+        staged_en = {}
+
+        try:
+            result = subprocess.run(
+                ['git', 'show', f':{EN_JSON.relative_to(REPO_ROOT)}'],
+                capture_output=True,
+                text=True,
+                cwd=REPO_ROOT
+            )
+            if result.returncode == 0:
+                staged_en = json.loads(result.stdout)
+        except:
+            pass
+
+        strings_changed = json.dumps(current_en, sort_keys=True) != json.dumps(staged_en, sort_keys=True)
+
+        last_common_en = {}
+        if SYNC_STATE.exists():
+            with open(SYNC_STATE) as f:
+                last_common_en = json.load(f).get('common_en_json', {})
+        common_changed = json.dumps(common_entries, sort_keys=True) != json.dumps(last_common_en, sort_keys=True)
+
+        if strings_changed or common_changed or prune:
+            combined = combine_entries(current_en, common_entries)
+            combined = combine_entries(combined, greeter_entries)
+            upload_source_strings(api_token, project_id, combined, prune)
+        else:
+            info("No changes in source strings")
+
+        plugin_owners, plugin_excluded = plugin_term_owners(current_en)
+        translations_changed, common_files_changed, plugin_files_changed = download_translations(api_token, project_id, common_keys, greeter_keys, plugin_owners, plugin_excluded)
+
+        if strings_changed or translations_changed:
+            subprocess.run(['git', 'add', 'translations/'], cwd=REPO_ROOT)
+            save_sync_state()
+            success("Sync complete - changes staged for commit")
+        else:
+            save_sync_state()
+            info("Already in sync")
+
+        if common_files_changed:
+            info(f"dank-qml-common poexports updated: {', '.join(common_files_changed)}")
+            info("Commit those in dank-qml-common and bump the pointer here (make update-common).")
+
+        for checkout_name, files in sorted(plugin_files_changed.items()):
+            info(f"{checkout_name} translations updated: {', '.join(files)}")
+        if plugin_files_changed:
+            info("Commit those in each plugin checkout - they ship with the plugin repo, not with DMS.")
+
+    elif command == "local":
+        info("Updating en.json locally (no POEditor sync)")
+
+        old_en = normalize_json(EN_JSON)
+        old_terms = {entry['term']: entry for entry in old_en} if isinstance(old_en, list) else {}
+
+        extract_strings()
+
+        new_en = normalize_json(EN_JSON)
+        new_terms = {entry['term']: entry for entry in new_en} if isinstance(new_en, list) else {}
+
+        added = set(new_terms.keys()) - set(old_terms.keys())
+        removed = set(old_terms.keys()) - set(new_terms.keys())
+
+        if added:
+            info(f"\n+{len(added)} new terms:")
+            for term in sorted(added)[:20]:
+                print(f"  + {term[:60]}...")
+            if len(added) > 20:
+                print(f"  ... and {len(added) - 20} more")
+
+        if removed:
+            info(f"\n-{len(removed)} removed terms:")
+            for term in sorted(removed)[:20]:
+                print(f"  - {term[:60]}...")
+            if len(removed) > 20:
+                print(f"  ... and {len(removed) - 20} more")
+
+        success(f"\n✓ {len(new_en)} total terms")
+
+        if not added and not removed:
+            info("No changes detected")
+
+    else:
+        error(f"Unknown command: {command}")
+
+if __name__ == '__main__':
+    main()
