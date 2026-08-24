@@ -261,6 +261,8 @@ PanelWindow {
         // ===== CARD BODY =====
         // YSurface owns placement + the drop-from-behind-the-bar entrance
         YSurface {
+
+            spawnId: "settings"
             id: drawer
 
             open: ShellState.panelOpen
@@ -1923,6 +1925,125 @@ PanelWindow {
                         }
                     }
 
+                    // ---- spawn origins --------------------------------
+                    YSection {
+                        width: parent.width
+                        index: "04"
+                        label: "Spawn origins"
+                        chip: PanelSpawn.defaultMode().toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Default"
+                            color: Theme.ink
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsLabel
+                            font.weight: Font.DemiBold
+                        }
+
+                        Repeater {
+                            model: PanelSpawn.modes
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                width: 64
+                                tone: PanelSpawn.defaultMode() === modelData ? "acid" : "default"
+                                label: modelData.toUpperCase()
+                                onClicked: PanelSpawn.setDefault(modelData)
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "BAR dock flush under/over the bar · TOP slides from the top edge · BOTTOM rises from the bottom edge · FLOAT fades in dead-center"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Repeater {
+                        model: PanelSpawn.panels
+
+                        delegate: Item {
+                            id: spawnRow
+
+                            required property var modelData
+
+                            readonly property string cur: PanelSpawn.modeFor(modelData.id)
+
+                            width: root.contentW
+                            height: 36
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: spawnArea.containsMouse ? Theme.surface : "transparent"
+                            }
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.sp2
+                                anchors.right: modeRow.left
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                elide: Text.ElideRight
+                                text: spawnRow.modelData.label
+                                color: Theme.ink
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                font.weight: Font.DemiBold
+                            }
+
+                            Row {
+                                id: modeRow
+
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Theme.sp1
+
+                                Repeater {
+                                    model: PanelSpawn.modes
+
+                                    delegate: YButton {
+                                        required property var modelData
+
+                                        readonly property string m: modelData
+
+                                        width: 64
+                                        tone: spawnRow.cur === m ? "acid" : "default"
+                                        label: m.toUpperCase()
+                                        onClicked: PanelSpawn.set(spawnRow.modelData.id, m)
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: spawnArea
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.NoButton
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "per-panel overrides replace the default — set a panel back to the default mode to drop its override"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
                     Item {
                         width: 1
                         height: Theme.sp2
@@ -2438,9 +2559,6 @@ PanelWindow {
 
                             readonly property var meta: BarSegments.meta[modelData.id] ?? { label: modelData.id, jp: "" }
                             readonly property bool on_: modelData.enabled !== false
-                            // these three render inside the stats cluster box,
-                            // not as placeable bar blocks
-                            readonly property bool embedded: ["cputemp", "gpu", "disk"].indexOf(modelData.id) >= 0
                             // state-driven chips only appear while active — tell
                             // the user why the bar looks unchanged after enabling
                             readonly property string inactiveWhy: {
@@ -2526,7 +2644,7 @@ PanelWindow {
                                     BarSegments.setClick(segRow.modelData.id, cycle[(idx + 1) % cycle.length]);
                                 }
 
-                                anchors.right: rightCluster.left
+                                anchors.right: zoneChips.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: actText.width + 14
@@ -2556,77 +2674,45 @@ PanelWindow {
                                 }
                             }
 
-                            // zone chips — replaced by a static STATS tag on
-                            // the cluster-embedded rows
-                            Item {
-                                id: rightCluster
+                            // zone chips
+                            Row {
+                                id: zoneChips
 
                                 anchors.right: segSwitch.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
-                                height: 16
-                                width: segRow.embedded ? statsTag.width : zoneChips.width
+                                spacing: 2
 
-                                Row {
-                                    id: zoneChips
+                                Repeater {
+                                    model: ["left", "center", "right"]
 
-                                    visible: !segRow.embedded
-                                    spacing: 2
+                                    delegate: Item {
+                                        required property var modelData
 
-                                    Repeater {
-                                        model: ["left", "center", "right"]
+                                        width: 22
+                                        height: 16
 
-                                        delegate: Item {
-                                            required property var modelData
-
-                                            width: 22
-                                            height: 16
-
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                color: segRow.modelData.zone === modelData ? Theme.acid : "transparent"
-                                                border.width: 1
-                                                border.color: Theme.lineStrong
-                                            }
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: modelData.charAt(0).toUpperCase()
-                                                color: segRow.modelData.zone === modelData ? Theme.bg : Theme.muted
-                                                font.family: Theme.fontFamily
-                                                font.pixelSize: Theme.fsMicro
-                                                font.weight: Font.Bold
-                                            }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: BarSegments.setZone(segRow.modelData.id, modelData)
-                                            }
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: segRow.modelData.zone === modelData ? Theme.acid : "transparent"
+                                            border.width: 1
+                                            border.color: Theme.lineStrong
                                         }
-                                    }
-                                }
 
-                                Rectangle {
-                                    id: statsTag
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.charAt(0).toUpperCase()
+                                            color: segRow.modelData.zone === modelData ? Theme.bg : Theme.muted
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsMicro
+                                            font.weight: Font.Bold
+                                        }
 
-                                    visible: segRow.embedded
-                                    width: tagText.width + 12
-                                    height: 16
-                                    color: "transparent"
-                                    border.width: 1
-                                    border.color: Theme.lineStrong
-
-                                    Text {
-                                        id: tagText
-
-                                        anchors.centerIn: parent
-                                        text: "STATS+"
-                                        color: Theme.muted
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fsMicro
-                                        font.weight: Font.Bold
-                                        font.letterSpacing: 0.5
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: BarSegments.setZone(segRow.modelData.id, modelData)
+                                        }
                                     }
                                 }
                             }
@@ -2646,7 +2732,7 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
                                 anchors.leftMargin: Theme.sp2
-                                visible: segArea.containsMouse && !segRow.embedded
+                                visible: segArea.containsMouse
                                 spacing: 1
 
                                 Text {
@@ -2709,7 +2795,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "hover a row for ▲▼ reorder · L/C/R picks which zone it renders in (C = true screen center) · state chips (media/bluetooth/night light/inhibit/recording) only appear on the bar while their condition is active · STATS+ rows render inside the stats box · the action chip cycles what a click opens — DEFAULT restores the built-in"
+                        text: "hover a row for ▲▼ reorder · L/C/R picks which zone it renders in (C = true screen center) · state chips (media/bluetooth/night light/inhibit/recording) only appear on the bar while their condition is active · the action chip cycles what a click opens — DEFAULT restores the built-in"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel

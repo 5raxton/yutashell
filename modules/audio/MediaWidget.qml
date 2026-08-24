@@ -104,6 +104,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "media"
             id: surface
 
             open: ShellState.mediaOpen

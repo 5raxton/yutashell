@@ -80,6 +80,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "bt"
             id: surface
 
             open: ShellState.btOpen

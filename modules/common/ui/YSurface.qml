@@ -1,16 +1,20 @@
 import QtQuick
 import QtQuick.Shapes
 import qs.theme
+import qs.modules.common
 
 // YSurface — the standard popup card. ONE implementation of the house
-// entrance AND exit: the surface drops down from behind the bar (bar renders
-// on the Overlay layer, surfaces land on Top), slides to its resting spot
-// below it, and lifts back up on close — with a reverse scanline as it goes.
+// entrance AND exit. Spawn origins are configurable per panel via PanelSpawn:
+//   bar    — drops from behind the bar and rests flush in its socket (the
+//            classic; mirrors automatically when the bar sits on the bottom)
+//   top    — slides down from the top edge, floating free of the bar
+//   bottom — rises from the bottom edge
+//   float  — fades/scales in dead-center, no edge attachment
 //
-// The card rests FLUSH against the bar bottom, concave "flare" shoulders
-// sweep outward from the top corners into the bar line, and a 2px ACID
-// POWER LINE grounds the bottom edge — every card in the shell carries the
-// same live wire. Content can cascade in via `cascade` (staggered rise).
+// The classic "bar" card rests FLUSH against the bar bottom, concave "flare"
+// shoulders sweep outward from the top corners into the bar line, and a 2px
+// ACID POWER LINE grounds the bottom edge — every card in the shell carries
+// the same live wire. Content can cascade in via `cascade` (staggered rise).
 //
 // Entrance ritual (kept quiet, but always there): the card lands with a
 // soft overshoot into its socket, an acid scanline sweeps down the face,
@@ -18,20 +22,24 @@ import qs.theme
 // left→right, and the family tick draws itself down the left edge. One
 // compound gesture, ~400ms.
 //
-// Consumers set open/anchorX/cardW/cardH (+ optional cascade) and anchor
-// content INSIDE; the parent window stays fullscreen-transparent and masks
-// input to this item.
+// Consumers set open/spawnId/anchorX/cardW/cardH (+ optional cascade) and
+// anchor content INSIDE; the parent window stays fullscreen-transparent and
+// masks input to this item.
 Rectangle {
     id: root
 
     property bool open: false
     // horizontal placement of the resting spot: center | left | right
     property string anchorX: "center"
+    // which popup this is — resolves the persisted spawn origin via
+    // PanelSpawn (bar|top|bottom|float); "" falls back to the default
+    property string spawnId: ""
     property int cardW: 720
     property int cardH: 560
     // extra gap between bar and card at rest (0 = flush socket)
     property int restGap: 0
     // draw the concave outward shoulders that blend the card into the bar
+    // (only meaningful when docked to the bar line)
     property bool flareTop: true
     // Item whose direct children stagger-rise when the surface opens
     // (pass your main content Column). Runs once per open, never at boot.
@@ -39,13 +47,38 @@ Rectangle {
 
     readonly property int flareS: 22
 
-    readonly property real restY: Theme.barHeight + restGap
-    readonly property real hiddenY: -height - 12 - (flareTop ? flareS : 0)
+    // ---- resolved spawn origin -------------------------------------------
+    readonly property string _mode: PanelSpawn.modeFor(spawnId)
+    readonly property bool _floatMode: _mode === "float"
+    readonly property bool _dockedBar: _mode === "bar"
+    readonly property bool _barAtBottom: ShellState.barPosition === "bottom"
+    readonly property bool _risesFromBottom: _mode === "bottom" || (_dockedBar && _barAtBottom)
+    readonly property bool _flares: flareTop && _dockedBar
+
+    readonly property real restY: {
+        if (_floatMode)
+            return Math.round((parent.height - height) / 2);
+        if (_mode === "top")
+            return Theme.outerPad * 2;
+        if (_mode === "bottom")
+            return parent.height - height - Theme.outerPad * 2;
+        // docked to the bar (whichever edge it lives on)
+        return _barAtBottom ? parent.height - Theme.barHeight - height - restGap : Theme.barHeight + restGap;
+    }
+
+    readonly property real hiddenY: {
+        if (_floatMode)
+            return restY;
+        const pad = height + 12 + (_flares ? flareS : 0);
+        return _risesFromBottom ? parent.height + 12 : -pad;
+    }
 
     // intro state — driven once per open
     property bool _landed: false
 
     x: {
+        if (_floatMode)
+            return Math.round((parent.width - width) / 2);
         if (anchorX === "left")
             return Theme.outerPad * 2;
         if (anchorX === "right")
@@ -54,6 +87,9 @@ Rectangle {
     }
     y: open ? restY : hiddenY
     opacity: open ? 1 : 0
+    // float mode breathes in with a scale instead of a slide
+    scale: _floatMode && !open ? 0.96 : 1
+    transformOrigin: Item.Center
     visible: opacity > 0.01
 
     Behavior on y {
@@ -69,6 +105,13 @@ Rectangle {
     Behavior on opacity {
         NumberAnimation {
             duration: Theme.movFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: Theme.movMed
             easing.type: Easing.OutCubic
         }
     }
@@ -366,7 +409,7 @@ Rectangle {
     FlareShape {
         id: flareR
 
-        visible: root.flareTop && root.open
+        visible: root._flares && !root._barAtBottom && root.open
         x: root.width
         y: 0
     }
@@ -374,7 +417,7 @@ Rectangle {
     FlareShape {
         id: flareL
 
-        visible: root.flareTop && root.open
+        visible: root._flares && !root._barAtBottom && root.open
         x: -root.flareS
         y: 0
         transform: Scale {
@@ -382,5 +425,35 @@ Rectangle {
             origin.x: root.flareS / 2
             origin.y: root.flareS / 2
         }
+    }
+
+    // bottom-bar socket — same fillet mirrored below the card so it can
+    // blend into a bar that lives on the bottom edge
+    FlareShape {
+        id: bflareR
+
+        visible: root._flares && root._barAtBottom && root.open
+        x: root.width
+        y: root.height + root.flareS
+        transform: Scale {
+            yScale: -1
+        }
+    }
+
+    FlareShape {
+        id: bflareL
+
+        visible: root._flares && root._barAtBottom && root.open
+        x: -root.flareS
+        y: root.height + root.flareS
+        transform: [
+            Scale {
+                xScale: -1
+                origin.x: root.flareS / 2
+            },
+            Scale {
+                yScale: -1
+            }
+        ]
     }
 }

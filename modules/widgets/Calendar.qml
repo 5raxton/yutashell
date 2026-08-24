@@ -131,6 +131,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "calendar"
             id: surface
 
             open: ShellState.calendarOpen

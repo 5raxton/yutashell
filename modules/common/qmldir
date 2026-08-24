@@ -1,4 +1,5 @@
 singleton ShellState 1.0 ShellState.qml
+singleton PanelSpawn 1.0 PanelSpawn.qml
 singleton Wallpaper 1.0 Wallpaper.qml
 singleton TemplateCatalog 1.0 TemplateCatalog.qml
 singleton SystemStats 1.0 SystemStats.qml

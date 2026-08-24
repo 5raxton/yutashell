@@ -113,6 +113,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "emoji"
             id: surface
 
             open: root.open

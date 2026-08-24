@@ -70,6 +70,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "vol"
             id: surface
 
             open: ShellState.audioOpen

@@ -193,6 +193,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "net"
             id: surface
 
             open: ShellState.netOpen

@@ -71,6 +71,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "notify"
             id: surface
 
             open: ShellState.notifyCenterOpen

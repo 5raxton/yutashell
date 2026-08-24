@@ -67,6 +67,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "overview"
             id: surface
 
             open: ShellState.overviewOpen

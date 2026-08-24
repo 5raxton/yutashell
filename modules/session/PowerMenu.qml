@@ -67,6 +67,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "power"
             id: surface
 
             open: ShellState.sessionOpen

@@ -28,10 +28,13 @@ Singleton {
             "net": { label: "Network chip", jp: "網" },
             "bt": { label: "Bluetooth chip", jp: "歯" },
             "audio": { label: "Audio chip", jp: "音" },
-            "stats": { label: "Stats (net/cpu/mem/bat)", jp: "計" },
-            "cputemp": { label: "CPU temp (in stats)", jp: "熱" },
-            "gpu": { label: "GPU (in stats)", jp: "画" },
-            "disk": { label: "Disk IO (in stats)", jp: "盤" },
+            "stats": { label: "Stats (legacy)", jp: "計" },
+            "cpu": { label: "CPU load", jp: "算" },
+            "mem": { label: "Memory", jp: "憶" },
+            "bat": { label: "Battery", jp: "電" },
+            "cputemp": { label: "CPU temp", jp: "熱" },
+            "gpu": { label: "GPU", jp: "画" },
+            "disk": { label: "Disk IO", jp: "盤" },
             "nightlight": { label: "Night light chip", jp: "夜" },
             "session": { label: "Inhibit chip", jp: "阻" },
             "recording": { label: "Recording chip", jp: "録" },
@@ -39,14 +42,39 @@ Singleton {
             "clock": { label: "Clock", jp: "時" }
         })
 
-    // persisted model, parsed with fallback to the default order
+    // persisted model, parsed with fallback to the default order; legacy
+    // monolithic "stats" segments are expanded into cpu/mem/bat in place
     readonly property var model: {
+        let v = null;
         try {
-            const v = JSON.parse(ShellState.barSegments);
-            if (Array.isArray(v) && v.length > 0)
-                return v;
+            const p = JSON.parse(ShellState.barSegments);
+            if (Array.isArray(p) && p.length > 0)
+                v = p;
         } catch (e) {}
-        return defaultModel;
+        if (!v)
+            return defaultModel;
+        const out = [];
+        for (let i = 0; i < v.length; i++) {
+            const s = v[i];
+            if (s.id === "stats") {
+                out.push({
+                        id: "cpu",
+                        zone: s.zone,
+                        enabled: s.enabled !== false
+                    }, {
+                        id: "mem",
+                        zone: s.zone,
+                        enabled: s.enabled !== false
+                    }, {
+                        id: "bat",
+                        zone: s.zone,
+                        enabled: s.enabled !== false
+                    });
+            } else {
+                out.push(s);
+            }
+        }
+        return out;
     }
 
     readonly property var defaultModel: [
@@ -59,7 +87,9 @@ Singleton {
         { id: "net", zone: "right", enabled: true },
         { id: "bt", zone: "right", enabled: true },
         { id: "audio", zone: "right", enabled: true },
-        { id: "stats", zone: "right", enabled: true },
+        { id: "cpu", zone: "right", enabled: true },
+        { id: "mem", zone: "right", enabled: true },
+        { id: "bat", zone: "right", enabled: true },
         { id: "cputemp", zone: "right", enabled: false },
         { id: "gpu", zone: "right", enabled: false },
         { id: "disk", zone: "right", enabled: false },
@@ -125,7 +155,9 @@ Singleton {
             "bt": "bluetooth",
             "audio": "audio",
             "media": "media",
-            "stats": "controlcenter",
+            "cpu": "controlcenter",
+            "mem": "controlcenter",
+            "bat": "controlcenter",
             "cputemp": "controlcenter",
             "gpu": "controlcenter",
             "disk": "controlcenter",

@@ -102,6 +102,8 @@ PanelWindow {
             readonly property alias surface: card
 
             YSurface {
+
+            spawnId: "picker"
                 id: card
 
 

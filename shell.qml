@@ -925,6 +925,31 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "spawn"
+
+        // panel spawn origin: bar|top|bottom|float
+        function set(panel: string, mode: string): string {
+            const p = String(panel);
+            PanelSpawn.set(p, String(mode));
+            return p + " " + PanelSpawn.modeFor(p);
+        }
+
+        function setdefault(m: string): string {
+            PanelSpawn.setDefault(String(m));
+            return "default " + PanelSpawn.defaultMode();
+        }
+
+        function list(): string {
+            const out = [];
+            for (let i = 0; i < PanelSpawn.panels.length; i++) {
+                const p = PanelSpawn.panels[i];
+                out.push(p.id + "=" + PanelSpawn.modeFor(p.id));
+            }
+            return out.join(" ") + " · default " + PanelSpawn.defaultMode();
+        }
+    }
+
+    IpcHandler {
         target: "cc"
 
         function toggle(): void {

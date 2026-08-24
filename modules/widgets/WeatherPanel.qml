@@ -76,6 +76,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "weather"
             id: surface
 
             open: ShellState.weatherOpen

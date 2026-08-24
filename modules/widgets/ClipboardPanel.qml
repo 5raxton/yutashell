@@ -59,6 +59,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "clipboard"
             id: card
 
             open: root.open

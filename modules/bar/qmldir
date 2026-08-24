@@ -6,7 +6,6 @@ Workspaces 1.0 Workspaces.qml
 ActiveWindow 1.0 ActiveWindow.qml
 ClockBlock 1.0 ClockBlock.qml
 MediaBlock 1.0 MediaBlock.qml
-StatsCluster 1.0 StatsCluster.qml
 TrayCluster 1.0 TrayCluster.qml
 Taskbar 1.0 Taskbar.qml
 StatCell 1.0 StatCell.qml

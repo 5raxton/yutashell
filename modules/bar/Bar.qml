@@ -143,11 +143,8 @@ PanelWindow {
         }
     }
 
-    // ids that render INSIDE the stats cluster instead of as their own block
-    readonly property var embeddedStats: ["cputemp", "gpu", "disk"]
-
     function _renderable(id) {
-        return id !== "activewindow" && root.embeddedStats.indexOf(id) < 0 && BarSegments.present(id);
+        return id !== "activewindow" && BarSegments.present(id);
     }
 
     // center-zone segments minus the active-window fill and stat embeds
@@ -221,8 +218,18 @@ PanelWindow {
         case "audio":
             return audioComp;
         case "stats":
+        case "cpu":
             return statsComp;
-        // cputemp / gpu / disk render as columns inside the stats cluster
+        case "mem":
+            return memComp;
+        case "bat":
+            return batComp;
+        case "cputemp":
+            return cputempComp;
+        case "gpu":
+            return gpuComp;
+        case "disk":
+            return diskComp;
         case "nightlight":
             return nlComp;
         case "session":
@@ -300,7 +307,53 @@ PanelWindow {
     Component {
         id: statsComp
 
-        StatsCluster {
+        StatCell {
+            kind: "cpu"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: memComp
+
+        StatCell {
+            kind: "mem"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: batComp
+
+        StatCell {
+            kind: "bat"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: cputempComp
+
+        StatCell {
+            kind: "cputemp"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: gpuComp
+
+        StatCell {
+            kind: "gpu"
+            tip: root.tip
+        }
+    }
+
+    Component {
+        id: diskComp
+
+        StatCell {
+            kind: "disk"
             tip: root.tip
         }
     }

@@ -299,6 +299,8 @@ Singleton {
     // plugins (PH.05): namespaced per-plugin state
     readonly property alias pluginData: adapter.pluginData
     readonly property alias barClick: adapter.barClick
+    readonly property alias panelSpawn: adapter.panelSpawn
+    readonly property alias panelSpawnDefault: adapter.panelSpawnDefault
 
     // control center (PH.15): anchor + visible tab order
     readonly property alias ccAnchor: adapter.ccAnchor
@@ -439,13 +441,18 @@ Singleton {
     // (0.8-1.4x), top/bottom position, and per-segment click-action map
     // {id: action} where action is calendar|network|bluetooth|audio|power|
     // notifications|controlcenter|launcher|none (or ipc:target/fn)
-    property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"stats\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
+    // panel spawn origins: per-panel vertical spawn mode JSON map
+    // {panelId: "bar"|"top"|"bottom"|"float"} + the default for unset panels
+    property string panelSpawn: "{}"
+    property string panelSpawnDefault: "bar"
+
+    property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cpu\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"mem\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bat\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
     property real barScale: 1.0
     property string barPosition: "top"
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"stats\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"

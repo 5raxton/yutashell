@@ -140,6 +140,8 @@ PanelWindow {
         }
 
         YSurface {
+
+            spawnId: "cc"
             id: surface
 
             open: ShellState.ccOpen

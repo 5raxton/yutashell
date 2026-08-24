@@ -99,6 +99,8 @@ PanelWindow {
             readonly property alias surface: card
 
             YSurface {
+
+            spawnId: "launcher"
                 id: card
 
                 open: root.open

@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Services.Pipewire
 import QtQuick
 import qs.theme
+import qs.modules.bar
 import qs.modules.common
 import "."
 
