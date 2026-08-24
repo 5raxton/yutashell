@@ -40,9 +40,9 @@ Item {
     readonly property bool hot: {
         switch (root.kind) {
         case "cputemp":
-            return root.cpuTemp >= 80;
+            return root.cpuTemp >= SystemStats.tempWarn;
         case "gpu":
-            return SystemStats.gpuUtil >= 95 || SystemStats.gpuTemp >= 90;
+            return SystemStats.gpuUtil >= 95 || SystemStats.gpuTemp >= SystemStats.tempCrit;
         case "disk":
             return false;
         }
@@ -52,9 +52,12 @@ Item {
     readonly property string tipText: {
         switch (root.kind) {
         case "cputemp":
-            return "CPU " + root.cpuTemp + "°C";
+            return "CPU " + (root.cpuTemp < 0 ? "--" : root.cpuTemp + "°C");
         case "gpu":
-            return "GPU " + SystemStats.gpuUtil + "% · " + SystemStats.gpuTemp + "°C · " + SystemStats.fmtBytes(SystemStats.gpuMemUsed * 1048576);
+            // no nvidia-smi → don't advertise "-1°C" as a reading
+            if (SystemStats.gpuUtil < 0 && SystemStats.gpuTemp < 0)
+                return "GPU — no sensor";
+            return "GPU " + (SystemStats.gpuUtil < 0 ? "--" : SystemStats.gpuUtil + "%") + " · " + (SystemStats.gpuTemp < 0 ? "--" : SystemStats.gpuTemp + "°C") + " · " + SystemStats.fmtBytes(SystemStats.gpuMemUsed * 1048576);
         case "disk":
             return "READ " + SystemStats.fmtRate(SystemStats.diskRead) + "/s · WRITE " + SystemStats.fmtRate(SystemStats.diskWrite) + "/s";
         }

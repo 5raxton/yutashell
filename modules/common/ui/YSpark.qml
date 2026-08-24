@@ -8,7 +8,7 @@ import qs.theme
 Canvas {
     id: root
 
-    property var data: []
+    property var samples: []
     property int maxSamples: 48
     property real hotThreshold: 0.85
     property color barColor: Theme.acid
@@ -16,9 +16,9 @@ Canvas {
 
     function push(v) {
         const c = Math.max(0, Math.min(1, v));
-        root.data = root.data.concat([c]);
-        if (root.data.length > root.maxSamples)
-            root.data = root.data.slice(root.data.length - root.maxSamples);
+        root.samples = root.samples.concat([c]);
+        if (root.samples.length > root.maxSamples)
+            root.samples = root.samples.slice(root.samples.length - root.maxSamples);
         root.requestPaint();
     }
 
@@ -30,12 +30,12 @@ Canvas {
     onPaint: {
         const ctx = getContext("2d");
         ctx.clearRect(0, 0, root.width, root.height);
-        const n = root.data.length;
+        const n = root.samples.length;
         if (n === 0 || root.width < 2 || root.height < 2)
             return;
         const bw = root.width / root.maxSamples;
         for (let i = 0; i < n; i++) {
-            const v = root.data[i];
+            const v = root.samples[i];
             const h = Math.max(1, v * root.height);
             ctx.fillStyle = v >= root.hotThreshold ? root.hotColor.toString() : root.barColor.toString();
             ctx.fillRect(Math.floor(i * bw), root.height - h, Math.max(1, bw - 1), h);

@@ -37,7 +37,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onNotifyCenterOpenChanged() {
+            if (!ShellState.notifyCenterOpen)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -86,7 +96,7 @@ PanelWindow {
                         text: "⏾"
                         color: Theme.acid
                         font.family: Theme.fontFamily
-                        font.pixelSize: 12
+                        font.pixelSize: Theme.fsBody
                     }
                 }
 
@@ -207,7 +217,13 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: {
                                     const d = new Date(rowRoot.modelData.t);
-                                    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+                                    const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+                                    // entries from other days need the date, or "14:03" lies across sessions
+                                    const now = new Date();
+                                    if (d.toDateString() === now.toDateString())
+                                        return hm;
+                                    const mon = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()];
+                                    return mon + " " + d.getDate() + " · " + hm;
                                 }
                                 color: Theme.faint
                                 font.family: Theme.fontFamily
@@ -362,13 +378,34 @@ PanelWindow {
                     font.letterSpacing: 1
                 }
 
+                // two-step destructive action: first click arms, second wipes
                 YButton {
+                    id: clearBtn
+
                     anchors.right: parent.right
                     anchors.rightMargin: root.padX
                     anchors.verticalCenter: parent.verticalCenter
-                    label: "CLEAR ALL"
+                    label: armed ? "SURE?" : "CLEAR ALL"
                     tone: "danger"
-                    onClicked: Notify.clearHistory()
+                    onClicked: {
+                        if (!armed) {
+                            armed = true;
+                            disarm.restart();
+                        } else {
+                            Notify.clearHistory();
+                            armed = false;
+                            disarm.stop();
+                        }
+                    }
+
+                    property bool armed: false
+
+                    Timer {
+                        id: disarm
+
+                        interval: 3000
+                        onTriggered: clearBtn.armed = false
+                    }
                 }
             }
         }

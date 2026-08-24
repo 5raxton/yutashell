@@ -14,8 +14,10 @@ import qs.modules.notify
 Singleton {
     id: root
 
-    // grim + slurp are core deps on this machine — treat as available
-    readonly property bool available: true
+    // probed — absent binaries must read as unavailable, not silently no-op
+    readonly property bool available: _probed && _binOk
+    property bool _binOk: false
+    property bool _probed: false
 
     signal flashed()
 
@@ -46,6 +48,8 @@ Singleton {
     }
 
     function capture(mode) {
+        if (!root.available)
+            return;
         const m = String(mode).toLowerCase();
         if (m === "region") {
             regionProc.command = ["sh", "-c",
@@ -70,15 +74,32 @@ Singleton {
     }
 
     function copyLast() {
-        if (root.lastPath.length === 0)
+        if (!root.available || root.lastPath.length === 0)
             return;
         copyProc.command = ["sh", "-c", "wl-copy < '" + root.lastPath.replace(/'/g, "'\\''") + "'"];
         copyProc.running = true;
-        Notify.announce("CLIPBOARD", "shot copied to selection", 1);
     }
 
     function status(): string {
         return "dir " + root.dir + " · template " + ShellState.shotName + (root.lastPath.length > 0 ? " · last " + root.lastPath : "");
+    }
+
+    Component.onCompleted: {
+        binProbe.command = ["sh", "-c", "command -v grim >/dev/null 2>&1 && command -v slurp >/dev/null 2>&1 && echo yes || echo no"];
+        binProbe.running = true;
+    }
+
+    Process {
+        id: binProbe
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root._probed = true;
+                root._binOk = text.trim() === "yes";
+                if (!root._binOk)
+                    Health.report("shot", "screenshots unavailable (install grim + slurp)");
+            }
+        }
     }
 
     Process {
@@ -87,8 +108,8 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 const g = text.trim();
-                // slurp emits "x,y w h" on success
-                if (/^\d+,\d+ \d+ \d+$/.test(g))
+                // slurp emits "%x,%y %wx%h" on success
+                if (/^\d+,\d+ \d+x\d+$/.test(g))
                     root._grim(g);
             }
         }
@@ -135,5 +156,6 @@ Singleton {
 
         stdout: StdioCollector {}
         stderr: StdioCollector {}
+        onExited: code => Notify.announce("CLIPBOARD", code === 0 ? "shot copied to selection" : "copy failed (is wl-copy installed?)", code === 0 ? 1 : 2)
     }
 }

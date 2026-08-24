@@ -1,7 +1,7 @@
 import QtQuick
 import qs.theme
 import qs.modules.common
-import "../common/ui"
+import qs.modules.common.ui
 
 // Reference widget plugin (PH.05): a YPulse acid dot sized like a bar chip.
 // The bar hosts it via a Loader when the "pluginwidgets" segment is on and

@@ -42,7 +42,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onBtOpenChanged() {
+            if (!ShellState.btOpen)
+                hideDelay.restart();
+        }
     }
 
     // scan while open, rest when closed
@@ -264,7 +274,7 @@ PanelWindow {
                                 text: "?"
                                 color: Theme.muted
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: Theme.fsBody
                             }
 
                             Column {
@@ -296,8 +306,8 @@ PanelWindow {
                                 }
 
                                 Text {
-                                    text: devRow.modelData?.state === BluetoothDeviceState.Connected ? "connected" : (devRow.modelData?.paired ?? false) ? "paired · idle" : (devRow.modelData?.pairing ?? false) ? "pairing…" : "unpaired"
-                                    color: Theme.faint
+                                    text: devRow.modelData?.state === BluetoothDeviceState.Connected ? "connected" : devRow.modelData?.state === BluetoothDeviceState.Connecting ? "connecting…" : devRow.modelData?.state === BluetoothDeviceState.Disconnecting ? "disconnecting…" : (devRow.modelData?.paired ?? false) ? "paired · idle" : (devRow.modelData?.pairing ?? false) ? "pairing…" : "unpaired"
+                                    color: devRow.modelData?.state === BluetoothDeviceState.Connecting || (devRow.modelData?.pairing ?? false) ? Theme.muted : Theme.faint
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
                                 }

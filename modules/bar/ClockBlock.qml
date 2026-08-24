@@ -14,6 +14,13 @@ Item {
 
     readonly property var weekdayKanji: ["月", "火", "水", "木", "金", "土", "日"]
 
+    // 12h mode folds into the hour text; 24h stays zero-padded
+    readonly property int hour12: {
+        const h = now.getHours() % 12;
+        return h === 0 ? 12 : h;
+    }
+    readonly property string ampm: now.getHours() < 12 ? "AM" : "PM"
+
     // click honors the segment action (default → calendar)
     MouseArea {
         anchors.fill: parent
@@ -46,7 +53,7 @@ Item {
             id: hhText
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            text: String(root.now.getHours()).padStart(2, "0")
+            text: ShellState.clock24h ? String(root.now.getHours()).padStart(2, "0") : String(root.hour12)
             color: Theme.ink
             font.family: Theme.fontFamily
             font.pixelSize: 15
@@ -89,7 +96,7 @@ Item {
             anchors.baseline: hhText.baseline
             anchors.left: mmText.right
             anchors.leftMargin: 5
-            text: ":" + String(root.now.getSeconds()).padStart(2, "0")
+            text: ShellState.clock24h ? ":" + String(root.now.getSeconds()).padStart(2, "0") : " " + root.ampm
             color: Theme.acid
             font.family: Theme.fontFamily
             font.pixelSize: 10

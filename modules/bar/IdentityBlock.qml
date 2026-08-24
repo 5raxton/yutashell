@@ -25,7 +25,14 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: ShellState.togglePanel()
+        // honor the segment click map (default → settings)
+        onClicked: {
+            const a = BarSegments.clickFor("identity");
+            if (a.length > 0)
+                BarActions.dispatch(a);
+            else
+                ShellState.togglePanel();
+        }
     }
 
     Row {

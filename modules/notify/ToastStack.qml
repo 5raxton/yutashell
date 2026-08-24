@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
+import QtQml.Models
 import qs.theme
 import qs.modules.common
 import "ui"
@@ -30,8 +31,10 @@ PanelWindow {
     implicitWidth: 404
     implicitHeight: contentCol.height + Theme.barHeight + pad * 2
 
+    // mask hugs the actual card column — empty space beside/below the stack
+    // passes clicks through to apps underneath
     mask: Region {
-        item: Notify.live.length > 0 ? cardsHost : null
+        item: toastModel.count > 0 ? contentCol : null
     }
 
     Item {
@@ -51,10 +54,51 @@ PanelWindow {
             spacing: Theme.sp2
 
             Repeater {
-                model: Notify.live
+                model: toastModel
 
                 ToastCard {}
             }
+        }
+    }
+
+    // incremental mirror of Notify.live: entries are stable QtObjects, so a
+    // new toast must not reset the whole Repeater (entrance replays + hover
+    // pause lost). _items stays index-aligned with the ObjectModel.
+    ObjectModel {
+        id: toastModel
+    }
+
+    property var _items: []
+
+    function _syncAdd(vm) {
+        root._items.unshift(vm);
+        toastModel.insert(0, vm);
+    }
+
+    function _syncRemove(vm) {
+        const i = root._items.indexOf(vm);
+        if (i < 0)
+            return;
+        root._items.splice(i, 1);
+        toastModel.remove(i);
+    }
+
+    Component.onCompleted: {
+        // hot-reload safety net: adopt whatever is already live (oldest first,
+        // since _syncAdd prepends)
+        for (let i = Notify.live.length - 1; i >= 0; i--)
+            root._syncAdd(Notify.live[i]);
+    }
+
+    Connections {
+        target: Notify
+
+        function onToastAdded(vm) {
+            root._syncAdd(vm);
+        }
+
+        function onToastRemoved(vm) {
+            root._syncRemove(vm);
         }
     }
 }

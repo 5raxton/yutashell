@@ -40,12 +40,8 @@ Column {
         return out;
     }
 
-    YSection {
-        width: parent.width
-        index: "01"
-        label: "Catalog"
-        chip: root.enabledCount + "/" + root.rows.length + " on"
-    }
+    // embedded-only today — the host page (appearance "05 Matugen templates")
+    // renders the section header, so none here or it doubles up
 
     Row {
         spacing: Theme.sp2

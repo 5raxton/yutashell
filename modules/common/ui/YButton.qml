@@ -17,9 +17,19 @@ Rectangle {
 
     implicitWidth: labelText.width + Theme.sp3 * 2
     implicitHeight: Theme.ctlH
-    color: area.containsMouse ? liveLine : "transparent"
+    activeFocusOnTab: true
+    color: area.containsMouse || activeFocus ? liveLine : "transparent"
     border.width: 1
-    border.color: area.containsMouse ? liveLine : Qt.rgba(liveLine.r, liveLine.g, liveLine.b, 0.55)
+    border.color: activeFocus ? Theme.acid : area.containsMouse ? liveLine : Qt.rgba(liveLine.r, liveLine.g, liveLine.b, 0.55)
+
+    Keys.onReturnPressed: event => {
+        event.accepted = true;
+        root.clicked();
+    }
+    Keys.onSpacePressed: event => {
+        event.accepted = true;
+        root.clicked();
+    }
 
     // hard offset shadow — collapses on press so the button feels physical
     Rectangle {
@@ -48,7 +58,7 @@ Rectangle {
 
         anchors.centerIn: parent
         text: root.label.toUpperCase()
-        color: area.containsMouse ? Theme.bg : root.liveText
+        color: area.containsMouse || root.activeFocus ? Theme.bg : root.liveText
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fsLabel
         font.weight: Font.Bold

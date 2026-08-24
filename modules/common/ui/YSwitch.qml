@@ -11,9 +11,19 @@ Rectangle {
 
     implicitWidth: 30
     implicitHeight: 14
+    activeFocusOnTab: true
     color: Theme.bg
     border.width: 1
-    border.color: root.checked ? Theme.acid : area.containsMouse ? Theme.ink : Theme.lineStrong
+    border.color: activeFocus ? Theme.acid : root.checked ? Theme.acid : area.containsMouse ? Theme.ink : Theme.lineStrong
+
+    Keys.onReturnPressed: event => {
+        event.accepted = true;
+        root.toggled();
+    }
+    Keys.onSpacePressed: event => {
+        event.accepted = true;
+        root.toggled();
+    }
 
     // acid fill wipes toward the knob side when on
     Rectangle {

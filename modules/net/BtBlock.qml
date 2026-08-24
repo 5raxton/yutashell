@@ -35,7 +35,8 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: ShellState.toggleBt()
+        // honor the segment click map (default → bluetooth panel)
+        onClicked: BarActions.dispatch(BarSegments.clickFor("bt"))
     }
 
     Row {

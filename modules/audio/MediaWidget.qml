@@ -44,7 +44,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onMediaOpenChanged() {
+            if (!ShellState.mediaOpen)
+                hideDelay.restart();
+        }
     }
 
     Timer {

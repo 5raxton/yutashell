@@ -60,7 +60,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onNetOpenChanged() {
+            if (!ShellState.netOpen)
+                hideDelay.restart();
+        }
     }
 
     // scan while open, rest when closed
@@ -258,9 +268,11 @@ PanelWindow {
                     YRow {
                         width: root.contentW
                         title: "Airplane mode"
-                        sub: root.airplane ? "wifi + bluetooth radios down" : "radios up"
+                        // honesty: a hard rfkill block makes the soft toggles no-ops — say so
+                        sub: !root.wifiDev ? "no wifi hardware" : !Networking.wifiHardwareEnabled ? "wifi hard-blocked (rfkill)" : root.airplane ? "wifi + bluetooth radios down" : "radios up"
                         note: "AIR"
                         on_: root.airplane
+                        interactive: root.wifiDev !== null && Networking.wifiHardwareEnabled
                         onToggled: {
                             const next = !root.airplane;
                             Networking.wifiEnabled = !next;
@@ -270,6 +282,7 @@ PanelWindow {
 
                         YSwitch {
                             checked: root.airplane
+                            enabled: root.wifiDev !== null && Networking.wifiHardwareEnabled
                             anchors.verticalCenter: parent.verticalCenter
                             onToggled: {
                                 const next = !root.airplane;
@@ -337,6 +350,25 @@ PanelWindow {
                                 }
                             }
 
+                            // declared BEFORE content so row buttons stack above
+                            // it and keep their clicks — harea only gets fall-through
+                            MouseArea {
+                                id: harea
+
+                                anchors.fill: parent
+                                anchors.bottomMargin: netRow.pending ? 44 : 0
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: mouse => {
+                                    if (netRow.joined)
+                                        return;
+                                    if (netRow.known)
+                                        netRow.modelData.connect();
+                                    else
+                                        root.pendingJoin = netRow.modelData.name;
+                                }
+                            }
+
                             Column {
                                 anchors.fill: parent
                                 anchors.margins: Theme.sp2
@@ -357,7 +389,9 @@ PanelWindow {
                                                 anchors.bottom: parent.bottom
                                                 width: 3
                                                 height: 3 + index * 3
-                                                color: netRow.modelData.signalStrength >= [25, 50, 75, 101][index] ? Theme.acid : Theme.lineStrong
+                                                // tiers light cumulatively; old [25,50,75,101]
+                                                // meant bar 4 could never light
+                                                color: netRow.modelData.signalStrength >= [1, 26, 51, 76][index] ? Theme.acid : Theme.lineStrong
                                             }
                                         }
                                     }
@@ -379,7 +413,7 @@ PanelWindow {
                                         text: "⚿"
                                         color: Theme.muted
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fsBody
                                     }
 
                                     YChip {
@@ -439,7 +473,8 @@ PanelWindow {
                                         width: 240
                                         placeholder: "passphrase…"
                                         echoMode: TextInput.Password
-                                        Component.onCompleted: if (visible)
+                                        // focus when the join row expands, not just at creation
+                                        onVisibleChanged: if (visible)
                                             forceFocus()
 
                                         onAccepted: {
@@ -458,19 +493,6 @@ PanelWindow {
                                             root.pendingJoin = "";
                                         }
                                     }
-                                }
-                            }
-
-                            MouseArea {
-                                id: harea
-
-                                anchors.fill: parent
-                                anchors.bottomMargin: netRow.pending ? 44 : 0
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: mouse => {
-                                    if (!netRow.pending)
-                                        root.pendingJoin = netRow.modelData.name;
                                 }
                             }
                         }

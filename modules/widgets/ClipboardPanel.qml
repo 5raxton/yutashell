@@ -38,8 +38,11 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: Theme.movMed
+        interval: Theme.lingerMs
     }
+
+    onOpenChanged: if (!root.open)
+        hideDelay.restart()
 
     Item {
         id: contentRoot
@@ -60,7 +63,7 @@ PanelWindow {
 
             open: root.open
             anchorX: "center"
-            cardW: Math.min(Math.max(480, 560), Math.round(parent.width * 0.4))
+            cardW: Math.min(560, Math.round(parent.width * 0.4))
             cardH: Math.min(520, Math.round(parent.height * 0.5))
 
             property int selIdx: 0
@@ -321,14 +324,35 @@ PanelWindow {
                     font.letterSpacing: 1
                 }
 
+                // two-step destructive action: first click arms, second wipes
                 YButton {
+                    id: wipeBtn
+
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.sp4
                     anchors.verticalCenter: parent.verticalCenter
-                    label: "WIPE"
+                    label: armed ? "SURE?" : "WIPE"
                     tone: "danger"
                     visible: Clipboard.available && Clipboard.entries.length > 0
-                    onClicked: Clipboard.clearAll()
+                    onClicked: {
+                        if (!armed) {
+                            armed = true;
+                            disarm.restart();
+                        } else {
+                            Clipboard.clearAll();
+                            armed = false;
+                            disarm.stop();
+                        }
+                    }
+
+                    property bool armed: false
+
+                    Timer {
+                        id: disarm
+
+                        interval: 3000
+                        onTriggered: wipeBtn.armed = false
+                    }
                 }
             }
         }

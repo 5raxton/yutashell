@@ -119,7 +119,9 @@ Singleton {
         m[id].data = m[id].data || {};
         m[id].data[key] = value;
         ShellState.set("pluginData", JSON.stringify(m));
-        ShellState.flushNow();
+        // no flushNow here: daemons save several keys back-to-back, and
+        // forced immediate writes overlap inside FileView and get silently
+        // dropped (AGENTS lesson #3). The 80 ms coalesced flush absorbs bursts.
     }
 
     // widget-type plugins that are enabled → bar hosts these

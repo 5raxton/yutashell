@@ -37,7 +37,8 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: ShellState.toggleNet()
+        // honor the segment click map (default → network panel)
+        onClicked: BarActions.dispatch(BarSegments.clickFor("net"))
     }
 
     Row {

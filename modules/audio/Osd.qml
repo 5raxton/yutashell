@@ -29,7 +29,10 @@ PanelWindow {
     readonly property var srcNode: AudioService.source
     readonly property real frac: isBright ? Math.max(0, Math.min(1, DisplayService.brightPct / 100)) : AudioService.nodeFrac(isMic ? srcNode : sinkNode)
     readonly property int pct: isBright ? DisplayService.brightPct : AudioService.nodePct(isMic ? srcNode : sinkNode)
-    readonly property bool hot: isMic ? (srcNode && srcNode.audio ? srcNode.audio.muted : false) : pct > 100
+    // volume kind reports the SINK's mute so `audio mute` reads honestly
+    // (it used to be indistinguishable from an unmuted change)
+    readonly property bool sinkMuted: !isMic && !isBright && sinkNode && sinkNode.audio ? sinkNode.audio.muted : false
+    readonly property bool hot: isMic ? (srcNode && srcNode.audio ? srcNode.audio.muted : false) : isBright ? false : root.sinkMuted || pct > 100
 
     function ping(k) {
         kind = k;
@@ -115,8 +118,8 @@ PanelWindow {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: Theme.sp2
-            text: root.isMic ? (root.hot ? "MUTED" : "LIVE") : (root.pct > 100 ? "+" : "") + root.pct + "%"
-            color: root.hot ? Theme.alert : root.pct > 100 ? Theme.acid : Theme.ink
+            text: root.isMic ? (root.hot ? "MUTED" : "LIVE") : root.isBright ? root.pct + "%" : root.sinkMuted ? "MUTED" : (root.pct > 100 ? "+" : "") + root.pct + "%"
+            color: root.hot ? Theme.alert : root.pct > 100 && !root.sinkMuted ? Theme.acid : Theme.ink
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsBody
             font.weight: Font.DemiBold

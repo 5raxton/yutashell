@@ -54,6 +54,9 @@ Singleton {
     // breathing period (life runs slow, machine runs fast — never pulse text)
     readonly property int movSnap: 80
     readonly property int movDrift: 2600
+    // how long a closed surface's window lingers mapped so YSurface's exit
+    // ceremony (~170 ms) fully renders before the window unmaps
+    readonly property int lingerMs: 190
 
     readonly property int barHeight: 44
     readonly property int outerPad: 14

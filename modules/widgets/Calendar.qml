@@ -43,9 +43,10 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
     }
 
+    // open resets the view to today; close lingers so YSurface's exit renders
     Connections {
         target: ShellState
 
@@ -54,6 +55,8 @@ PanelWindow {
                 const n = new Date();
                 root.viewYear = n.getFullYear();
                 root.viewMonth = n.getMonth();
+            } else {
+                hideDelay.restart();
             }
         }
     }
@@ -177,14 +180,17 @@ PanelWindow {
                     }
                 }
 
-                Text {
+                // jump back to the current month from any viewed month
+                YButton {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
-                    text: Theme.jpEnabled ? "今日" : "TODAY"
-                    color: Theme.acid
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsMicro
-                    font.letterSpacing: 1
+                    label: Theme.jpEnabled ? "今日" : "TODAY"
+                    tone: "acid"
+                    onClicked: {
+                        const n = new Date();
+                        root.viewYear = n.getFullYear();
+                        root.viewMonth = n.getMonth();
+                    }
                 }
             }
 

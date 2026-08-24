@@ -195,14 +195,15 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
         onClicked: mouse => {
-            if (!root.player)
-                return;
             if (mouse.button === Qt.MiddleButton) {
-                if (root.player.canGoNext)
+                if (root.player && root.player.canGoNext)
                     root.player.next();
                 return;
             }
-            // left-click opens the media widget; play/pause moved to wheel-up
+            // honor the segment click map (default → media widget)
+            const a = BarSegments.clickFor("media");
+            if (a.length > 0 && BarActions.dispatch(a))
+                return;
             ShellState.toggleMedia();
         }
 

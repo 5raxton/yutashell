@@ -36,12 +36,31 @@ Item {
                     border.color: Theme.lineStrong
                 }
 
+                // icon fallback: acid square + initial, same language as the taskbar
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 16
+                    height: 16
+                    color: Theme.acid
+                    visible: iconImg.status === Image.Error || iconImg.status === Image.Null
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: ((cell.modelData.title || cell.modelData.id) + " ").charAt(0).toUpperCase()
+                        color: Theme.bg
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        font.weight: Font.ExtraBold
+                    }
+                }
+
                 IconImage {
                     id: iconImg
                     anchors.centerIn: parent
                     implicitSize: 15
                     source: cell.modelData.icon
                     opacity: area.containsMouse ? 1 : 0.85
+                    visible: status !== Image.Error && status !== Image.Null
                 }
 
                 HoverHandler {

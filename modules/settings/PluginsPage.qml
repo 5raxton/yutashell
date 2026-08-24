@@ -14,14 +14,7 @@ Column {
     width: contentW
     spacing: Theme.sp3
 
-    Text {
-        text: "PLUGINS"
-        color: Theme.ink
-        font.family: Theme.fontFamily
-        font.pixelSize: Theme.fsDisplay
-        font.weight: Font.ExtraBold
-        font.letterSpacing: 3
-    }
+    // no in-page hero — the settings frame already renders the page title
 
     Text {
         width: parent.width

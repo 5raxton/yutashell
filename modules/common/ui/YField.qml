@@ -100,6 +100,9 @@ Rectangle {
                 event.accepted = true;
                 root.navEscape();
             } else {
+                // blur only — the surface's own ESC handler closes it on a
+                // second press; one ESC must not do both at once
+                event.accepted = true;
                 input.focus = false;
             }
         }
@@ -129,8 +132,12 @@ Rectangle {
         color: root.focused ? Theme.acid : "transparent"
     }
 
+    // Focus/caret helper while unfocused. Once the field has focus this must
+    // yield to the TextInput so native caret placement and drag-selection
+    // work — an always-on overlay eats every press.
     MouseArea {
         anchors.fill: parent
+        enabled: !input.activeFocus
         cursorShape: Qt.IBeamCursor
         onClicked: input.forceActiveFocus()
     }

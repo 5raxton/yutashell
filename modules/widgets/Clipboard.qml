@@ -77,10 +77,13 @@ Singleton {
         if (!root.available || !e)
             return;
         const id = String(e.id);
+        // announce from the exit code — a missing wl-copy must not claim success
+        _copyBinary = e.binary === true;
         copyProc.command = ["sh", "-c", "cliphist decode '" + id + "' | wl-copy"];
         copyProc.running = true;
-        Notify.announce("CLIPBOARD", (e.binary ? "image " : "") + "copied to selection", 1);
     }
+
+    property bool _copyBinary: false
 
     function remove(id) {
         if (!root.available)
@@ -97,7 +100,7 @@ Singleton {
     }
 
     Component.onCompleted: {
-        binProbe.command = ["sh", "-c", "command -v cliphist >/dev/null 2>&1 && echo yes || echo no"];
+        binProbe.command = ["sh", "-c", "command -v cliphist >/dev/null 2>&1 && command -v wl-copy >/dev/null 2>&1 && echo yes || echo no"];
         binProbe.running = true;
     }
 
@@ -109,7 +112,7 @@ Singleton {
                 root._probed = true;
                 root._binOk = text.trim() === "yes";
                 if (!root._binOk)
-                    Health.report("cliphist", "clipboard unavailable (install cliphist)");
+                    Health.report("cliphist", "clipboard unavailable (install cliphist + wl-clipboard)");
                 else
                     Health.clear("cliphist");
                 if (root._binOk)
@@ -150,6 +153,7 @@ Singleton {
 
         stdout: StdioCollector {}
         stderr: StdioCollector {}
+        onExited: code => Notify.announce("CLIPBOARD", code === 0 ? ((_copyBinary ? "image " : "") + "copied to selection") : "copy failed (is wl-copy installed?)", code === 0 ? 1 : 2)
     }
 
     Process {

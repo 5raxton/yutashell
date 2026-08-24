@@ -49,8 +49,8 @@ Singleton {
             return ["≋", "RAIN"];
         if (c >= 71 && c <= 77)
             return ["❄", "SNOW"];
-        if (c >= 80 && c <= 82)
-            return ["▽", "SHOWERS"];
+        if ((c >= 80 && c <= 82) || c === 85 || c === 86)
+            return c === 85 || c === 86 ? ["❄", "SNOW SHOWERS"] : ["▽", "SHOWERS"];
         if (c >= 95)
             return ["⚡", "STORM"];
         return ["·", "—"];
@@ -80,10 +80,14 @@ Singleton {
                     code: codes[i] ?? 0
                 });
             root.forecast = out;
-            root.lastFetch = new Date();
+            // a cached payload carries its true fetch time — stamping "now"
+            // would make days-old data read as fresh
+            root.lastFetch = j._fetchedAt ? new Date(j._fetchedAt) : new Date();
             root.error = "";
-            // cache the raw payload for boot-time
-            cacheFile.setText(raw);
+            // cache the raw payload (with fetch timestamp) for boot-time
+            if (!j._fetchedAt)
+                j._fetchedAt = Date.now();
+            cacheFile.setText(JSON.stringify(j));
         } catch (e) {
             root.error = "parse error";
         }

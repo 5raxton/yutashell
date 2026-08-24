@@ -37,6 +37,8 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
+        // keep fallback boxes / hover chrome inside the segment's own width
+        clip: true
 
         Repeater {
             model: root.apps

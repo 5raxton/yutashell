@@ -44,6 +44,10 @@ Item {
                 AudioService.toggleMute(root.sink);
                 return;
             }
+            // honor the segment click map (default → audio panel)
+            const a = BarSegments.clickFor("audio");
+            if (a.length > 0 && BarActions.dispatch(a))
+                return;
             ShellState.toggleAudio();
         }
         onWheel: wheel => {

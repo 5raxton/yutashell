@@ -13,6 +13,13 @@ Singleton {
     property var history: []
     property int seq: 1
 
+    // incremental stack sync — ToastStack mirrors these into an ObjectModel so
+    // cards are created/removed individually instead of every array identity
+    // change resetting the whole Repeater (which replayed entrances and broke
+    // hover-pause under a stationary cursor)
+    signal toastAdded(var vm)
+    signal toastRemoved(var vm)
+
     readonly property bool dnd: ShellState.notifyDnd
     readonly property int maxVisible: Math.max(1, Math.min(6, ShellState.notifyMaxVisible))
 
@@ -220,6 +227,7 @@ Singleton {
             vm.dead = true;
         });
         root.live = [vm].concat(root.live).slice();
+        root.toastAdded(vm);
         root._trimLive();
     }
 
@@ -238,6 +246,7 @@ Singleton {
             });
         vm.remainMs = vm.durMs > 0 ? vm.durMs : -1;
         root.live = [vm].concat(root.live).slice();
+        root.toastAdded(vm);
         root._trimLive();
     }
 
@@ -256,6 +265,7 @@ Singleton {
             });
         vm.remainMs = vm.durMs;
         root.live = [vm].concat(root.live).slice();
+        root.toastAdded(vm);
         root._trimLive();
     }
 
@@ -279,6 +289,7 @@ Singleton {
             return;
         const vm = root.live[idx];
         root.live = root.live.filter(v => v.id !== id).slice();
+        root.toastRemoved(vm);
         root._closeVm(vm, expire_ === true);
         vm.destroy();
     }
@@ -329,6 +340,7 @@ Singleton {
         while (root.live.length > root.maxVisible) {
             const old = root.live[root.live.length - 1];
             root.live = root.live.slice(0, root.maxVisible).slice();
+            root.toastRemoved(old);
             root._closeVm(old, true);
             old.destroy();
         }

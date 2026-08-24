@@ -10,13 +10,14 @@ import qs.modules.common
 Singleton {
     id: root
 
+    // returns true when the action was recognized — callers may fall back
     function dispatch(action) {
         const a = String(action ?? "").trim();
         if (a.length === 0 || a === "none")
-            return;
+            return false;
         if (a.startsWith("ipc:")) {
             root._dispatchIpc(a.slice(4));
-            return;
+            return true;
         }
         switch (a) {
         case "calendar":
@@ -52,7 +53,10 @@ Singleton {
         case "picker":
             ShellState.togglePicker();
             break;
+        default:
+            return false;
         }
+        return true;
     }
 
     function _dispatchIpc(spec) {

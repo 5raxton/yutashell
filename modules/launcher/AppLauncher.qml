@@ -5,6 +5,7 @@ import Quickshell.Wayland
 import QtQuick
 import qs.theme
 import qs.modules.common
+import qs.modules.notify
 import "../common/ui"
 import "fuzzy.js" as Fuzzy
 
@@ -45,8 +46,11 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: Theme.movMed
+        interval: Theme.lingerMs
     }
+
+    onOpenChanged: if (!root.open)
+        hideDelay.restart()
 
     Item {
         id: contentRoot
@@ -112,6 +116,10 @@ PanelWindow {
             // ---- selection ----
             property int selIdx: 0
             readonly property int selCount: commandMode ? cmdMatches.length : results.length
+
+            // every keystroke reshapes the model — the old highlight would
+            // otherwise sit on whatever row now occupies that index
+            onQueryChanged: selIdx = 0
 
             function clampSel() {
                 selIdx = Math.max(0, Math.min(selIdx, Math.max(0, selCount - 1)));
@@ -297,17 +305,47 @@ PanelWindow {
             Process {
                 id: copyProc
 
-                command: ["wl-copy", card.calcText]
+                stdout: StdioCollector {}
+                stderr: StdioCollector {}
+            }
+
+            // wl-copy is optional — the calc copy path must say so, not no-op
+            property bool wlCopyOk: false
+
+            Process {
+                id: wlProbe
+
+                command: ["sh", "-c", "command -v wl-copy >/dev/null 2>&1 && echo yes || echo no"]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        card.wlCopyOk = text.trim() === "yes";
+                        if (!card.wlCopyOk)
+                            Health.report("wl-clipboard", "launcher calculator copy unavailable (install wl-clipboard)");
+                    }
+                }
+            }
+
+            Component.onCompleted: {
+                wlProbe.running = true;
+                if (root.open)
+                    resetForOpen();
             }
 
             function acceptCurrent() {
-                if (commandMode && selCount > 0) {
-                    runCommand(cmdMatches[Math.min(selIdx, selCount - 1)]);
+                if (commandMode) {
+                    // empty command match must not fall through to app activation
+                    if (selCount > 0)
+                        runCommand(cmdMatches[Math.min(selIdx, selCount - 1)]);
                     return;
                 }
                 if (calcText !== "") {
-                    copyProc.exec();
-                    ShellState.closeLauncher();
+                    if (card.wlCopyOk) {
+                        copyProc.command = ["wl-copy", calcText];
+                        copyProc.running = true;
+                        ShellState.closeLauncher();
+                    } else {
+                        Notify.announce("LAUNCHER", "copy unavailable (install wl-clipboard)", 2);
+                    }
                     return;
                 }
                 activate(results[selIdx]);
@@ -328,9 +366,6 @@ PanelWindow {
                 pushRecent(r.entry.id);
                 ShellState.closeLauncher();
             }
-
-            Component.onCompleted: if (root.open)
-                resetForOpen()
 
             // ===== HEADER =====
             Item {
@@ -430,23 +465,20 @@ PanelWindow {
                 anchors.top: searchBand.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
+                // height SNAPS — an animated height here relayouts the whole
+                // results area on every keystroke of a math expression;
+                // the fade below carries the motion instead
                 height: card.calcText !== "" ? 34 : 0
                 visible: height > 0
                 color: Theme.surface
 
-                Behavior on height {
-                    NumberAnimation {
-                        duration: Theme.movFast
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
                 MouseArea {
                     anchors.fill: parent
-                    enabled: card.calcText !== ""
+                    enabled: card.wlCopyOk && card.calcText !== ""
 
                     onClicked: {
-                        copyProc.exec();
+                        copyProc.command = ["wl-copy", card.calcText];
+                        copyProc.running = true;
                         ShellState.closeLauncher();
                     }
                 }
@@ -459,17 +491,33 @@ PanelWindow {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsBody
                     font.weight: Font.Bold
+                    opacity: card.calcText !== "" ? 1 : 0
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.movFast
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
 
                 Text {
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.sp4
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Theme.jpEnabled ? "クリックでコピー" : "CLICK TO COPY"
+                    text: !card.wlCopyOk ? "wl-copy missing" : Theme.jpEnabled ? "クリックでコピー" : "CLICK TO COPY"
                     color: Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsLabel
                     font.letterSpacing: 0.8
+                    opacity: card.calcText !== "" ? 1 : 0
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.movFast
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
             }
 
@@ -633,7 +681,7 @@ PanelWindow {
                                 width: 34
                                 height: 34
                                 color: Theme.acid
-                                visible: tileRoot.iconSrc === "" || gTileIcon.status === Image.Error || gTileIcon.status === Image.Null
+                                visible: tileRoot.iconSrc === "" || gTileIcon.status === Image.Error || gTileIcon.status === Image.Null || gTileIcon.status === Image.Loading
 
                                 Text {
                                     anchors.centerIn: parent
@@ -754,7 +802,7 @@ PanelWindow {
                                 Rectangle {
                                     anchors.fill: parent
                                     color: Theme.acid
-                                    visible: rowRoot.iconSrc === "" || rRowIcon.status === Image.Error || rRowIcon.status === Image.Null
+                                    visible: rowRoot.iconSrc === "" || rRowIcon.status === Image.Error || rRowIcon.status === Image.Null || rRowIcon.status === Image.Loading
 
                                     Text {
                                         anchors.centerIn: parent

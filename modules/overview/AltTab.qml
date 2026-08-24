@@ -35,10 +35,35 @@ PanelWindow {
 
     readonly property int cardW: Math.min(720, root.width - Theme.outerPad * 4)
 
+    // rolling 8-card window around the selection
+    readonly property int maxShow: 8
+    readonly property int sliceStart: {
+        const n = Overview.windows.length;
+        if (n <= maxShow)
+            return 0;
+        let s = Overview.altTabIdx - Math.floor(maxShow / 2);
+        if (s < 0)
+            s = 0;
+        if (s > n - maxShow)
+            s = n - maxShow;
+        return s;
+    }
+    readonly property var shown: Overview.windows.slice(sliceStart, sliceStart + Math.min(maxShow, Overview.windows.length))
+
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so the overlay's exit renders
+    Connections {
+        target: ShellState
+
+        function onAltTabOpenChanged() {
+            if (!ShellState.altTabOpen)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -100,7 +125,9 @@ PanelWindow {
                     spacing: Theme.sp2
 
                     Repeater {
-                        model: Overview.windows.length > 8 ? Overview.windows.slice(0, 8) : Overview.windows
+                        // rolling slice: with >8 windows a hard slice(0,8) hid the
+                        // selection AND mapped clicks to the wrong window
+                        model: root.shown
 
                         delegate: Rectangle {
                             id: card
@@ -108,7 +135,7 @@ PanelWindow {
                             required property int index
                             required property var modelData
 
-                            readonly property bool sel: index === Overview.altTabIdx
+                            readonly property bool sel: root.sliceStart + index === Overview.altTabIdx
                             readonly property string iconUrl: modelData.iconSrc === "" ? "" : Quickshell.iconPath(modelData.iconSrc)
 
                             width: 74
@@ -127,7 +154,7 @@ PanelWindow {
                                     width: 32
                                     height: 32
                                     color: Theme.acid
-                                    visible: card.iconUrl === "" || icon.status === Image.Error || icon.status === Image.Null
+                                    visible: card.iconUrl === "" || icon.status !== Image.Ready
 
                                     Text {
                                         anchors.centerIn: parent
@@ -165,7 +192,7 @@ PanelWindow {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Overview.selectAltTab(card.index)
+                                onClicked: Overview.selectAltTab(root.sliceStart + card.index)
                             }
                         }
                     }

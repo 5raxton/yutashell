@@ -12,7 +12,7 @@ Item {
     readonly property var ids: {
         const s = new Set();
         for (const w of Hyprland.workspaces.values)
-            if (w.id > 0 && w.id <= 12)
+            if (w.id > 0 && w.id <= 24)
                 s.add(w.id);
         let i = 1;
         while (s.size < 6)
@@ -41,6 +41,14 @@ Item {
 
         function onFocusedWorkspaceChanged() {
             root.clearUrgent(Hyprland.focusedWorkspace?.id ?? -1);
+        }
+
+        // a workspace vanishing means its urgent window is gone — drop the latch
+        // or the slot blinks at nothing forever
+        function onWorkspacesChanged() {
+            const live = new Set(Hyprland.workspaces.values.map(w => w.id));
+            if (root.urgentIds.some(id => !live.has(id)))
+                root.urgentIds = root.urgentIds.filter(id => live.has(id));
         }
     }
 

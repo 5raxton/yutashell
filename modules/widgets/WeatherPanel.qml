@@ -39,7 +39,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onWeatherOpenChanged() {
+            if (!ShellState.weatherOpen)
+                hideDelay.restart();
+        }
     }
 
     Connections {
@@ -158,8 +168,15 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.info[0]
                         color: Theme.acid
+                        opacity: Weather.fetching ? 0.45 : 1
                         font.family: Theme.fontFamily
-                        font.pixelSize: 54
+                        font.pixelSize: Math.round(Theme.fsDisplay * 2.7)
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Theme.movMed
+                                easing.type: Easing.OutCubic
+                            }
+                        }
                     }
 
                     Text {
@@ -169,7 +186,7 @@ PanelWindow {
                         text: Weather.current ? Weather.current.temp + "°" : ""
                         color: Theme.ink
                         font.family: Theme.fontFamily
-                        font.pixelSize: 44
+                        font.pixelSize: Math.round(Theme.fsDisplay * 2.2)
                         font.weight: Font.ExtraBold
                         font.letterSpacing: 1
                     }
@@ -177,6 +194,7 @@ PanelWindow {
                     Column {
                         anchors.left: parent.left
                         anchors.leftMargin: 150
+                        anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2
 
@@ -189,6 +207,9 @@ PanelWindow {
                         }
 
                         Text {
+                            // width-capped micro-line — long location labels overflowed the card
+                            width: parent.width
+                            elide: Text.ElideRight
                             text: (ShellState.weatherLabel.length > 0 ? ShellState.weatherLabel.toUpperCase() : ShellState.weatherLat + "," + ShellState.weatherLon) + " · WIND " + (Weather.current ? Weather.current.wind : 0) + "KM/H"
                             color: Theme.muted
                             font.family: Theme.fontFamily
@@ -201,7 +222,7 @@ PanelWindow {
                 Text {
                     width: parent.width
                     visible: Weather.configured && Weather.current === null
-                    text: Weather.error.length > 0 ? "FETCH ERROR — " + Weather.error : "LOADING…"
+                    text: !Weather.available ? "UNAVAILABLE — curl is not installed" : Weather.error.length > 0 ? "FETCH ERROR — " + Weather.error : "LOADING…"
                     color: Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsLabel
@@ -251,7 +272,7 @@ PanelWindow {
                                     text: fi[0]
                                     color: Theme.acid
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 16
+                                    font.pixelSize: Math.round(Theme.fsBody * 1.4)
                                 }
 
                                 Text {

@@ -53,8 +53,26 @@ PanelWindow {
     readonly property int contentW: cardW - railW - padX * 2 - 1
 
     function setPage(i) {
+        // don't hijack a keystroke the user is typing into a field
+        const afi = root.activeFocusItem;
+        if (afi && (afi instanceof TextInput))
+            return;
         tabIndex = i;
         ShellState.set("panelLastPage", i);
+    }
+
+    // a corrupt state.json string must degrade to empty, not kill the binding
+    function _safeLen(json) {
+        return _safeArr(json).length;
+    }
+
+    function _safeArr(json) {
+        try {
+            const v = JSON.parse(json);
+            return Array.isArray(v) ? v : [];
+        } catch (e) {
+            return [];
+        }
     }
 
     // ---- page registry (declarative; modules register settings pages here) ----
@@ -177,7 +195,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onPanelOpenChanged() {
+            if (!ShellState.panelOpen)
+                hideDelay.restart();
+        }
     }
 
     // remember where the user left off across opens
@@ -190,11 +218,12 @@ PanelWindow {
         }
     }
 
+    // identity blink — only worth ticking while the panel is on screen
     Timer {
         id: blinkTimer
 
         interval: 600
-        running: true
+        running: ShellState.panelOpen
         repeat: true
         onTriggered: root.blinkOn = !root.blinkOn
     }
@@ -788,7 +817,8 @@ PanelWindow {
                             anchors.bottom: parent.bottom
                             height: 20
                             visible: Wallpaper.current.length > 0
-                            color: "#d9000000"
+                            // theme scrim — survives light-mode recolor
+                            color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.85)
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -911,16 +941,11 @@ PanelWindow {
                                 required property int index
                                 required property string modelData
 
+                                // "" override = "follow palette" (the empty swatch);
+                                // any other value matches case-insensitively
                                 readonly property bool active: {
-                                    try {
-                                        const ao = Theme.accentOverride;
-                                        if (!ao || !modelData)
-                                            return ao ? ao.length === 0 && modelData === "" : false;
-                                        return (ao.length === 0 && modelData.length === 0) || ao.toLowerCase() === modelData.toLowerCase();
-                                    } catch (err) {
-                                        console.warn("[panel] swatch debug: model=", JSON.stringify(modelData), "override=", JSON.stringify(Theme.accentOverride), "err=", err);
-                                        return false;
-                                    }
+                                    const ao = String(Theme.accentOverride ?? "");
+                                    return ao.length === 0 ? modelData.length === 0 : ao.toLowerCase() === modelData.toLowerCase();
                                 }
 
                                 width: 24
@@ -935,7 +960,7 @@ PanelWindow {
                                     text: "/"
                                     color: Theme.muted
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 12
+                                    font.pixelSize: Theme.fsBody
                                     font.weight: Font.Bold
                                 }
 
@@ -1105,418 +1130,6 @@ PanelWindow {
                 }
             }
 
-            Component {
-                id: templatesPage
-
-                TemplatesPage {
-                    contentW: root.contentW
-                }
-            }
-
-            Component {
-                id: modulesPage
-
-                Column {
-                    width: root.contentW
-                    spacing: Theme.sp3
-
-                    YSection {
-                        width: parent.width
-                        index: "01"
-                        label: "Bar segments"
-                    }
-
-                    Repeater {
-                        model: [
-                            {
-                                key: "barTray",
-                                title: "Tray cluster",
-                                sub: "status notifier icons"
-                            },
-                            {
-                                key: "barStats",
-                                title: "Stats cluster",
-                                sub: "network · cpu · memory · battery"
-                            },
-                            {
-                                key: "barMedia",
-                                title: "Media segment",
-                                sub: "mpris now-playing ticker"
-                            },
-                            {
-                                key: "barNet",
-                                title: "Network segment",
-                                sub: "wifi tiers · wired link · vpn dot"
-                            },
-                            {
-                                key: "barBt",
-                                title: "Bluetooth segment",
-                                sub: "adapter glyph, hidden when off"
-                            },
-                            {
-                                key: "barAudio",
-                                title: "Audio segment",
-                                sub: "volume bars · mic state"
-                            },
-                            {
-                                key: "barClock",
-                                title: "Clock block",
-                                sub: "time · date" + (Theme.jpEnabled ? " · kanji weekday" : "")
-                            }
-                        ]
-
-                        delegate: YRow {
-                            id: segRow
-
-                            required property var modelData
-
-                            width: root.contentW
-                            title: segRow.modelData.title
-                            sub: segRow.modelData.sub
-                            on_: ShellState[segRow.modelData.key]
-
-                            YSwitch {
-                                checked: ShellState[segRow.modelData.key]
-                                anchors.verticalCenter: parent.verticalCenter
-                                onToggled: ShellState.set(segRow.modelData.key, !ShellState[segRow.modelData.key])
-                            }
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "segment visibility persists to state.json and applies instantly."
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Item {
-                        width: 1
-                        height: Theme.sp2
-                    }
-                }
-            }
-
-            Component {
-                id: audioPage
-
-                Column {
-                    width: root.contentW
-                    spacing: Theme.sp3
-
-                    YSection {
-                        width: parent.width
-                        index: "01"
-                        label: "Output"
-                        chip: AudioService.ready ? "PIPEWIRE" : "NO SERVICE"
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: AudioService.sink ? AudioService.deviceLabel(AudioService.sink) : "no output device"
-                        sub: (AudioService.sink && AudioService.sink.audio && AudioService.sink.audio.muted ? "muted · " : "") + AudioService.nodePct(AudioService.sink) + "% · wheel the bar segment or open the console"
-                        note: "MASTER"
-
-                        Row {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.sp1
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: {
-                                    AudioService.stepPct(AudioService.sink, -5);
-                                    AudioService.osdPing("volume");
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: {
-                                    AudioService.stepPct(AudioService.sink, 5);
-                                    AudioService.osdPing("volume");
-                                }
-                            }
-                        }
-                    }
-
-                    // overdrive ceiling stepper
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "OVERDRIVE CEILING"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Text {
-                            anchors.top: parent.top
-                            anchors.right: parent.right
-                            text: "volume past 100% is flagged in acid"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp2
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: ShellState.set("audioCeiling", Math.max(100, ShellState.audioCeiling - 10))
-                            }
-
-                            Item {
-                                width: 72
-                                height: Theme.ctlH
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.bg
-                                    border.width: 1
-                                    border.color: Theme.hairline
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: ShellState.audioCeiling + "%"
-                                    color: Theme.acid
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsBody
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: ShellState.set("audioCeiling", Math.min(200, ShellState.audioCeiling + 10))
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "100 – 200"
-                                color: Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "02"
-                        label: "OSD"
-                    }
-
-                    // corner picker
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "CORNER"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp1
-
-                            Repeater {
-                                model: ["tl", "tc", "tr", "bl", "bc", "br"]
-
-                                YButton {
-                                    required property var modelData
-
-                                    width: 40
-                                    tone: ShellState.osdCorner === modelData ? "acid" : "default"
-                                    label: modelData.toUpperCase()
-                                    onClicked: ShellState.set("osdCorner", modelData)
-                                }
-                            }
-                        }
-                    }
-
-                    // fade stepper
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "FADE DELAY"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp2
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: ShellState.set("osdFadeMs", Math.max(600, ShellState.osdFadeMs - 200))
-                            }
-
-                            Item {
-                                width: 88
-                                height: Theme.ctlH
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.bg
-                                    border.width: 1
-                                    border.color: Theme.hairline
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: ShellState.osdFadeMs + " ms"
-                                    color: Theme.ink
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsBody
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: ShellState.set("osdFadeMs", Math.min(4000, ShellState.osdFadeMs + 200))
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "600 – 4000"
-                                color: Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "03"
-                        label: "Night light"
-                        chip: NightLight.available ? (NightLight.active ? "ACTIVE" : "IDLE") : "NO HYPRSUNSET"
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Night light filter"
-                        sub: NightLight.available ? NightLight.temp + "K warmth on every screen" : "install hyprsunset to enable"
-                        note: "☾"
-                        on_: NightLight.active
-
-                        YSwitch {
-                            checked: NightLight.active
-                            enabled: NightLight.available
-                            anchors.verticalCenter: parent.verticalCenter
-                            onToggled: NightLight.toggle()
-                        }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-                        visible: NightLight.available
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "TEMPERATURE"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp2
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: NightLight.temp = Math.max(1000, NightLight.temp - 250)
-                            }
-
-                            Item {
-                                width: 88
-                                height: Theme.ctlH
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.bg
-                                    border.width: 1
-                                    border.color: Theme.hairline
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: NightLight.temp + " K"
-                                    color: Theme.ink
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsBody
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: NightLight.temp = Math.min(6500, NightLight.temp + 250)
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "1000 – 6500 · lower = warmer"
-                                color: Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "04"
-                        label: "Brightness"
-                        chip: DisplayService.available ? "DDC/CI" : "UNAVAILABLE"
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "External monitor brightness"
-                        sub: DisplayService.available ? DisplayService.displays.length + " display(s) · " + DisplayService.brightPct + "%" : "this box has no backlight — install ddcutil for DDC/CI control"
-                        note: "SUN"
-                        interactive: false
-                    }
-
-                    Item {
-                        height: Theme.sp2
-                        width: 1
-                    }
-                }
-            }
 
             Component {
                 id: notificationsPage
@@ -1772,7 +1385,8 @@ PanelWindow {
                     }
 
                     Text {
-                        width: root.width
+                        // parent, not root — root.width is the whole panel
+                        width: parent.width
                         text: "matching is case-insensitive against app name and desktop entry."
                         color: Theme.faint
                         font.family: Theme.fontFamily
@@ -1982,7 +1596,7 @@ PanelWindow {
 
                     YSection {
                         width: parent.width
-                        index: "02"
+                        index: "04"
                         label: "Idle"
                         chip: ShellState.idleAction === "none" ? "off" : ShellState.idleAction + " · " + ShellState.idleSecs + "s"
                     }
@@ -2071,7 +1685,7 @@ PanelWindow {
 
                     YSection {
                         width: parent.width
-                        index: "03"
+                        index: "05"
                         label: "Power menu"
                         chip: ShellState.holdMs > 0 ? "hold " + ShellState.holdMs + "ms" : "no hold"
                     }
@@ -2145,7 +1759,7 @@ PanelWindow {
 
                     YSection {
                         width: parent.width
-                        index: "04"
+                        index: "06"
                         label: "Lock screen"
                         chip: "PAM " + ShellState.pamService
                     }
@@ -2414,7 +2028,7 @@ PanelWindow {
                         width: parent.width
                         index: "04"
                         label: "Memory"
-                        chip: "pins " + (JSON.parse(ShellState.launcherPins).length ?? 0) + " · recents " + (JSON.parse(ShellState.launcherRecents).length ?? 0)
+                        chip: "pins " + _safeLen(ShellState.launcherPins) + " · recents " + _safeLen(ShellState.launcherRecents)
                     }
 
                     Row {
@@ -2450,7 +2064,7 @@ PanelWindow {
                         width: parent.width
                         index: "01"
                         label: "Tabs"
-                        chip: (JSON.parse(ShellState.ccTabs) || []).length + " visible"
+                        chip: _safeLen(ShellState.ccTabs) + " visible"
                     }
 
                     Repeater {
@@ -2494,7 +2108,7 @@ PanelWindow {
 
                             required property var modelData
 
-                            readonly property var ids: JSON.parse(ShellState.ccTabs) || []
+                            readonly property var ids: root._safeArr(ShellState.ccTabs)
                             readonly property bool shown: ids.indexOf(modelData.id) >= 0
 
                             width: root.contentW
@@ -2506,7 +2120,7 @@ PanelWindow {
                                 checked: ctRow.shown
                                 anchors.verticalCenter: parent.verticalCenter
                                 onToggled: {
-                                    let ids = JSON.parse(ShellState.ccTabs) || [];
+                                    let ids = root._safeArr(ShellState.ccTabs);
                                     if (ids.indexOf(ctRow.modelData.id) >= 0)
                                         ids = ids.filter(x => x !== ctRow.modelData.id);
                                     else
@@ -2786,7 +2400,7 @@ PanelWindow {
                                     text: "▲"
                                     color: Theme.faint
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 8
+                                    font.pixelSize: Theme.fsMicro
 
                                     MouseArea {
                                         anchors.fill: parent
@@ -2800,7 +2414,7 @@ PanelWindow {
                                     text: "▼"
                                     color: Theme.faint
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 8
+                                    font.pixelSize: Theme.fsMicro
 
                                     MouseArea {
                                         anchors.fill: parent
@@ -3227,15 +2841,7 @@ PanelWindow {
                     width: root.contentW
                     spacing: Theme.sp3
 
-                    Text {
-                        text: "YUTA//OS"
-                        color: Theme.ink
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsDisplay
-                        font.weight: Font.ExtraBold
-                        font.letterSpacing: 3
-                    }
-
+                    // frame already prints "About" — version line carries the identity
                     Text {
                         text: "neo-brutalist shell for hyprland — v" + Theme.version
                         color: Theme.muted

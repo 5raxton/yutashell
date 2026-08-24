@@ -314,9 +314,12 @@ Rectangle {
         }
     }
 
-    // swallow clicks inside so they never reach windows under the card area
+    // swallow clicks inside so they never reach windows under the card area.
+    // ALL buttons: right/middle must not fall through to the YClickAway
+    // catcher beneath the card (it accepts every button and would close us).
     MouseArea {
         anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         onClicked: mouse => mouse.accepted = true
     }

@@ -86,7 +86,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onCcOpenChanged() {
+            if (!ShellState.ccOpen)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -225,9 +235,13 @@ PanelWindow {
                 }
 
                 Rectangle {
+                    // clamp: dynamic page lists can shrink below tabIndex and
+                    // send the indicator off-strip
+                    readonly property int clampedTab: root.visiblePages.length > 0 ? Math.max(0, Math.min(root.tabIndex, root.visiblePages.length - 1)) : 0
+
                     y: parent.height - 2
-                    x: root.tabIndex * (parent.width / root.visiblePages.length)
-                    width: parent.width / root.visiblePages.length
+                    x: parent.width > 0 && root.visiblePages.length > 0 ? clampedTab * (parent.width / root.visiblePages.length) : 0
+                    width: root.visiblePages.length > 0 ? parent.width / root.visiblePages.length : parent.width
                     height: 2
                     color: Theme.acid
 
@@ -715,6 +729,8 @@ PanelWindow {
 
                         width: root.contentW
                         interactive: false
+                        // trailing slot must match the slider or it paints over the title
+                        trailingW: 140
                         title: AudioService.deviceLabel(modelData).toUpperCase()
                         sub: (modelData.audio && modelData.audio.muted ? "muted" : AudioService.nodePct(modelData) + "%")
                         note: sinkRow.isDef ? "★ DEFAULT" : ""
@@ -746,6 +762,7 @@ PanelWindow {
 
                         width: root.contentW
                         interactive: false
+                        trailingW: 34
                         title: AudioService.deviceLabel(modelData).toUpperCase()
                         sub: (modelData.audio && modelData.audio.muted ? "muted" : AudioService.nodePct(modelData) + "%")
 
@@ -776,6 +793,7 @@ PanelWindow {
 
                         width: root.contentW
                         interactive: false
+                        trailingW: 34
                         title: AudioService.streamLabel(modelData).toUpperCase()
                         sub: strRow.smut ? "muted" : AudioService.nodePct(modelData) + "%"
                         on_: !strRow.smut
@@ -858,9 +876,10 @@ PanelWindow {
                 chip: "FAST 2s · SLOW 5s"
             }
 
-            // sparklines sample SystemStats while the tab is visible
+            // sparklines sample SystemStats while the tab is visible —
+            // 2 s matches the FAST sampler; 1 s just duplicated points
             Timer {
-                interval: 1000
+                interval: 2000
                 running: root.activePageId === "system" && ShellState.ccOpen
                 repeat: true
                 triggeredOnStart: true

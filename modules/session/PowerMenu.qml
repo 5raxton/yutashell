@@ -39,7 +39,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onSessionOpenChanged() {
+            if (!ShellState.sessionOpen)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -204,7 +214,9 @@ PanelWindow {
         height: root.tileH
         color: area.containsMouse ? Theme.bgAlt : Theme.surface
         border.width: 1
-        border.color: area.pressed ? Theme.acid : area.containsMouse ? Theme.lineStrong : Theme.hairline
+        // destructive tiles read danger, not acid — the fill that kills your
+        // session should never wear the "primary action" color
+        border.color: area.pressed ? (tile.destructive ? Theme.alert : Theme.acid) : area.containsMouse ? Theme.lineStrong : tile.destructive ? Theme.lineStrong : Theme.hairline
 
         Behavior on border.color {
             ColorAnimation {
@@ -218,7 +230,7 @@ PanelWindow {
             anchors.top: parent.top
             width: 2
             height: area.containsMouse ? 18 : 0
-            color: Theme.acid
+            color: tile.destructive ? Theme.alert : Theme.acid
 
             Behavior on height {
                 NumberAnimation {
@@ -237,13 +249,14 @@ PanelWindow {
                 text: tile.meta[0]
                 color: holdFill.width > 4 ? Theme.bg : tile.destructive ? Theme.ink : Theme.acid
                 font.family: Theme.fontFamily
-                font.pixelSize: 30
+                font.pixelSize: Math.round(Theme.fsDisplay * 1.5)
             }
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
+                // lightens as the fill passes under it or it vanishes on acid
+                color: holdFill.width > 4 ? Theme.bg : Theme.muted
                 text: tile.meta[1]
-                color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fsLabel
                 font.letterSpacing: 2

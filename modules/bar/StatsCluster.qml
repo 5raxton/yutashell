@@ -30,6 +30,7 @@ Item {
         property string tipText
         signal hovered(Item item, string text)
         signal unhovered()
+        signal clicked()
 
         width: innerCol.width
         height: Theme.barHeight
@@ -44,14 +45,20 @@ Item {
             id: hoverArea
             anchors.fill: parent
             hoverEnabled: true
-            acceptedButtons: Qt.NoButton
+            cursorShape: Qt.PointingHandCursor
             onContainsMouseChanged: {
                 if (containsMouse)
                     colWrap.hovered(colWrap, colWrap.tipText);
                 else
                     colWrap.unhovered();
             }
+            onClicked: colWrap.clicked()
         }
+    }
+
+    // every stat cell routes through the segment click map (default → control center)
+    function dispatchClick() {
+        BarActions.dispatch(BarSegments.clickFor("stats"));
     }
 
     Row {
@@ -65,6 +72,7 @@ Item {
             tipText: "DOWN " + SystemStats.fmtRate(SystemStats.netDown) + " / UP " + SystemStats.fmtRate(SystemStats.netUp)
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
+            onClicked: root.dispatchClick()
 
             Text {
                 text: "NET"
@@ -94,6 +102,9 @@ Item {
                     }
 
                     Text {
+                        // capped so gigabit bursts can't push into the up-rate cell
+                        width: 38
+                        elide: Text.ElideRight
                         text: SystemStats.fmtRate(SystemStats.netDown)
                         color: SystemStats.netDown > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
@@ -124,6 +135,8 @@ Item {
                     }
 
                     Text {
+                        width: 38
+                        elide: Text.ElideRight
                         text: SystemStats.fmtRate(SystemStats.netUp)
                         color: SystemStats.netUp > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
@@ -145,6 +158,7 @@ Item {
             tipText: "LOAD " + (SystemStats.cpuPct < 0 ? "--" : SystemStats.cpuPct + "%")
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
+            onClicked: root.dispatchClick()
 
             Text {
                 text: "CPU"
@@ -199,6 +213,7 @@ Item {
             tipText: "USED " + (SystemStats.memPct < 0 ? "--" : SystemStats.memPct + "% · " + SystemStats.fmtBytes(SystemStats.memUsed))
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
+            onClicked: root.dispatchClick()
 
             Text {
                 text: "MEM"
@@ -210,7 +225,7 @@ Item {
 
             Text {
                 text: SystemStats.memPct < 0 ? "--" : SystemStats.memPct + "%"
-                color: SystemStats.memPct >= 90 ? Theme.alert : Theme.ink
+                color: SystemStats.memPct >= SystemStats.memWarn ? Theme.alert : Theme.ink
                 font.family: Theme.fontFamily
                 font.pixelSize: 10
             }
@@ -223,6 +238,7 @@ Item {
             tipText: (SystemStats.batCharging ? "CHARGING " : "") + (SystemStats.batPct < 0 ? "--" : SystemStats.batPct + "%")
             onHovered: (item, text) => root.showCol(item, text)
             onUnhovered: root.hideCol()
+            onClicked: root.dispatchClick()
 
             Text {
                 text: "BAT"
@@ -247,7 +263,7 @@ Item {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: SystemStats.batPct < 0 ? "--" : SystemStats.batPct + "%"
-                    color: !SystemStats.batCharging && SystemStats.batPct >= 0 && SystemStats.batPct <= 15 ? Theme.alert : Theme.ink
+                    color: !SystemStats.batCharging && SystemStats.batPct >= 0 && SystemStats.batPct <= SystemStats.batWarn ? Theme.alert : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
                 }

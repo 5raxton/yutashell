@@ -28,9 +28,13 @@ Singleton {
         probe.running = true;
     }
 
+    // first installed terminal wins — hardcoding one silently no-ops elsewhere
+    readonly property string _terminal: _termProbeResult.length > 0 ? _termProbeResult : "alacritty"
+    property string _termProbeResult: ""
+
     function openTerminal() {
         // launch the user's terminal with a checkupdates+upgrade hint
-        termProc.command = ["sh", "-c", "(alacritty -e sh -c 'checkupdates; echo; echo \"run: sudo pacman -Syu\"; exec \"$SHELL\"' >/dev/null 2>&1 &) || true"];
+        termProc.command = ["sh", "-c", "(" + _terminal + " -e sh -c 'checkupdates; echo; echo \"run: sudo pacman -Syu\"; exec \"$SHELL\"' >/dev/null 2>&1 &) || true"];
         termProc.running = true;
     }
 
@@ -43,6 +47,16 @@ Singleton {
     Component.onCompleted: {
         binProbe.command = ["sh", "-c", "command -v checkupdates >/dev/null 2>&1 && echo yes || echo no"];
         binProbe.running = true;
+        termProbe.command = ["sh", "-c", "for t in alacritty kitty foot wezterm konsole gnome-terminal; do command -v \"$t\" >/dev/null 2>&1 && { echo \"$t\"; break; }; done"];
+        termProbe.running = true;
+    }
+
+    Process {
+        id: termProbe
+
+        stdout: StdioCollector {
+            onStreamFinished: root._termProbeResult = text.trim()
+        }
     }
 
     Process {

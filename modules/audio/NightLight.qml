@@ -39,6 +39,12 @@ Singleton {
     }
 
     function start() {
+        // guard: IPC can call start() directly — never latch active (and
+        // persist it, lighting the bar's ghost moon chip) without the binary
+        if (!available) {
+            Notify.announce("NIGHT LIGHT", "hyprsunset not installed", 1);
+            return;
+        }
         active = true;
         restartProc();
     }

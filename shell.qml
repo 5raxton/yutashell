@@ -363,8 +363,9 @@ ShellRoot {
         }
 
         function mute(): void {
-            const m = AudioService.toggleMute(AudioService.sink);
-            AudioService.osdPing(m ? "mic" : "volume");
+            AudioService.toggleMute(AudioService.sink);
+            // the sink was muted, not the mic — the volume OSD must show it
+            AudioService.osdPing("volume");
         }
 
         function micmute(): void {
@@ -375,16 +376,6 @@ ShellRoot {
 
         function status(): string {
             return (AudioService.sink ? AudioService.deviceLabel(AudioService.sink) : "no sink") + " · " + (AudioService.nodePct(AudioService.sink)) + "%" + (AudioService.sink && AudioService.sink.audio && AudioService.sink.audio.muted ? " MUTED" : "");
-        }
-
-        function nl(): void {
-            NightLight.toggle();
-        }
-
-        function nltemp(t: int): void {
-            NightLight.temp = t;
-            if (!NightLight.active)
-                NightLight.toggle();
         }
     }
 

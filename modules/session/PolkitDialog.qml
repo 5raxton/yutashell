@@ -44,7 +44,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so the card's exit ceremony renders
+    Connections {
+        target: agent
+
+        function onIsActiveChanged() {
+            if (!agent.isActive)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -187,6 +197,17 @@ PanelWindow {
         target: agent
 
         function onFlowChanged() {
+            if (agent.isActive && root.flow && root.flow.responseVisible)
+                respField.forceFocus();
+        }
+    }
+
+    // responseVisible flips AFTER the flow lands (async request) — watch it too
+    // or the password field never gets keyboard focus
+    Connections {
+        target: root.flow
+
+        function onResponseVisibleChanged() {
             if (agent.isActive && root.flow && root.flow.responseVisible)
                 respField.forceFocus();
         }

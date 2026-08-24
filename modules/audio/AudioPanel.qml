@@ -42,7 +42,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onAudioOpenChanged() {
+            if (!ShellState.audioOpen)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -200,8 +210,8 @@ PanelWindow {
                                     label: root.muted ? "UNMUTE" : "MUTE"
                                     tone: root.muted ? "danger" : "default"
                                     onClicked: {
-                                        const m = AudioService.toggleMute(root.sink);
-                                        AudioService.osdPing(m ? "mic" : "volume");
+                                        AudioService.toggleMute(root.sink);
+                                        AudioService.osdPing("volume");
                                     }
                                 }
 

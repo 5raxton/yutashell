@@ -24,10 +24,28 @@ Singleton {
 
     on_DispListChanged: root.poll()
 
+    // UI value moves instantly on drag; the slow ddcutil writes coalesce to
+    // the final position — per-pixel calls spawn a process storm
     function setBright(pct) {
         const v = Math.max(0, Math.min(100, pct));
         brightPct = v;
         if (!available)
+            return;
+        _pendingPct = v;
+        writeDebounce.restart();
+    }
+
+    property int _pendingPct: -1
+
+    Timer {
+        id: writeDebounce
+
+        interval: 150
+        onTriggered: root._writeNow(root._pendingPct)
+    }
+
+    function _writeNow(v) {
+        if (v < 0 || !available)
             return;
         // one chained shell op — reusing a single Process per-display would
         // drop every display after the first (running edge fires once)

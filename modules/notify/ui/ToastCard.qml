@@ -118,7 +118,7 @@ Rectangle {
                     text: root.modelData.app.charAt(0).toUpperCase()
                     color: Theme.acid
                     font.family: Theme.fontFamily
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.fsBody
                     font.weight: Font.DemiBold
                 }
             }
@@ -127,6 +127,9 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Notify.fields.app
                 text: root.modelData.app.toUpperCase()
+                // cap so a long app name can't push the CRITICAL tag off-card
+                width: Math.min(implicitWidth, root.width * 0.6)
+                elide: Text.ElideRight
                 color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fsMicro
@@ -217,7 +220,7 @@ Rectangle {
         text: "×"
         color: Theme.faint
         font.family: Theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: Theme.fsTitle
 
         MouseArea {
             anchors.fill: parent

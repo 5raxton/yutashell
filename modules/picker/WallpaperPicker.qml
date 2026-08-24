@@ -52,8 +52,11 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: Theme.movMed
+        interval: Theme.lingerMs
     }
+
+    onOpenChanged: if (!root.open)
+        hideDelay.restart()
 
     Item {
         id: contentRoot
@@ -488,7 +491,8 @@ PanelWindow {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 visible: card.rows.length === 0
-                                text: Wallpaper.scanning ? "SCANNING…" : "ARCHIVE EMPTY"
+                                // a filter with zero hits is not the same as an empty archive
+                                text: Wallpaper.scanning ? "SCANNING…" : card.rows.length === 0 && card.query.length > 0 ? "NO MATCH" : "ARCHIVE EMPTY"
                                 color: Theme.faint
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel

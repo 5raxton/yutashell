@@ -151,7 +151,16 @@ Singleton {
             root.focusAddress(wins[0].address);
             return;
         }
-        // active → minimize to the scratchpad (special:magic)
+        // active → minimize to the scratchpad (special:magic); with several
+        // windows, stash them ALL — otherwise every click just swaps which
+        // window is visible in a focus/minimize loop
+        if (wins.length > 1) {
+            for (let i = 0; i < wins.length; i++) {
+                root.focusAddress(wins[i].address);
+                Hyprland.dispatch('hl.dsp.window.move({ workspace = "special:magic" })');
+            }
+            return;
+        }
         Hyprland.dispatch('hl.dsp.window.move({ workspace = "special:magic" })');
     }
 

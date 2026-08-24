@@ -53,7 +53,14 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: root.index.length > 0 ? 18 : 0
+        // cap at the space left of the rule/chip so long labels elide instead
+        // of squeezing the rule negative or colliding with the trailing chip
+        width: Math.max(0, root.width
+                        - (root.index.length > 0 ? 18 : 0)
+                        - Theme.sp2
+                        - (chipText.visible ? chipText.width + Theme.sp2 : 1))
         text: root.label.toUpperCase()
+        elide: Text.ElideRight
         color: Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fsLabel

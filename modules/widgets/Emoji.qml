@@ -50,12 +50,35 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
     }
 
+    onOpenChanged: if (!root.open)
+        hideDelay.restart()
+
     function copy(s) {
+        // wl-copy is an optional backend — never claim success it can't deliver
+        if (!_wlCopyOk) {
+            Notify.announce("EMOJI", "copy unavailable (install wl-clipboard)", 2);
+            return;
+        }
         copyProc.command = ["sh", "-c", "printf '%s' '" + s.replace(/'/g, "'\\''") + "' | wl-copy"];
         copyProc.running = true;
+    }
+
+    property bool _wlCopyOk: false
+
+    Process {
+        id: wlProbe
+
+        command: ["sh", "-c", "command -v wl-copy >/dev/null 2>&1 && echo yes || echo no"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root._wlCopyOk = text.trim() === "yes";
+                if (!root._wlCopyOk)
+                    Health.report("wl-clipboard", "emoji copy unavailable (install wl-clipboard)");
+            }
+        }
     }
 
     Process {
@@ -63,6 +86,14 @@ PanelWindow {
 
         stdout: StdioCollector {}
         stderr: StdioCollector {}
+        onExited: code => {
+            if (code === 0) {
+                Notify.announce("EMOJI", "copied to selection", 1);
+                ShellState.closeEmoji();
+            } else {
+                Notify.announce("EMOJI", "copy failed", 2);
+            }
+        }
     }
 
     Item {
@@ -180,7 +211,7 @@ PanelWindow {
                                 text: sym.modelData
                                 color: Theme.ink
                                 font.family: Theme.fontFamily
-                                font.pixelSize: sym.modelData.length > 2 ? 13 : 22
+                                font.pixelSize: sym.modelData.length > 2 ? Theme.fsBody : Math.round(Theme.fsDisplay * 1.2)
                             }
 
                             MouseArea {
@@ -189,10 +220,8 @@ PanelWindow {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.copy(sym.modelData);
-                                    ShellState.closeEmoji();
-                                }
+                                // close happens in copyProc.onExited on success only
+                                onClicked: root.copy(sym.modelData)
                             }
                         }
                     }

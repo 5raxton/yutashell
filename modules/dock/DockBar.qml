@@ -26,11 +26,17 @@ PanelWindow {
     anchors.left: true
     anchors.right: true
     anchors.bottom: true
-    exclusionMode: ShellState.dockMode === "exclusive" ? ExclusionMode.Normal : ExclusionMode.Ignore
+    // the window carries ~96px of headroom above the dock so the context menu
+    // and hover cards render INSIDE it; in exclusive mode reserve only the
+    // dock strip itself, not the headroom
+    exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.exclusiveZone: ShellState.dockMode === "exclusive" ? root.dockH : -1
 
     color: "transparent"
     mask: Region {
-        item: inputZone
+        // clicks land on the dock strip; while the context menu is open the
+        // whole window accepts input so its buttons work, elsewhere it closes
+        item: root.menuApp !== "" ? fullZone : inputZone
     }
 
     visible: ShellState.dockEnabled && root.scopeVisible && !root.dodgeHidden
@@ -57,15 +63,29 @@ PanelWindow {
 
     readonly property int dockH: 56
 
-    implicitHeight: root.dockH
+    // dock strip + enough headroom for the context menu and hover cards
+    readonly property int headroom: 96
+    implicitHeight: root.dockH + root.headroom
 
-    // full-width input region at the bottom edge (dock strip)
+    // normally only the bottom strip takes input
     Item {
         id: inputZone
 
         width: parent.width
-        height: parent.height
+        height: root.dockH
         anchors.bottom: parent.bottom
+    }
+
+    // whole-window catcher while the context menu is open
+    Item {
+        id: fullZone
+
+        anchors.fill: parent
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.menuApp = ""
+        }
     }
 
     // reveal strip for auto-hide — always live so hover can bring it back
@@ -88,7 +108,7 @@ PanelWindow {
         id: frame
 
         anchors.horizontalCenter: parent.horizontalCenter
-        y: root.autoHide && !root.hovered ? root.dockH + 10 : 0
+        y: root.autoHide && !root.hovered ? parent.height + 10 : parent.height - root.dockH
         width: Math.min(row.width + Theme.sp2 * 2, parent.width - Theme.outerPad * 2)
         height: root.dockH - 4
         color: Theme.bg

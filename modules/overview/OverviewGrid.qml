@@ -39,7 +39,17 @@ PanelWindow {
     Timer {
         id: hideDelay
 
-        interval: 190
+        interval: Theme.lingerMs
+    }
+
+    // linger mapped after close so YSurface's exit ceremony renders
+    Connections {
+        target: ShellState
+
+        function onOverviewOpenChanged() {
+            if (!ShellState.overviewOpen)
+                hideDelay.restart();
+        }
     }
 
     Item {
@@ -117,7 +127,9 @@ PanelWindow {
                             readonly property var wins: modelData.windows || []
 
                             width: 250
-                            height: Math.max(96, 40 + wins.length * 22)
+                            // sized from real column content — the old arithmetic
+                            // (40 + count*22) clipped rows and the "+N MORE" line
+                            height: Math.max(96, wsCol.implicitHeight + Theme.sp3 * 2)
                             color: area.containsMouse ? Theme.surface : Theme.bgAlt
                             border.width: 1
                             border.color: focused ? Theme.acid : (area.containsMouse ? Theme.lineStrong : Theme.hairline)
@@ -129,6 +141,8 @@ PanelWindow {
                             }
 
                             Column {
+                                id: wsCol
+
                                 anchors.fill: parent
                                 anchors.margins: Theme.sp3
                                 spacing: Theme.sp2
@@ -166,19 +180,29 @@ PanelWindow {
                                         height: 18
                                         spacing: Theme.sp2
 
-                                        Text {
+                                        // one 16px leading slot: glyph when no icon,
+                                        // icon centered inside it — title math stays constant
+                                        Item {
                                             width: 16
-                                            text: modelData.iconSrc === "" ? "■" : ""
-                                            color: Theme.acid
-                                            font.family: Theme.fontFamily
-                                            font.pixelSize: Theme.fsLabel
-                                        }
+                                            height: 16
+                                            anchors.verticalCenter: parent.verticalCenter
 
-                                        IconImage {
-                                            implicitSize: 14
-                                            visible: modelData.iconSrc !== "" && status !== Image.Error && status !== Image.Null
-                                            source: Quickshell.iconPath(modelData.iconSrc)
-                                            asynchronous: true
+                                            Text {
+                                                anchors.centerIn: parent
+                                                visible: modelData.iconSrc === ""
+                                                text: "■"
+                                                color: Theme.acid
+                                                font.family: Theme.fontFamily
+                                                font.pixelSize: Theme.fsLabel
+                                            }
+
+                                            IconImage {
+                                                anchors.centerIn: parent
+                                                implicitSize: 14
+                                                visible: modelData.iconSrc !== "" && status !== Image.Error && status !== Image.Null
+                                                source: Quickshell.iconPath(modelData.iconSrc)
+                                                asynchronous: true
+                                            }
                                         }
 
                                         Text {
