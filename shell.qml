@@ -43,6 +43,8 @@ ShellRoot {
             void DisplayService.available;
             void NightLight.available;
             void Session.ppdAvailable;
+            // plugin scan starts at singleton boot — force it now (PH.05)
+            void PluginService.manifests;
         }
     }
 
@@ -278,6 +280,26 @@ ShellRoot {
 
         function close(): void {
             ShellState.closeBt();
+        }
+    }
+
+    IpcHandler {
+        target: "plugins"
+
+        function list(): string {
+            return PluginService.manifests.map(m => (PluginService.isEnabled(m.id) ? "[x] " : "[ ] ") + m.id + " — " + m.name + " (" + m.type + " v" + m.version + ")").join("\n") || "no plugins found in " + PluginService.pluginsRoot;
+        }
+
+        function rescan(): void {
+            PluginService.scan();
+        }
+
+        function enable(id: string): void {
+            PluginService.setEnabled(String(id), true);
+        }
+
+        function disable(id: string): void {
+            PluginService.setEnabled(String(id), false);
         }
     }
 

@@ -1,0 +1,14 @@
+{
+    "id": "wallpaper-watcher",
+    "name": "Wallpaper watcher",
+    "description": "daemon that notices every wallpaper change and keeps a change counter + last wallpaper",
+    "version": "1.0.0",
+    "author": "yuta",
+    "icon": "preferences-desktop-wallpaper",
+    "type": "daemon",
+    "component": "main.qml",
+    "settings": [
+        { "key": "announce", "label": "Announce changes to stderr", "type": "bool", "default": true }
+    ],
+    "permissions": ["state"]
+}

@@ -172,6 +172,8 @@ PanelWindow {
             return sessComp;
         case "recording":
             return recComp;
+        case "pluginwidgets":
+            return pluginWidgetsComp;
         case "clock":
             return clockComp;
         }
@@ -369,5 +371,25 @@ PanelWindow {
         id: clockComp
 
         ClockBlock {}
+    }
+
+    // PH.05: widget plugins from <config>/plugins, enabled via settings
+    Component {
+        id: pluginWidgetsComp
+
+        Row {
+            spacing: Theme.sp2
+
+            Repeater {
+                model: PluginService.enabledWidgets
+
+                Loader {
+                    required property var modelData
+
+                    source: PluginService.componentUrl(modelData)
+                    asynchronous: true
+                }
+            }
+        }
     }
 }

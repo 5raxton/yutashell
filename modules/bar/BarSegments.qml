@@ -35,6 +35,7 @@ Singleton {
             "nightlight": { label: "Night light chip", jp: "夜" },
             "session": { label: "Inhibit chip", jp: "阻" },
             "recording": { label: "Recording chip", jp: "録" },
+            "pluginwidgets": { label: "Plugin widgets", jp: "拡" },
             "clock": { label: "Clock", jp: "時" }
         })
 
@@ -65,6 +66,7 @@ Singleton {
         { id: "nightlight", zone: "right", enabled: true },
         { id: "session", zone: "right", enabled: true },
         { id: "recording", zone: "right", enabled: true },
+        { id: "pluginwidgets", zone: "right", enabled: false },
         { id: "clock", zone: "right", enabled: true }
     ]
 
@@ -100,6 +102,8 @@ Singleton {
             return Session.inhibitCount > 0;
         case "recording":
             return Recording.active;
+        case "pluginwidgets":
+            return PluginService.enabledWidgets.length > 0;
         default:
             return true;
         }

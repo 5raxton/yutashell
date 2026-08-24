@@ -283,6 +283,8 @@ Singleton {
     readonly property alias barSegments: adapter.barSegments
     readonly property alias barScale: adapter.barScale
     readonly property alias barPosition: adapter.barPosition
+    // plugins (PH.05): namespaced per-plugin state
+    readonly property alias pluginData: adapter.pluginData
     readonly property alias barClick: adapter.barClick
 
     // control center (PH.15): anchor + visible tab order
@@ -425,6 +427,10 @@ Singleton {
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"
     property string ccTabs: "[\"home\",\"media\",\"audio\",\"monitors\",\"system\",\"power\",\"network\",\"bluetooth\",\"weather\",\"calendar\",\"notifications\"]"
+
+    // plugins (PH.05): namespaced per-plugin state — JSON map
+    // { "<pluginId>": { "enabled": bool, "data": { key: value } } }
+    property string pluginData: "{}"
         }
     }
 

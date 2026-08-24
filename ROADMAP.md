@@ -116,17 +116,24 @@ This roadmap covers 10 phases, from foundation to polish. Each phase builds on t
 
 ---
 
-## PHASE 5: Plugin System — Dynamic Extensions
+## PHASE 5: Plugin System — Dynamic Extensions — ✅ COMPLETE
 
 **Objective**: Implement a plugin system where external QML components can be loaded at runtime, with isolated settings.
 
-- [ ] **5.1** `PluginService` — discovers, loads, and manages plugin lifecycle from `$CONFIGPATH/DankMaterialShell/plugins/` (or yuta-qs equivalent)
-- [ ] **5.2** Plugin manifest (`plugin.json`) — `id`, `name`, `description`, `version`, `author`, `icon`, `type` (`"widget"` or `"daemon"`), `component`, `settings`, `permissions`
-- [ ] **5.3** Widget plugins — render UI components in the bar/dock/settings, `pluginService.loadPluginData(pluginId, key, default)` / `pluginService.savePluginData(pluginId, key, value)`
-- [ ] **5.4** Daemon plugins — run invisibly in background, monitor system events, `pluginService.savePluginData()` for persistence
-- [ ] **5.5** Plugin scanner — Settings → Plugins → "Scan for Plugins" toggle
-- [ ] **5.6** Plugin isolation — settings stored in `settings.json` under `pluginSettings.{pluginId}`, namespaced from core DMS settings
-- [ ] **5.7** Example plugin — `PLUGINS/WallpaperWatcherDaemon/` as reference: daemon that monitors wallpaper changes
+- [x] **5.1** `PluginService` (`modules/common/PluginService.qml`) — discovers plugins from `<configroot>/plugins/<Name>/`, manages lifecycle (scan → manifest parse → daemon instantiate/unload), config root resolved from CLI args with fallbacks; singleton registered in `modules/common/qmldir`, warmed at boot
+- [x] **5.2** Manifest (`plugin.json`) — `id`, `name`, `description`, `version`, `author`, `icon`, `type` (`"widget"`|`"daemon"`), `component`, `settings[]` (key/label/type/default), `permissions[]`; bad manifests reported via `lastScanError`, never crash the shell
+- [x] **5.3** Widget plugins — bar hosts them via the new `pluginwidgets` segment (`BarSegments` meta + present() case + Bar.qml Row-of-Loaders component); enabling a widget auto-flips the segment on (direct ShellState write, no singleton import cycle); example: `plugins/PulseDot/`
+- [x] **5.4** Daemon plugins — instantiate invisibly when enabled (boot scan `_syncDaemons()` or on toggle), unload on disable/manifest removal, persistence through `savePluginData()`; example: `plugins/WallpaperWatcherDaemon/` counts wallpaper changes
+- [x] **5.5** Settings → PLUGINS page — scan button, installed list (name/id/version/author, description-on-hover with permissions), LIVE chip for running daemons, enable switches; IPC mirror: `qs ipc call plugins {list,rescan,enable,disable}`
+- [x] **5.6** Isolation — all plugin state lives under one namespaced adapter key (`ShellState.pluginData`: `{id:{enabled,data}}`); core prefs untouched. Plugin mutations flush immediately (`flushNow`) — the 80 ms coalesced window let a reload re-read stale disk and revert flags during testing
+- [x] **5.7** Reference daemon shipped — `WallpaperWatcherDaemon` watches `Wallpaper.current`, persists change counter + last path, announces to stderr
+
+**Hard-won lessons from this phase**:
+- A missing `readonly property alias` on ShellState makes direct reads return `undefined` while writes still work — reads silently rebuilt maps with defaults and "reverted" persisted flags (JSON.parse(undefined) throws into the catch, yielding `{}`)
+- Plugin QML files CAN import `qs.theme`/`qs.modules.common` (engine import paths are config-root-global) and relative kit imports like `../common/ui`
+- Delegate redeclared YRow's own `on_` property name → duplicate-property killed the whole settings panel load (same trap as PH.15 notes; fresh name + bind)
+
+**Verification**: fresh instances ×3 — debug-cycle walked all 15 settings pages incl. PLUGINS with 0 errors; full lifecycle over IPC: scan finds both examples, enable→daemon instantiates ("plugin daemon up"), wallpaper change → counter+path persist with enabled flag intact, widget enable → bar segment appears, disable → daemon unloads, restart → enabled state + boot-time daemon start persist; RSS ~360-425 MB throughout.
 
 **Cool bits from references**:
 - DankMaterialShell: Full plugin system with `PLUGINS/` directory, `BuiltinDesktopPlugins`, `BuiltinPlugins`, widget + daemon types, `plugin.json` manifest, `pluginService` injected property, settings persistence

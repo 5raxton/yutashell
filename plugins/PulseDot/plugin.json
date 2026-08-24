@@ -1,0 +1,12 @@
+{
+    "id": "pulse-dot",
+    "name": "Pulse dot",
+    "description": "widget plugin: a breathing acid dot for the bar — proves the widget plugin path",
+    "version": "1.0.0",
+    "author": "yuta",
+    "icon": "emblem-favorite",
+    "type": "widget",
+    "component": "main.qml",
+    "settings": [],
+    "permissions": []
+}

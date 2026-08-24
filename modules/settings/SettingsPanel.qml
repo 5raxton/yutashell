@@ -135,6 +135,12 @@ PanelWindow {
             group: "SYSTEM",
             keywords: "power plan session menu hold idle lock battery"
         }, {
+            id: "plugins",
+            label: "PLUGINS",
+            jp: "拡",
+            group: "SYSTEM",
+            keywords: "plugins extensions widgets daemons scan qml"
+        }, {
             id: "about",
             label: "ABOUT",
             jp: "情報",
@@ -605,6 +611,8 @@ PanelWindow {
                             return servicesPage;
                         case "power":
                             return powerPage;
+                        case "plugins":
+                            return pluginsPage;
                         case "about":
                             return aboutPage;
                         default:
@@ -3199,6 +3207,14 @@ PanelWindow {
                         width: 1
                         height: Theme.sp2
                     }
+                }
+            }
+
+            Component {
+                id: pluginsPage
+
+                PluginsPage {
+                    contentW: root.contentW
                 }
             }
 
