@@ -45,6 +45,7 @@ Singleton {
     Component.onCompleted: {
         binProbe.command = ["sh", "-c", "command -v ddcutil >/dev/null 2>&1 && echo yes || echo no"];
         binProbe.running = true;
+        poll();
     }
 
     Process {
