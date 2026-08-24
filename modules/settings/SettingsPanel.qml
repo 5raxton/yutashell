@@ -238,7 +238,7 @@ PanelWindow {
             anchorX: root.anchorX
             cardW: root.cardW
             cardH: root.cardH
-            cascade: pageLoader.item
+            cascade: pageLoader.item as Item
 
             // ===== HEADER BAND =====
             Item {

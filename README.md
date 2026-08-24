@@ -93,7 +93,19 @@ quickshell -p ~/.config/quickshell/yuta-qs
 
 Or set it as your session shell by launching that command from your Hyprland/Helmsman autostart (this machine runs it as `qs -c yuta-qs`).
 
-There's also a bootstrap script — `./install.sh` prints the dependency matrix and can install missing packages (`--install`) and symlink the repo into place (`--link`).
+The installer is `scripts/install.sh` (or `make install`) — see the packaging table below.
+
+### Make targets & packaging
+
+| target | what it does |
+|---|---|
+| `make install` | distro-aware installer (`scripts/install.sh`): detects pacman/dnf/apt/zypper/emerge, probes real dependency binaries, prints exact install commands for anything missing (`--yes` runs them), reports optional backends, rsyncs the config into `~/.config/quickshell/yuta-qs` (never touches runtime `state.json`; `--dry-run`/`--dest` supported) |
+| `make dist` | release tarball via `git archive` → `dist/yuta-qs-<rev>.tar.gz` |
+| `make test` | QML integration smoke test: spawns an isolated instance (refuses to run beside a live one), drives core IPC targets, greps the authoritative log for errors, checks RSS |
+| `make lint-qml` | Qt6 `qmllint` across all sources with quickshell's qmltypes + a `qs.*` import shim; fails on syntax errors, reports known tooling-friction warnings |
+| `make fmt` | opt-in `qmlformat` pass (4-space indent) — reflows the whole tree, review before committing |
+
+Arch packaging: see [`packaging/PKGBUILD`](packaging/PKGBUILD). A Nix flake with a home-manager module lives in [`flake.nix`](flake.nix); `.envrc` sets `QS_CONFIG_DIR` and enters the flake dev shell.
 
 ## Keybinds & IPC
 
@@ -274,7 +286,7 @@ Twelve curated scheme presets (`acid`, `crimson`, `cyan`, `amber`, `catppuccin`,
 - ✅ **Phase 5 — Plugin system**: PluginService discovers `<config>/plugins/*/plugin.json`, daemon + widget types with namespaced settings, Settings PLUGINS page (15 tabs now), bar PLUGIN WIDGETS segment, `plugins` IPC target; reference daemon (wallpaper watcher) + widget (pulse dot) shipped; enabled state survives restarts with boot-time daemon start
 - ✅ **Phase 6 — Multi-monitor & surface architecture**: per-screen Bar/Dock verified with full layer audit (Overlay chrome vs Top popups); new FocusMonitor makes all 19 popup windows, the OSD and toasts open on the focused monitor — placement latches at open so cards never jump screens mid-display; shared tooltip now follows its anchor's bar instance
 - ✅ **Phase 7 — Compositor integration**: every Hyprland dispatch form live-verified through the new `compositor dsp` warm-client passthrough (`compositor info` capability report too); found + fixed that `toggle_special`, focus-to-special and raw keywords are inert under Helmsman 0.56.2 — Overview's scratchpad toggle rewritten on verified verbs (hide focused window to `special:magic` / restore via `move previous`); new Compositor singleton reports kind + external-tool availability and degrades honestly via Health; D-Bus surface audited (bluez/NM/login1/Accounts/portal present, iwd unused, ScreenSaver inhibition skipped — nothing blanks here); non-Hyprland compositors and raw protocol clients documented as N/A for this machine
-- ⬜ Phase 8 — Distribution & packaging support
+- ✅ **Phase 8 — Nix & distribution support**: `Makefile` with install/dist/test/lint-qml targets (smoke test verified SMOKE OK — 0 log errors, ~420 MB RSS; lint gate green across 85 files with real Qt6 qmllint + quickshell qmltypes), distro-detecting installer with honest dep probing, Arch PKGBUILD, untested-but-standard `flake.nix` home-manager module and `.envrc`; qmlformat left opt-in by design
 - ⬜ Phase 9 — Advanced theming & wallpaper pipeline
 - ⬜ Phase 10 — Polish, QA & edge cases
 

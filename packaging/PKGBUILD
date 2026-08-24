@@ -1,0 +1,49 @@
+# Maintainer: Braxton Culver <braxton@braxtonculver.com>
+# yutashell — Quickshell config for Hyprland (pure QML, no compiled parts)
+#
+# Install target is /usr/share/yutashell; users copy or symlink it:
+#   cp -r /usr/share/yutashell ~/.config/quickshell/yuta-qs
+# and autostart `qs -c yuta-qs` from Hyprland.
+
+pkgname=yutashell-git
+pkgver=r1.ae37a2b
+pkgrel=1
+pkgdesc="Quickshell desktop shell config for Hyprland"
+arch=(any)
+url="https://github.com/braxtonculver/yuta-qs"
+license=(CC-BY-NC-SA-4.0)
+depends=(
+    quickshell
+    hyprland
+    matugen
+    grim
+    slurp
+    curl
+)
+optdepends=(
+    'cava: audio visualizer in the bar'
+    'cliphist: clipboard history widget'
+    'gpu-screen-recorder: recording widget'
+    'hyprsunset: night light'
+    'ddcutil: external monitor brightness'
+    'powerprofilesctl: power profile switching'
+)
+makedepends=(git)
+provides=(yutashell)
+conflicts=(yutashell)
+source=("git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd yuta-qs
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+    cd yuta-qs
+    install -dm755 "$pkgdir/usr/share/yutashell"
+    cp -r --no-preserve=ownership . "$pkgdir/usr/share/yutashell/"
+    rm -rf "$pkgdir/usr/share/yutashell/.git" \
+           "$pkgdir/usr/share/yutashell/dist" \
+           "$pkgdir/usr/share/yutashell/REFERENCEREADONLY"
+}
