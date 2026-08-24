@@ -2450,8 +2450,9 @@ PanelWindow {
                             Text {
                                 anchors.left: parent.left
                                 anchors.leftMargin: Theme.sp2
+                                anchors.right: actChip.left
+                                anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - 160
                                 elide: Text.ElideRight
                                 text: segRow.meta.label
                                 color: segRow.on_ ? Theme.ink : Theme.muted
@@ -2460,8 +2461,64 @@ PanelWindow {
                                 font.weight: Font.DemiBold
                             }
 
+                            // click-action chip — cycles the segment's click
+                            // target; DEFAULT clears the override back to the
+                            // built-in sane default
+                            Rectangle {
+                                id: actChip
+
+                                readonly property bool hasPref: {
+                                    try {
+                                        const m = JSON.parse(ShellState.barClick);
+                                        return !!m[segRow.modelData.id];
+                                    } catch (e) {
+                                        return false;
+                                    }
+                                }
+                                readonly property string effective: BarSegments.clickFor(segRow.modelData.id)
+                                readonly property var cycle: ["", "calendar", "network", "bluetooth", "audio", "media", "controlcenter", "launcher", "settings", "nightlight", "power", "notifications"]
+
+                                function bump() {
+                                    let idx = cycle.indexOf(effective);
+                                    if (idx < 0)
+                                        idx = 0;
+                                    BarSegments.setClick(segRow.modelData.id, cycle[(idx + 1) % cycle.length]);
+                                }
+
+                                anchors.right: zoneChips.left
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: actText.width + 14
+                                height: 16
+                                color: actArea.containsMouse && segRow.on_ ? Theme.acid : "transparent"
+                                border.width: 1
+                                border.color: hasPref ? (actArea.containsMouse && segRow.on_ ? Theme.acid : Theme.acidDeep) : Theme.lineStrong
+
+                                Text {
+                                    id: actText
+
+                                    anchors.centerIn: parent
+                                    text: actChip.hasPref ? actChip.effective.toUpperCase() : "DEFAULT"
+                                    color: actArea.containsMouse && segRow.on_ ? Theme.bg : actChip.hasPref ? Theme.acid : Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsMicro
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.5
+                                }
+
+                                MouseArea {
+                                    id: actArea
+
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: actChip.bump()
+                                }
+                            }
+
                             // zone chips
                             Row {
+                                id: zoneChips
+
                                 anchors.right: segSwitch.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2561,7 +2618,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "hover a row for reorder arrows · L/C/R sets the zone (C = true screen center) · click actions live in the shell (clock→calendar, stats→control center, …)"
+                        text: "hover a row for reorder arrows · L/C/R sets the zone (C = true screen center) · the action chip cycles what a click opens — DEFAULT restores the built-in"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel

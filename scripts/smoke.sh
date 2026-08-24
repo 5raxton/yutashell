@@ -44,6 +44,10 @@ ipc audio status 2>/dev/null || ipc panel toggle
 ipc power status
 ipc brightness status
 ipc weather status
+# workspace render modes — set, read back via status, restore
+ipc bar wsmode pills
+ipc bar status
+ipc bar wsmode default
 ipc panel toggle
 # toast path — the ObjectModel/Repeater combo that used to segfault the whole
 # instance on first toast arrival

@@ -211,10 +211,6 @@ yuta-qs/
 └── plugins/               reference widget + daemon plugins
 ```
 
-## Acknowledgments
-
-Design and feature inspiration from [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell), Ryoku and [caelestia-shell](https://github.com/caelestia-dots/shell). Built on [Quickshell](https://quickshell.outfoxxed.me) by outfoxxed.
-
 ## License
 
 [GPL-3.0-only](LICENSE)

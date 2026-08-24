@@ -113,6 +113,7 @@ Item {
             color: root.hot ? Theme.alert : Theme.ink
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsLabel
+            font.weight: Font.DemiBold
 
             Behavior on color {
                 ColorAnimation {

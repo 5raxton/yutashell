@@ -112,6 +112,7 @@ Item {
                         color: SystemStats.netDown > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
+                        font.weight: Font.DemiBold
 
                         Behavior on color {
                             ColorAnimation {
@@ -144,6 +145,7 @@ Item {
                         color: SystemStats.netUp > 2048 ? Theme.ink : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
+                        font.weight: Font.DemiBold
 
                         Behavior on color {
                             ColorAnimation {
@@ -181,6 +183,7 @@ Item {
                     color: SystemStats.cpuPct >= SystemStats.cpuCrit ? Theme.alert : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
+                    font.weight: Font.DemiBold
                 }
 
                 Item {
@@ -233,6 +236,7 @@ Item {
                 color: SystemStats.memPct >= SystemStats.memWarn ? Theme.alert : Theme.ink
                 font.family: Theme.fontFamily
                 font.pixelSize: 10
+                font.weight: Font.DemiBold
             }
         }
 
@@ -272,6 +276,7 @@ Item {
                     color: !SystemStats.batCharging && SystemStats.batPct >= 0 && SystemStats.batPct <= SystemStats.batWarn ? Theme.alert : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
+                    font.weight: Font.DemiBold
                 }
             }
         }
