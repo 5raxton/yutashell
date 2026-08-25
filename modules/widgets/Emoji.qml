@@ -210,6 +210,11 @@ PanelWindow {
                             color: symArea.containsMouse ? Theme.surface : Theme.bg
                             border.width: 1
                             border.color: symArea.containsMouse ? Theme.lineStrong : Theme.hairline
+                            scale: symArea.containsMouse ? 1.12 : 1.0
+
+                            Behavior on scale {
+                                NumberAnimation { duration: 120; easing.type: Easing.OutBack; easing.overshoot: 1.1 }
+                            }
 
                             Text {
                                 anchors.centerIn: parent

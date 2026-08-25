@@ -274,7 +274,35 @@ PanelWindow {
             width: 0
             height: parent.height
             opacity: 0.85
-            color: Theme.acid
+            color: tile.destructive ? Theme.alert : Theme.acid
+        }
+
+        // danger pulse when hold nears completion — semantic "point of no return"
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            border.width: 2
+            border.color: Theme.alert
+            opacity: 0
+            visible: tile.needsHold && holdFill.width > tile.width * 0.75
+
+            SequentialAnimation on opacity {
+                running: visible
+                loops: Animation.Infinite
+
+                NumberAnimation {
+                    from: 0
+                    to: 0.5
+                    duration: 280
+                    easing.type: Easing.InOutSine
+                }
+                NumberAnimation {
+                    from: 0.5
+                    to: 0
+                    duration: 280
+                    easing.type: Easing.InOutSine
+                }
+            }
         }
 
         SequentialAnimation {

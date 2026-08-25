@@ -183,6 +183,8 @@ PanelWindow {
                 radius: 2
 
                 Rectangle {
+                    id: fillBar
+
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
@@ -200,6 +202,36 @@ PanelWindow {
                     Behavior on color {
                         ColorAnimation {
                             duration: Theme.movFast
+                        }
+                    }
+                }
+
+                // glowing cap at the fill tip
+                Rectangle {
+                    x: fillBar.width - 3
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 8
+                    height: 8
+                    visible: root.barFill > 0.02 && root.barFill < 0.98
+                    color: root.hot ? Theme.alert : Theme.acid
+                    opacity: 0.3
+                    radius: 4
+
+                    SequentialAnimation on opacity {
+                        running: root.visible
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            from: 0.15
+                            to: 0.4
+                            duration: 700
+                            easing.type: Easing.InOutSine
+                        }
+                        NumberAnimation {
+                            from: 0.4
+                            to: 0.15
+                            duration: 700
+                            easing.type: Easing.InOutSine
                         }
                     }
                 }

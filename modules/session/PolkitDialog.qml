@@ -164,6 +164,24 @@ PanelWindow {
                     color: root.flow && root.flow.supplementaryIsError ? Theme.alert : Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsLabel
+                    opacity: 1
+
+                    SequentialAnimation on opacity {
+                        id: authShake
+
+                        running: false
+
+                        NumberAnimation { from: 0.5; to: 0; duration: 50; easing.type: Easing.Linear }
+                        NumberAnimation { from: 0; to: 1; duration: 150; easing.type: Easing.OutCubic }
+                    }
+
+                    Connections {
+                        target: root.flow
+                        function onSupplementaryMessageChanged() {
+                            if (root.flow && root.flow.supplementaryIsError)
+                                authShake.restart();
+                        }
+                    }
                 }
 
                 Row {

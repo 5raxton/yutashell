@@ -360,8 +360,58 @@ PanelWindow {
         }
     }
 
+    // ---- "COPIED!" flash overlay ----
+    Rectangle {
+        id: copiedFlash
+
+        anchors.fill: card
+        color: Theme.acid
+        opacity: 0
+        z: 50
+        radius: card.radius
+
+        Text {
+            anchors.centerIn: parent
+            text: "COPIED!"
+            color: Theme.bg
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fsTitle
+            font.weight: Font.ExtraBold
+            font.letterSpacing: 3
+            opacity: copiedFlash.opacity
+        }
+
+        SequentialAnimation {
+            id: copiedAnim
+            running: false
+
+            NumberAnimation {
+                target: copiedFlash
+                property: "opacity"
+                to: 0.22
+                duration: 80
+            }
+            NumberAnimation {
+                target: copiedFlash
+                property: "opacity"
+                to: 0
+                duration: 300
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
     onVisibleChanged: {
         if (visible)
             card.resetForOpen();
+    }
+
+    Connections {
+        target: Clipboard
+
+        function onCopied() {
+            if (root.open)
+                copiedAnim.restart();
+        }
     }
 }

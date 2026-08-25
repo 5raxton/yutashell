@@ -18,6 +18,7 @@ Singleton {
 
     property var entries: []        // [{id, preview, binary}]
     property bool refreshing: false
+    signal copied()
 
     // pinned entry ids (string) surfaced at the top
     readonly property var pins: {
@@ -153,7 +154,7 @@ Singleton {
 
         stdout: StdioCollector {}
         stderr: StdioCollector {}
-        onExited: code => Notify.announce("CLIPBOARD", code === 0 ? ((_copyBinary ? "image " : "") + "copied to selection") : "copy failed (is wl-copy installed?)", code === 0 ? 1 : 2)
+        onExited: code => { if (code === 0) root.copied(); Notify.announce("CLIPBOARD", code === 0 ? ((_copyBinary ? "image " : "") + "copied to selection") : "copy failed (is wl-copy installed?)", code === 0 ? 1 : 2) }
     }
 
     Process {

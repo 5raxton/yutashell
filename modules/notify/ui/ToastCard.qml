@@ -266,6 +266,39 @@ Rectangle {
         color: root.critical ? Theme.alert : Theme.acid
     }
 
+    // glow under the progress bar — breathes while the toast is alive
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 6
+        visible: root.frac > 0 && root.frac < 1
+        opacity: 0.12
+        gradient: Gradient {
+            GradientStop { position: 0; color: "transparent" }
+            GradientStop { position: 0.5; color: root.critical ? Theme.alert : Theme.acid }
+            GradientStop { position: 1; color: "transparent" }
+        }
+
+        SequentialAnimation on opacity {
+            running: root.visible && root.frac > 0 && root.frac < 1
+            loops: Animation.Infinite
+
+            NumberAnimation {
+                from: 0.06
+                to: 0.14
+                duration: 900
+                easing.type: Easing.InOutSine
+            }
+            NumberAnimation {
+                from: 0.14
+                to: 0.06
+                duration: 900
+                easing.type: Easing.InOutSine
+            }
+        }
+    }
+
     // registration tick
     Rectangle {
         anchors.top: parent.top

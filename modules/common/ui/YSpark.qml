@@ -46,6 +46,14 @@ Canvas {
             grad.addColorStop(1, Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.95));
             ctx.fillStyle = grad;
             ctx.fillRect(x, root.height - h, barW, h);
+            // peak glow: brighter cap at the very top of each bar
+            if (v > 0.1) {
+                const capGrad = ctx.createLinearGradient(x, root.height - h, x, root.height - h - 3);
+                capGrad.addColorStop(0, Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.7));
+                capGrad.addColorStop(1, Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0));
+                ctx.fillStyle = capGrad;
+                ctx.fillRect(x - 1, root.height - h - 3, barW + 2, 4);
+            }
         }
     }
 }

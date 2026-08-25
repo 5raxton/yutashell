@@ -95,6 +95,42 @@ Item {
                     width: 3
                     height: 3 + index * 3
                     color: root.tiers > index ? Theme.acid : Theme.lineStrong
+                    scale: 1.0
+
+                    Behavior on scale {
+                        NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+                    }
+
+                    Connections {
+                        target: root
+                        function onTiersChanged() {
+                            if (root.tiers > index)
+                                barPop.restart();
+                        }
+                    }
+
+                    SequentialAnimation {
+                        id: barPop
+                        running: false
+
+                        NumberAnimation {
+                            target: parent
+                            property: "scale"
+                            from: 0.6
+                            to: 1.15
+                            duration: 140
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 1.3
+                        }
+                        NumberAnimation {
+                            target: parent
+                            property: "scale"
+                            from: 1.15
+                            to: 1.0
+                            duration: 160
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
             }
         }

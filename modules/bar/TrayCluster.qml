@@ -60,7 +60,12 @@ Item {
                     implicitSize: 15
                     source: (cell.modelData.icon && cell.modelData.icon.length > 0) ? cell.modelData.icon : ""
                     opacity: area.containsMouse ? 1 : 0.85
+                    scale: area.containsMouse ? 1.12 : 1.0
                     visible: source.length > 0 && status !== Image.Error && status !== Image.Null
+
+                    Behavior on scale {
+                        NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.1 }
+                    }
                 }
 
                 HoverHandler {

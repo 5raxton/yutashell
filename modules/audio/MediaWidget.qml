@@ -136,6 +136,21 @@ PanelWindow {
                         sourceSize.width: 256
                         sourceSize.height: 256
                         fillMode: Image.PreserveAspectCrop
+                        scale: artHover.containsMouse ? 1.06 : 1.0
+                        opacity: artHover.containsMouse ? 1.0 : 0.88
+
+                        Behavior on scale {
+                            NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.1 }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 180 }
+                        }
+
+                        MouseArea {
+                            id: artHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                        }
                     }
 
                     Text {

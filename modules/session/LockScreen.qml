@@ -614,12 +614,44 @@ Item {
                     }
                 }
 
-                Connections {
-                    target: Session
+                // red flash overlay on wrong password
+                Rectangle {
+                    id: flashRect
 
-                    function onAuthAttemptsChanged() {
-                        if (Session.authAttempts > 0)
-                            card.snapShake();
+                    anchors.fill: parent
+                    color: Theme.alert
+                    opacity: 0
+                    z: 100
+
+                    SequentialAnimation {
+                        id: redFlash
+
+                        running: false
+
+                        NumberAnimation {
+                            target: flashRect
+                            property: "opacity"
+                            to: 0.18
+                            duration: 60
+                        }
+                        NumberAnimation {
+                            target: flashRect
+                            property: "opacity"
+                            to: 0
+                            duration: 320
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Connections {
+                        target: Session
+
+                        function onAuthAttemptsChanged() {
+                            if (Session.authAttempts > 0) {
+                                card.snapShake();
+                                redFlash.restart();
+                            }
+                        }
                     }
                 }
             }

@@ -88,6 +88,19 @@ Item {
         font.pixelSize: 10
         font.weight: Font.DemiBold
         font.letterSpacing: 1
+        opacity: 1
+
+        Behavior on opacity {
+            NumberAnimation { duration: 200 }
+        }
+
+        Connections {
+            target: root
+            function onHasClientChanged() {
+                classText.opacity = 0;
+                classText.opacity = 1;
+            }
+        }
     }
 
     Text {

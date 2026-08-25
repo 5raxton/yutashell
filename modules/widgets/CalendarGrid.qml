@@ -121,6 +121,11 @@ Item {
                 height: root.cellH
                 color: cell.today ? Theme.acid : cellArea.containsMouse ? Theme.surface : "transparent"
                 radius: 2
+                scale: cell.today ? 1.08 : cellArea.containsMouse ? 1.04 : 1.0
+
+                Behavior on scale {
+                    NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
+                }
 
                 // corner notch marks today beyond the fill alone
                 Rectangle {
