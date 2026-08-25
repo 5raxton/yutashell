@@ -2662,7 +2662,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "drag cards between zones to move · ▲▼ reorder within · tap L/C/R badge to cycle zone · click DEFAULT to set click action"
+                        text: "▲▼ reorder · click L/C/R to move zones · click DEFAULT to set click action · toggle to show/hide · drag to move between zones or to Available"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
@@ -2733,7 +2733,7 @@ PanelWindow {
                                         radius: Theme.sp1
                                         color: availDragArea.containsMouse ? Theme.surface : "transparent"
                                         border.width: 1
-                                        border.color: availCard.Drag.active ? Theme.acid : Theme.lineStrong
+                                        border.color: availCard.Drag.active ? Theme.acid : (availDragArea.containsMouse ? Theme.lineStrong : Theme.hairline)
                                         opacity: availCard.Drag.active ? 0.5 : 1
                                     }
 
@@ -2872,12 +2872,41 @@ PanelWindow {
                                 radius: Theme.sp1
                                 color: segCard.Drag.active ? Theme.acid + "15" : (segHover.containsMouse ? Theme.surface : "transparent")
                                 border.width: 1
-                                border.color: segCard.Drag.active ? Theme.acid : Theme.lineStrong
+                                border.color: segCard.Drag.active ? Theme.acid : (segHover.containsMouse ? Theme.lineStrong : Theme.hairline)
                                 opacity: segCard.Drag.active ? 0.5 : 1
 
                                 Behavior on opacity {
                                     NumberAnimation { duration: 150 }
                                 }
+                            }
+
+                            MouseArea {
+                                id: cardDragArea
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.OpenHandCursor
+                                drag.target: dragGhost
+
+                                onPressed: {
+                                    cursorShape = Qt.ClosedHandCursor;
+                                    dragGhost.visible = true;
+                                    dragGhost.segId = segCard.segId;
+                                    dragGhost.segLabel = segCard.cardLabel;
+                                }
+
+                                onReleased: {
+                                    cursorShape = Qt.OpenHandCursor;
+                                    dragGhost.visible = false;
+                                }
+                            }
+
+                            MouseArea {
+                                id: segHover
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.NoButton
                             }
 
                             Row {
@@ -2890,11 +2919,12 @@ PanelWindow {
 
                                 Text {
                                     text: "▲"
-                                    color: segHover.containsMouse ? Theme.ink : Theme.faint
+                                    color: reorderUpArea.containsMouse ? Theme.acid : (segHover.containsMouse ? Theme.ink : Theme.faint)
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
 
                                     MouseArea {
+                                        id: reorderUpArea
                                         anchors.fill: parent
                                         anchors.margins: -4
                                         cursorShape: Qt.PointingHandCursor
@@ -2904,11 +2934,12 @@ PanelWindow {
 
                                 Text {
                                     text: "▼"
-                                    color: segHover.containsMouse ? Theme.ink : Theme.faint
+                                    color: reorderDownArea.containsMouse ? Theme.acid : (segHover.containsMouse ? Theme.ink : Theme.faint)
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
 
                                     MouseArea {
+                                        id: reorderDownArea
                                         anchors.fill: parent
                                         anchors.margins: -4
                                         cursorShape: Qt.PointingHandCursor
@@ -3057,31 +3088,7 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.right: parent.right
                                 anchors.rightMargin: Theme.sp2
-                                onToggled: BarSegments.setEnabled(segCard.segId, !segCard.modelData.enabled)
-                            }
-
-                            MouseArea {
-                                id: cardDragArea
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                drag.target: dragGhost
-
-                                onPressed: {
-                                    dragGhost.visible = true;
-                                    dragGhost.segId = segCard.segId;
-                                    dragGhost.segLabel = segCard.cardLabel;
-                                }
-
-                                onReleased: dragGhost.visible = false
-                            }
-
-                            MouseArea {
-                                id: segHover
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                acceptedButtons: Qt.NoButton
+                                onToggled: BarSegments.setEnabled(segCard.segId, !checked)
                             }
                         }
                     }
