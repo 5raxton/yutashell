@@ -170,7 +170,7 @@ PanelWindow {
 
                     YSection {
                         label: "OFFICIAL"
-                        count: root.daemon ? root.daemon.officialCount : 0
+                        chip: root.daemon ? String(root.daemon.officialCount) : "0"
                     }
 
                     Repeater {
@@ -197,7 +197,7 @@ PanelWindow {
 
                     YSection {
                         label: "AUR"
-                        count: root.daemon ? root.daemon.aurCount : 0
+                        chip: root.daemon ? String(root.daemon.aurCount) : "0"
                     }
 
                     Repeater {
@@ -224,7 +224,7 @@ PanelWindow {
 
                     YSection {
                         label: "FLATPAK"
-                        count: root.daemon ? root.daemon.flatpakCount : 0
+                        chip: root.daemon ? String(root.daemon.flatpakCount) : "0"
                     }
 
                     Repeater {
