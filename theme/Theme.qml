@@ -152,7 +152,7 @@ Singleton {
     // self-check asserts. No per-scheme light files to maintain.
     property bool dark: true
 
-    function setDark(on) {
+    function _fitOnLight(col, minRatio) {
         let l = col.hslLightness;
         let out = col;
         let guard = 0;

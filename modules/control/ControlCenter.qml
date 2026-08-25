@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
@@ -1732,10 +1733,8 @@ PanelWindow {
     Process {
         id: cavaProbe
         property bool _ok: false
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 && echo yes || echo no"]
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1"]
         running: true
-        stdout: StdioCollector {
-            onStreamFinished: cavaProbe._ok = text.trim() === "yes"
-        }
+        onExited: code => cavaProbe._ok = (code === 0)
     }
 }
