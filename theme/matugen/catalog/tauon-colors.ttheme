@@ -2,109 +2,109 @@
 
 #-Backgrounds------
 
-{{colors.surface.default.rgb_csv}},180      top panel
-{{colors.surface.default.rgb_csv}},180      tracklist panel
-{{colors.surface.default.rgb_csv}},180      side panel
-{{colors.surface_variant.default.rgb_csv}},180      bottom panel
-{{colors.surface.default.rgb_csv}},180      queue panel
-{{colors.surface.default.rgb_csv}},180      gallery background
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},180      top panel
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},180      tracklist panel
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},180      side panel
+{{colors.surface_variant.default.red}}, {{colors.surface_variant.default.green}}, {{colors.surface_variant.default.blue}},180      bottom panel
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},180      queue panel
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},180      gallery background
 
 #-Playlist---------
 
-{{colors.on_surface.default.rgb_csv}}       track line
-{{colors.on_surface.default.rgb_csv}}       track time
-{{colors.on_surface.default.rgb_csv}}       track index
-{{colors.primary.default.rgb_csv}}       track artist
-{{colors.tertiary.default.rgb_csv}}       track album
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       track line
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       track time
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       track index
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       track artist
+{{colors.tertiary.default.red}}, {{colors.tertiary.default.green}}, {{colors.tertiary.default.blue}}       track album
 
-{{colors.primary.default.rgb_csv}}       track playing
-{{colors.primary.default.rgb_csv}}       index playing
-{{colors.primary.default.rgb_csv}}       artist playing
-{{colors.primary.default.rgb_csv}}       album playing
-{{colors.primary.default.rgb_csv}}       time playing
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       track playing
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       index playing
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       artist playing
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       album playing
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       time playing
 
-{{colors.error.default.rgb_csv}}       track missing
+{{colors.error.default.red}}, {{colors.error.default.green}}, {{colors.error.default.blue}}       track missing
 
-{{colors.primary.default.rgb_csv}}       fav line
-{{colors.outline.default.rgb_csv}}          folder line
-{{colors.tertiary.default.rgb_csv}}       folder title
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       fav line
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}}          folder line
+{{colors.tertiary.default.red}}, {{colors.tertiary.default.green}}, {{colors.tertiary.default.blue}}       folder title
 
-{{colors.secondary.default.rgb_csv}},120      playing highlight
-{{colors.tertiary.default.rgb_csv}},60    select highlight
-{{colors.primary.default.rgb_csv}}       gallery highlight
+{{colors.secondary.default.red}}, {{colors.secondary.default.green}}, {{colors.secondary.default.blue}},120      playing highlight
+{{colors.tertiary.default.red}}, {{colors.tertiary.default.green}}, {{colors.tertiary.default.blue}},60    select highlight
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       gallery highlight
 
-{{colors.secondary.default.rgb_csv}}          column bar background
+{{colors.secondary.default.red}}, {{colors.secondary.default.green}}, {{colors.secondary.default.blue}}          column bar background
 
 #-Menu-------------
 
-{{colors.surface.default.rgb_csv}},240      menu background
-{{colors.on_surface.default.rgb_csv}},60      menu highlight
-{{colors.outline.default.rgb_csv}}       menu border
-{{colors.on_surface.default.rgb_csv}}       menu text
-{{colors.error.default.rgb_csv}},60         menu disable text
-{{colors.primary.default.rgb_csv}}         menu icons
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},240      menu background
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}},60      menu highlight
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}}       menu border
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       menu text
+{{colors.error.default.red}}, {{colors.error.default.green}}, {{colors.error.default.blue}},60         menu disable text
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}         menu icons
 
 #-Top Panel--------
 
-{{colors.secondary.default.rgb_csv}}          tab active text
-{{colors.on_surface.default.rgb_csv}}       tab text
-{{colors.secondary.default.rgb_csv}},120          tab over
-{{colors.tertiary.default.rgb_csv}},120       tab active background
-{{colors.surface.default.rgb_csv}},210      tab background
-{{colors.primary.default.rgb_csv}}       music vis
+{{colors.secondary.default.red}}, {{colors.secondary.default.green}}, {{colors.secondary.default.blue}}          tab active text
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       tab text
+{{colors.secondary.default.red}}, {{colors.secondary.default.green}}, {{colors.secondary.default.blue}},120          tab over
+{{colors.tertiary.default.red}}, {{colors.tertiary.default.green}}, {{colors.tertiary.default.blue}},120       tab active background
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},210      tab background
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       music vis
 
-{{colors.surface.default.rgb_csv}},210      window buttons background
-{{colors.surface.default.rgb_csv}}          window buttons off
-{{colors.on_surface.default.rgb_csv}}        window buttons on
-{{colors.primary.default.rgb_csv}}          window buttons icon over
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},210      window buttons background
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}}          window buttons off
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}        window buttons on
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}          window buttons icon over
 
 #-Bottom Panel-----
 
-{{colors.surface.default.rgb_csv}},190      buttons off
-{{colors.primary.default.rgb_csv}}       buttons over
-{{colors.on_surface.default.rgb_csv}}       buttons active
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},190      buttons off
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       buttons over
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       buttons active
 
-{{colors.primary.default.rgb_csv}}       playing time
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       playing time
 
-{{colors.primary.default.rgb_csv}}       seek bar
-{{colors.surface.default.rgb_csv}}          seek bg
-{{colors.surface.default.rgb_csv}}          volume bg
-{{colors.primary.default.rgb_csv}}       volume bar
-{{colors.tertiary.default.rgb_csv}}       scroll bar
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       seek bar
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}}          seek bg
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}}          volume bg
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       volume bar
+{{colors.tertiary.default.red}}, {{colors.tertiary.default.green}}, {{colors.tertiary.default.blue}}       scroll bar
 
-{{colors.surface.default.rgb_csv}},170      mode off
-{{colors.primary.default.rgb_csv}}       mode over
-{{colors.on_surface.default.rgb_csv}}       mode on
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},170      mode off
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       mode over
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       mode on
 
-{{colors.primary.default.rgb_csv}}       bottom title
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       bottom title
 
 #-Dialog Box-------
 
-{{colors.surface.default.rgb_csv}},240      box background
-{{colors.outline.default.rgb_csv}}       box border
-{{colors.tertiary.default.rgb_csv}}       box title text
-{{colors.on_surface.default.rgb_csv}}       box text label
-{{colors.on_surface.default.rgb_csv}}       box text normal
-{{colors.on_surface.default.rgb_csv}}       box sub text
-{{colors.on_surface.default.rgb_csv}}       box input text
-{{colors.outline.default.rgb_csv}}           box text border
-{{colors.outline.default.rgb_csv}},200      box button background normal
-{{colors.primary.default.rgb_csv}}         box button background highlight
-{{colors.outline.default.rgb_csv}}          box button border
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},240      box background
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}}       box border
+{{colors.tertiary.default.red}}, {{colors.tertiary.default.green}}, {{colors.tertiary.default.blue}}       box title text
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       box text label
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       box text normal
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       box sub text
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       box input text
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}}           box text border
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}},200      box button background normal
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}         box button background highlight
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}}          box button border
 
 #-Artist Info-------
-{{colors.surface.default.rgb_csv}},220      artist bio background
-{{colors.on_surface.default.rgb_csv}}       artist bio text
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},220      artist bio background
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       artist bio text
 
 #-Side Panel-------
 
-{{colors.primary.default.rgb_csv}}       title info
-{{colors.on_surface.default.rgb_csv}}       extra info
-{{colors.outline.default.rgb_csv}},160   art border
+{{colors.primary.default.red}}, {{colors.primary.default.green}}, {{colors.primary.default.blue}}       title info
+{{colors.on_surface.default.red}}, {{colors.on_surface.default.green}}, {{colors.on_surface.default.blue}}       extra info
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}},160   art border
 
 #-Mini Mode--------
 
-{{colors.surface.default.rgb_csv}},210      mini bg
-{{colors.outline.default.rgb_csv}}       mini border
-{{colors.on_primary.default.rgb_csv}}       mini text 1
-{{colors.secondary.default.rgb_csv}}        mini text 2
+{{colors.surface.default.red}}, {{colors.surface.default.green}}, {{colors.surface.default.blue}},210      mini bg
+{{colors.outline.default.red}}, {{colors.outline.default.green}}, {{colors.outline.default.blue}}       mini border
+{{colors.on_primary.default.red}}, {{colors.on_primary.default.green}}, {{colors.on_primary.default.blue}}       mini text 1
+{{colors.secondary.default.red}}, {{colors.secondary.default.green}}, {{colors.secondary.default.blue}}        mini text 2

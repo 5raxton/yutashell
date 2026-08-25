@@ -14,7 +14,7 @@
 @define-color edge-border-color      {{colors.outline_variant.default.hex}};
 @define-color scrollbar-slider-color {{colors.outline.default.hex}};
 @define-color scrollbar-trough-color {{colors.surface_container.default.hex}};
-@define-color ruler-color            {{colors.outline_variant.default.rgba | set_alpha: 0.3}};
+@define-color ruler-color            rgba({{colors.outline_variant.default.red}}, {{colors.outline_variant.default.green}}, {{colors.outline_variant.default.blue}}, 0.3);
 
 /* Standard GTK/Adwaita variable names, not GIMP's own. Some widgets
    (confirmed: the Preferences page title bar, per GIMP's own source

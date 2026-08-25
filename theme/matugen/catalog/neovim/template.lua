@@ -10,14 +10,14 @@ require('base16-colorscheme').setup({
   base06 = "{{colors.inverse_on_surface.default.hex}}",
   base07 = "{{colors.surface_bright.default.hex}}",
 
-  base08 = "{{colors.tertiary.default.hex | lighten: -5}}",
+  base08 = "{{colors.tertiary.default.hex}}",
   base09 = "{{colors.tertiary.default.hex}}",
   base0A = "{{colors.secondary.default.hex}}",
   base0B = "{{colors.primary.default.hex}}",
   base0C = "{{colors.tertiary_container.default.hex}}",
   base0D = "{{colors.primary_container.default.hex}}",
   base0E = "{{colors.secondary_container.default.hex}}",
-  base0F = "{{colors.secondary.default.hex | lighten: -10}}",
+  base0F = "{{colors.secondary.default.hex}}",
 })
 
 
@@ -39,7 +39,7 @@ vim.api.nvim_set_hl(0, 'Visual', {
 
 -- Make "string" text contrast better
 set_hl_mutliple({ 'String', 'TSString' }, {
-  fg = '{{colors.tertiary.default.hex | lighten: -15.0 }}',
+  fg = '{{colors.tertiary.default.hex}}',
 })
 
 -- Grey out comments

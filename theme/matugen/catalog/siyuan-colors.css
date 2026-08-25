@@ -1,15 +1,15 @@
 :root[data-theme-mode="light"] {
     /* 主色 */
     --b3-theme-primary: {{colors.primary.light.hex}};
-    --b3-theme-primary-light: {{ colors.primary.light.rgba | set_alpha 0.54 }};
-    --b3-theme-primary-lighter: {{ colors.primary.light.rgba | set_alpha 0.38 }};
-    --b3-theme-primary-lightest: {{ colors.primary.light.rgba | set_alpha 0.12 }};
+    --b3-theme-primary-light: rgba({{colors.primary.light.red}}, {{colors.primary.light.green}}, {{colors.primary.light.blue}}, 0.54);
+    --b3-theme-primary-lighter: rgba({{colors.primary.light.red}}, {{colors.primary.light.green}}, {{colors.primary.light.blue}}, 0.38);
+    --b3-theme-primary-lightest: rgba({{colors.primary.light.red}}, {{colors.primary.light.green}}, {{colors.primary.light.blue}}, 0.12);
     --b3-theme-secondary: {{colors.secondary.light.hex}};
     --b3-theme-background: {{colors.background.light.hex}};
-    --b3-theme-background-light: {{colors.background.light.rgba | set_alpha 0.54}};
+    --b3-theme-background-light: rgba({{colors.background.light.red}}, {{colors.background.light.green}}, {{colors.background.light.blue}}, 0.54);
     --b3-theme-surface: {{colors.surface.light.hex}};
-    --b3-theme-surface-light: {{colors.surface.light.rgba | set_alpha 0.54}};
-    --b3-theme-surface-lighter: {{colors.surface.light.rgba | set_alpha 0.38}};
+    --b3-theme-surface-light: rgba({{colors.surface.light.red}}, {{colors.surface.light.green}}, {{colors.surface.light.blue}}, 0.54);
+    --b3-theme-surface-lighter: rgba({{colors.surface.light.red}}, {{colors.surface.light.green}}, {{colors.surface.light.blue}}, 0.38);
     --b3-theme-error: {{colors.error.light.hex}};
     --b3-theme-success: #3dc200;
 
@@ -18,7 +18,7 @@
     --b3-theme-on-secondary: {{colors.on_secondary.light.hex}};
     --b3-theme-on-background: {{colors.on_background.light.hex}};
     --b3-theme-on-surface: {{colors.on_surface.light.hex}};
-    --b3-theme-on-surface-light: {{colors.on_surface.light.rgba | set_alpha 0.68 }};
+    --b3-theme-on-surface-light: rgba({{colors.on_surface.light.red}}, {{colors.on_surface.light.green}}, {{colors.on_surface.light.blue}}, 0.68);
     --b3-theme-on-error: {{colors.on_error.light.hex}};
 
     /* 字体 */
@@ -221,15 +221,15 @@
 :root[data-theme-mode="dark"] {
     /* 主色 */
     --b3-theme-primary: {{colors.primary.dark.hex}};
-    --b3-theme-primary-light: {{ colors.primary.dark.rgba | set_alpha 0.54 }};
-    --b3-theme-primary-lighter: {{ colors.primary.dark.rgba | set_alpha 0.38 }};
-    --b3-theme-primary-lightest: {{ colors.primary.dark.rgba | set_alpha 0.12 }};
+    --b3-theme-primary-light: rgba({{colors.primary.dark.red}}, {{colors.primary.dark.green}}, {{colors.primary.dark.blue}}, 0.54);
+    --b3-theme-primary-lighter: rgba({{colors.primary.dark.red}}, {{colors.primary.dark.green}}, {{colors.primary.dark.blue}}, 0.38);
+    --b3-theme-primary-lightest: rgba({{colors.primary.dark.red}}, {{colors.primary.dark.green}}, {{colors.primary.dark.blue}}, 0.12);
     --b3-theme-secondary: {{colors.secondary.dark.hex}};
     --b3-theme-background: {{colors.background.dark.hex}};
-    --b3-theme-background-light: {{colors.background.dark.rgba | set_alpha 0.54}};
+    --b3-theme-background-light: rgba({{colors.background.dark.red}}, {{colors.background.dark.green}}, {{colors.background.dark.blue}}, 0.54);
     --b3-theme-surface: {{colors.surface.dark.hex}};
-    --b3-theme-surface-light: {{colors.surface.dark.rgba | set_alpha 0.54}};
-    --b3-theme-surface-lighter: {{colors.surface.dark.rgba | set_alpha 0.38}};
+    --b3-theme-surface-light: rgba({{colors.surface.dark.red}}, {{colors.surface.dark.green}}, {{colors.surface.dark.blue}}, 0.54);
+    --b3-theme-surface-lighter: rgba({{colors.surface.dark.red}}, {{colors.surface.dark.green}}, {{colors.surface.dark.blue}}, 0.38);
     --b3-theme-error: {{colors.error.dark.hex}};
     --b3-theme-success: #65b84d;
 
@@ -238,7 +238,7 @@
     --b3-theme-on-secondary: {{colors.on_secondary.dark.hex}};
     --b3-theme-on-background: {{colors.on_background.dark.hex}};
     --b3-theme-on-surface: {{colors.on_surface.dark.hex}};
-    --b3-theme-on-surface-light: {{colors.on_surface.dark.rgba | set_alpha 0.68 }};
+    --b3-theme-on-surface-light: rgba({{colors.on_surface.dark.red}}, {{colors.on_surface.dark.green}}, {{colors.on_surface.dark.blue}}, 0.68);
     --b3-theme-on-error: {{colors.on_error.dark.hex}};
 
     /* 字体 */

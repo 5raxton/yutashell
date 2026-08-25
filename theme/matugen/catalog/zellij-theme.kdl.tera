@@ -10,6 +10,6 @@ themes {
     magenta "{{colors.terminal_normal_magenta.default.hex}}"
     cyan "{{colors.terminal_normal_cyan.default.hex}}"
     white "{{colors.terminal_normal_white.default.hex}}"
-    orange "{{colors.terminal_normal_red.default.hex | rotate_hue 30}}"
+    orange "{{colors.terminal_normal_red.default.hex}}"
   }
 }

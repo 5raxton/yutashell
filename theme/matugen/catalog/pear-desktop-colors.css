@@ -5,14 +5,14 @@ html:not(.style-scope)
 /*===================Start of custom variables==============================*/     
      
       --cust-ytmusic-play-nav-color: {{colors.surface.default.hex}};
-      --cust-ytmusic-dark-background: {{colors.surface.default.hex | lighten 10}};
-      --cust-ytmusic-dark-foreground: {{colors.surface.default.hex | lighten 10}};
+      --cust-ytmusic-dark-background: {{colors.surface.default.hex}};
+      --cust-ytmusic-dark-foreground: {{colors.surface.default.hex}};
       
-      --cust-ytmusic-light-text-1: {{colors.primary.default.hex | lighten 5}};
+      --cust-ytmusic-light-text-1: {{colors.primary.default.hex}};
       --cust-ytmusic-light-2: {{colors.secondary.default.hex}};
-      --cust-ytmusic-light-3: {{colors.secondary.default.hex | darken 5}};
+      --cust-ytmusic-light-3: {{colors.secondary.default.hex}};
       --cust-ytmusic-light-4: {{colors.secondary_fixed_dim.default.hex}};
-      --cust-ytmusic-light-5: {{colors.secondary.default.hex | darken 5}};
+      --cust-ytmusic-light-5: {{colors.secondary.default.hex}};
       
       --cust-ytmusic-medium-1: {{colors.primary_fixed_dim.default.hex}};
       --cust-ytmusic-medium-2: {{colors.secondary.default.hex}};
