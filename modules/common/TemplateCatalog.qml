@@ -21,7 +21,7 @@ Singleton {
         { id: "NOTIFY", jp: "通知" },
         { id: "COMPOSITOR", jp: "合成" },
         { id: "DESKTOP", jp: "桌面" },
-        { id: "MEDIA", jp: " media " },
+        { id: "MEDIA", jp: "媒体" },
         { id: "SYSTEM", jp: "系統" }
     ]
 

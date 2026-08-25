@@ -711,11 +711,13 @@ PanelWindow {
                 }
             }
 
+            // cava visualizer — only shown when cava is installed
             YSection {
                 width: parent.width
                 index: "02"
                 label: "Visualizer"
                 chip: "CAVA"
+                visible: cavaProbe._ok
             }
 
             // static hairline baseline — the cava feed arrives in a later pass
@@ -724,6 +726,7 @@ PanelWindow {
                 height: 40
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 2
+                visible: cavaProbe._ok
 
                 Repeater {
                     model: 48
@@ -1272,7 +1275,7 @@ PanelWindow {
                             visible: !modelData.connected
                             label: modelData.known ? "CONNECT" : "JOIN"
                             tone: "acid"
-                            onClicked: modelData.known ? modelData.connect() : modelData.connect()
+                            onClicked: modelData.connect()
                         }
                     }
                 }
@@ -1722,6 +1725,17 @@ PanelWindow {
                 width: 1
                 height: Theme.sp2
             }
+        }
+    }
+
+    // cava availability probe — runs once at boot
+    Process {
+        id: cavaProbe
+        property bool _ok: false
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 && echo yes || echo no"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: cavaProbe._ok = text.trim() === "yes"
         }
     }
 }

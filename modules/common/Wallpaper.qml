@@ -177,7 +177,10 @@ Singleton {
         if (onOff)
             cur.push(id);
         ShellState.set("tplEnabled", JSON.stringify(cur));
-        writeGenConfig();
+        // flush gen config synchronously before re-applying matugen so the
+        // just-toggled template is present in the config file matugen reads
+        genFlush.stop();
+        genFlush.triggered();
         _syncSnippet(id, onOff);
         if (Theme.followWallpaper && String(ShellState.wallpaperPath ?? "").length > 0)
             apply(ShellState.wallpaperPath);

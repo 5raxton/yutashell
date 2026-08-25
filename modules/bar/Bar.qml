@@ -241,7 +241,6 @@ PanelWindow {
             return btComp;
         case "audio":
             return audioComp;
-        case "stats":
         case "cpu":
             return statsComp;
         case "mem":

@@ -79,7 +79,6 @@ Column {
                 note: modelData.description + (modelData.permissions.length > 0 ? "  [" + modelData.permissions.join(",") + "]" : "")
                 on_: prow.plOn
                 trailingW: 68
-                onToggled: PluginService.setEnabled(modelData.id, !prow.plOn)
 
                 YSwitch {
                     id: psw

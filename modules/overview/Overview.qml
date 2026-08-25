@@ -252,7 +252,7 @@ Singleton {
             "top": [0, 0, w, halfH],
             "bottom": [0, halfH, w, halfH]
         }[edge];
-        Hyprland.dispatch('hl.dsp.window.float({ action = "set" })');
+        Hyprland.dispatch('hl.dsp.window.float({ action = "toggle" })');
         Hyprland.dispatch('hl.dsp.window.resize({ x = ' + pos[2] + ', y = ' + pos[3] + ' })');
         Hyprland.dispatch('hl.dsp.window.move({ x = ' + pos[0] + ', y = ' + pos[1] + ' })');
     }

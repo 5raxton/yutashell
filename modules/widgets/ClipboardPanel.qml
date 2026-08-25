@@ -16,7 +16,6 @@ PanelWindow {
     screen: FocusMonitor.screen
 
     readonly property bool open: ShellState.clipboardOpen
-    property bool everOpened: false
 
     anchors {
         top: true

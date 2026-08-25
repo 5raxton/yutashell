@@ -206,8 +206,7 @@ PanelWindow {
     // still decides selection/active visuals)
     property var accentChoices: ["", "#c8ff3d", "#3dffc0", "#35d0ff", "#3da9ff", "#b96bff", "#ff5cd0", "#ff3b52", "#ffd23d", "#eae8e0"]
 
-    Component.onCompleted: {
-        root._visiblePagesCache = root.pages.filter(p => root.matchesQuery(p));
+    function _rebuildPresetData() {
         const out = [];
         for (const p of Theme.presets) {
             const m = Theme.previewOf(p.id) ?? {};
@@ -221,6 +220,19 @@ PanelWindow {
             });
         }
         root.presetData = out;
+    }
+
+    Component.onCompleted: {
+        root._visiblePagesCache = root.pages.filter(p => root.matchesQuery(p));
+        // seed with fallback colors, then kick off async loads — when each
+        // finishes the cache updates and we rebuild with real colors
+        root._rebuildPresetData();
+        Theme.loadPreviews(Theme.presets.map(p => p.id));
+    }
+
+    Connections {
+        target: Theme
+        function onPreviewCacheChanged() { root._rebuildPresetData(); }
     }
 
     Timer {

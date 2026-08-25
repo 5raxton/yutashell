@@ -216,13 +216,6 @@ Singleton {
     readonly property alias accentOverride: adapter.accentOverride
     readonly property alias tplEnabled: adapter.tplEnabled
     readonly property alias customTpl: adapter.customTpl
-    readonly property alias barTray: adapter.barTray
-    readonly property alias barStats: adapter.barStats
-    readonly property alias barClock: adapter.barClock
-    readonly property alias barMedia: adapter.barMedia
-    readonly property alias barNet: adapter.barNet
-    readonly property alias barBt: adapter.barBt
-    readonly property alias barAudio: adapter.barAudio
 
     // notifications
     readonly property alias notifyDnd: adapter.notifyDnd
@@ -352,15 +345,6 @@ Singleton {
             // were all disabled and pointed at non-existent template files)
             property string tplEnabled: "[]"
             property string customTpl: "[]"
-
-            // bar segments
-            property bool barTray: true
-            property bool barStats: true
-            property bool barClock: true
-            property bool barMedia: true
-            property bool barNet: true
-            property bool barBt: true
-            property bool barAudio: true
 
             // notifications: timeout seconds (0 = honor client), fields JSON,
             // per-app overrides JSON [{"match","mode"}], history dump JSON,

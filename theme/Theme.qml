@@ -152,25 +152,20 @@ Singleton {
     // self-check asserts. No per-scheme light files to maintain.
     property bool dark: true
 
-    function _h(hue) {
-        return hue < 0 ? 0 : hue;
-    }
-
-    // darken a saturated token until it reads on the live light bg
-    function _fitOnLight(col, minRatio) {
+    function setDark(on) {
         let l = col.hslLightness;
         let out = col;
         let guard = 0;
         while (_ratio(out, root.bg) < minRatio && l > 0.06 && guard++ < 40) {
             l -= 0.02;
-            out = Qt.hsla(_h(col.hslHue), col.hslSaturation, l, 1);
+            out = Qt.hsla(col.hslHue, col.hslSaturation, l, 1);
         }
         return out;
     }
 
     function _toLight(src, role) {
         const c = Qt.color(String(src));
-        const h = _h(c.hslHue);
+        const h = c.hslHue;
         const s = c.hslSaturation;
         const l = c.hslLightness;
         switch (role) {
@@ -268,16 +263,31 @@ Singleton {
         }
     }
 
-    // Sync-read a preset for preview swatches (settings panel).
+    // Cache of preset scheme data for the settings panel swatches.
+    // Populated asynchronously via previewLoader's onLoaded callback.
+    property var previewCache: ({})
+    property var _previewQueue: []
+
     function previewOf(id) {
-        previewLoader.path = root.schemePath(id);
-        previewLoader.reload();
-        try {
-            return JSON.parse(previewLoader.text());
-        } catch (e) {
-            return null;
-        }
+        return previewCache[id] ?? null;
     }
+
+    function loadPreviews(ids) {
+        _previewQueue = ids.slice();
+        _loadNextPreview();
+    }
+
+    function _loadNextPreview() {
+        if (_previewQueue.length === 0)
+            return;
+        const id = _previewQueue.shift();
+        _previewQueue = _previewQueue; // trigger signal for array reactivity
+        _currentPreviewId = id;
+        previewLoader.path = schemePath(id);
+        previewLoader.reload();
+    }
+
+    property string _currentPreviewId: ""
 
     // ======== CONTRAST SELF-CHECK ========
     function _channel(v) {
@@ -347,6 +357,23 @@ Singleton {
         id: previewLoader
         blockLoading: true
         printErrors: false
+        onLoaded: {
+            try {
+                const m = JSON.parse(text());
+                if (root._currentPreviewId.length > 0) {
+                    const c = {};
+                    for (const k of ["bg", "bgAlt", "surface", "hairline", "lineStrong", "faint", "ink", "muted", "acid", "acidDeep", "alert"])
+                        c[k] = m[k] ?? m.colors?.[k] ?? null;
+                    // reassign entire object so QML fires onPreviewCacheChanged
+                    const next = {};
+                    for (const key in root.previewCache)
+                        next[key] = root.previewCache[key];
+                    next[root._currentPreviewId] = c;
+                    root.previewCache = next;
+                }
+            } catch (e) {}
+            root._loadNextPreview();
+        }
     }
 
     FileView {
@@ -355,7 +382,6 @@ Singleton {
         watchChanges: true
         printErrors: false
         preload: true
-        property int _debounceMs: 500
         property var _lastSize: 0
         property var _debounceTimer: null
         onLoaded: {

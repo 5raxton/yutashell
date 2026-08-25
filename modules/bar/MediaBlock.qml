@@ -238,7 +238,7 @@ Item {
             if (!root.tip)
                 return;
             if (containsMouse && root.trackLine.length > 0)
-                root.tip.showFor(root, root.trackLine + " // " + (root.player.identity ?? ""));
+                root.tip.showFor(root, root.trackLine + " // " + (root.player?.identity ?? ""));
             else
                 root.tip.hide();
         }

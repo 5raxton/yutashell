@@ -129,7 +129,8 @@ Singleton {
             onStreamFinished: {
                 root.refreshing = false;
                 const out = [];
-                const lines = text.trim().length ? text.trim().split("\n") : [];
+                const trimmed = text.trim();
+                const lines = trimmed.length ? trimmed.split("\n") : [];
                 for (let i = 0; i < lines.length; i++) {
                     const idx = lines[i].indexOf("\t");
                     if (idx < 0)
