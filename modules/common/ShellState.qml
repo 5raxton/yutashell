@@ -332,6 +332,8 @@ Singleton {
         path: Quickshell.env("HOME") + "/.local/state/yutashell/state.json"
         printErrors: false
         preload: true
+        property bool _loaded: false
+        onLoaded: _loaded = true
 
         adapter: JsonAdapter {
             id: adapter
@@ -467,10 +469,10 @@ Singleton {
     }
 
     Component.onCompleted: {
-        // Seed defaults ONLY when the file is absent/empty. A transient read
-        // race must never clobber the user's persisted prefs with defaults.
-        // text() is "" when the file doesn't exist or hasn't loaded yet.
-        if (stateFile.text().length === 0)
+        // Seed defaults ONLY when the file is absent/empty AND has been loaded.
+        // Without the _loaded guard, a hot-reload race could fire onCompleted
+        // before preload populates text(), causing defaults to clobber state.json.
+        if (stateFile._loaded && stateFile.text().length === 0)
             stateFile.writeAdapter();
     }
 }

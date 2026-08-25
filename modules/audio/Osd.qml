@@ -40,8 +40,6 @@ PanelWindow {
         const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : ShellState.osdVolume;
         if (!on)
             return;
-        if (outro.running)
-            outro.stop();
         kind = k;
         shown.opacity = 1;
         shown.y = shown.targetY;
@@ -62,7 +60,7 @@ PanelWindow {
 
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
-    visible: fadeTimer.running || outro.running
+    visible: shown.opacity > 0.01
     mask: Region {
         item: shown.opacity > 0.5 ? shown : null
     }
@@ -77,52 +75,8 @@ PanelWindow {
 
         interval: Math.max(ShellState.osdFadeMs + 300, 1400)
         onTriggered: {
-            if (!outro.running)
-                outro.restart();
-        }
-    }
-
-    ParallelAnimation {
-        id: outro
-
-        running: false
-
-        NumberAnimation {
-            target: shown
-            property: "opacity"
-            to: 0
-            duration: Theme.movFast
-            easing.type: Easing.OutCubic
-        }
-        NumberAnimation {
-            target: shown
-            property: "y"
-            to: shown.targetY - (root.topSide ? 4 : -4)
-            duration: Theme.movFast
-            easing.type: Easing.OutCubic
-        }
-    }
-
-    ParallelAnimation {
-        id: intro
-
-        running: false
-
-        NumberAnimation {
-            target: shown
-            property: "opacity"
-            from: 0
-            to: 1
-            duration: Theme.movMed
-            easing.type: Easing.OutCubic
-        }
-        NumberAnimation {
-            target: shown
-            property: "y"
-            from: shown.targetY + (root.topSide ? -6 : 6)
-            to: shown.targetY
-            duration: Theme.movMed
-            easing.type: Easing.OutCubic
+            shown.opacity = 0;
+            shown.y = shown.targetY + (root.topSide ? -6 : 6);
         }
     }
 
@@ -130,13 +84,26 @@ PanelWindow {
         id: shown
 
         property real targetY: root.topSide ? 0 : root.height - height
-        property real targetX: root.centeredX ? (root.width - width) / 2 : root.rightSide ? root.width - width - root.pad : root.pad
 
-        x: targetX
+        x: root.centeredX ? (root.width - width) / 2 : root.rightSide ? root.width - width - root.pad : root.pad
         y: targetY + (root.topSide ? -6 : 6)
         width: root.implicitWidth
         height: root.implicitHeight
         opacity: 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on y {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
 
         MouseArea {
             anchors.fill: parent
@@ -245,12 +212,6 @@ PanelWindow {
 
         function onOsdPing(k) {
             root.ping(k);
-        }
-    }
-
-    onVisibleChanged: {
-        if (visible && !outro.running) {
-            intro.restart();
         }
     }
 }
