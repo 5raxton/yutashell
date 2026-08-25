@@ -6,12 +6,9 @@ import qs.modules.common
 import "../common/ui"
 import "."
 
-// The OSD — brutal horizontal gauge that stamps itself onto the screen on
-// volume/mic/brightness events and fades away. One instance, three kinds.
 PanelWindow {
     id: root
 
-    // primary display of whatever screens exist at boot
     readonly property var targetScreen: FocusMonitor.screen
     screen: targetScreen
 
@@ -29,23 +26,21 @@ PanelWindow {
     readonly property var srcNode: AudioService.source
     readonly property real frac: isBright ? Math.max(0, Math.min(1, DisplayService.brightPct / 100)) : AudioService.nodeFrac(isMic ? srcNode : sinkNode)
     readonly property int pct: isBright ? DisplayService.brightPct : AudioService.nodePct(isMic ? srcNode : sinkNode)
-    // volume kind reports the SINK's mute so `audio mute` reads honestly
-    // (it used to be indistinguishable from an unmuted change)
     readonly property bool sinkMuted: !isMic && !isBright && sinkNode && sinkNode.audio ? sinkNode.audio.muted : false
     readonly property bool hot: isMic ? (srcNode && srcNode.audio ? srcNode.audio.muted : false) : isBright ? false : root.sinkMuted || pct > 100
 
+    // bar fill clamped 0..1 — the visual gauge
+    readonly property real barFill: Math.max(0, Math.min(1, root.frac))
+
     function ping(k) {
-        // per-kind gates (settings → OSD): a disabled kind swallows the ping
         const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : ShellState.osdVolume;
         if (!on)
             return;
-        // key-hold bursts land here dozens of times a second — keep this path
-        // free of animation restarts: cancel the outro (so the fade-in
-        // Behavior owns the property again), pin opacity, rewind the clock
         if (outro.running)
             outro.stop();
         kind = k;
         shown.opacity = 1;
+        shown.y = shown.targetY;
         fadeTimer.restart();
     }
 
@@ -70,14 +65,11 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
 
     implicitWidth: ShellState.osdWidth
-    implicitHeight: 64
+    implicitHeight: 68
 
     Timer {
         id: fadeTimer
 
-        // floor at 1.4 s: key-repeat bursts can gap when the IPC queue backs
-        // up, and the OSD must ride out any pause shorter than a deliberate
-        // stop — the configured fade only ever extends it
         interval: Math.max(ShellState.osdFadeMs + 300, 1400)
         onTriggered: {
             if (!outro.running)
@@ -85,119 +77,173 @@ PanelWindow {
         }
     }
 
-    SequentialAnimation {
+    // exit: fade up + drift
+    ParallelAnimation {
         id: outro
+
+        running: false
 
         NumberAnimation {
             target: shown
             property: "opacity"
             to: 0
+            duration: Theme.movFast
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: shown
+            property: "y"
+            to: shown.targetY - (root.topSide ? 6 : -6)
+            duration: Theme.movFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    // entrance: fade in + drift from offset
+    ParallelAnimation {
+        id: intro
+
+        running: false
+
+        NumberAnimation {
+            target: shown
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: Theme.movMed
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: shown
+            property: "y"
+            from: shown.targetY + (root.topSide ? -10 : 10)
+            to: shown.targetY
             duration: Theme.movMed
             easing.type: Easing.OutCubic
         }
     }
 
-    Rectangle {
+    Item {
         id: shown
 
-        anchors.fill: parent
-        color: Theme.bgAlt
-        border.width: 1
-        border.color: root.hot ? Theme.alert : Theme.lineStrong
+        property real targetY: root.topSide ? 0 : root.height - height
+        property real targetX: root.centeredX ? (root.width - width) / 2 : root.rightSide ? root.width - width - root.pad : root.pad
+
+        x: targetX
+        y: targetY + (root.topSide ? -10 : 10)
+        width: root.width - root.pad * 2
+        height: root.height - 8
         opacity: 0
 
-        // drifts toward its edge as it fades — a pure function of opacity, so
-        // entrance/exit ride the one animation with zero extra cost
-        transform: Translate {
-            y: (1 - shown.opacity) * (root.topSide ? -5 : 5)
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Theme.movFast
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        Behavior on border.color {
-            ColorAnimation {
-                duration: Theme.movFast
-            }
-        }
-
-        // accent spine — the tooltip's signature, shared language
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 2
-            color: root.hot ? Theme.alert : Theme.acid
-
-            Behavior on color {
-                ColorAnimation {
-                    duration: Theme.movFast
-                }
-            }
-        }
-
-        Text {
-            id: tagText
-
-            x: Theme.sp3
-            y: Theme.sp2
-            text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : "VOL"
-            color: root.hot ? Theme.alert : Theme.muted
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
-            font.weight: Font.Bold
-            font.letterSpacing: 1.5
-        }
-
-        Text {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: Theme.sp2
-            text: root.isMic ? (root.hot ? "MUTED" : "LIVE") : root.isBright ? root.pct + "%" : root.sinkMuted ? "MUTED" : (root.pct > 100 ? "+" : "") + root.pct + "%"
-            color: root.hot ? Theme.alert : root.pct > 100 && !root.sinkMuted ? Theme.acid : Theme.ink
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsBody
-            font.weight: Font.DemiBold
-        }
-
-        YSlider {
-            id: slider
-
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.sp2
-            anchors.leftMargin: Theme.sp3
-            anchors.rightMargin: Theme.sp3
-            implicitHeight: 20
-            value: root.frac
-            onMoved: v => {
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.NoButton
+            onWheel: wheel => {
+                const delta = wheel.angleDelta.y > 0 ? 0.03 : -0.03;
                 if (root.isBright)
-                    DisplayService.setBright(Math.round(v * 100));
+                    DisplayService.setBright(Math.round(Math.max(0, Math.min(1, root.frac + delta)) * 100));
                 else if (root.isMic)
-                    AudioService.setFrac(root.srcNode, v);
+                    AudioService.setFrac(root.srcNode, Math.max(0, Math.min(1, root.frac + delta)));
                 else
-                    AudioService.setFrac(root.sinkNode, v);
+                    AudioService.setFrac(root.sinkNode, Math.max(0, Math.min(1, root.frac + delta)));
                 fadeTimer.restart();
             }
         }
 
-        // the current — every chrome carries it
         Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            height: 2
-            width: root.frac * parent.width
-            color: root.hot ? Theme.alert : Theme.acid
+            anchors.fill: parent
+            color: Theme.bgAlt
+            border.width: 1
+            border.color: root.hot ? Qt.rgba(Theme.alert.r, Theme.alert.g, Theme.alert.b, 0.4) : Theme.lineStrong
+            radius: Theme.sp1
 
-            Behavior on width {
-                NumberAnimation {
-                    duration: Theme.movSnap
-                    easing.type: Easing.OutCubic
+            Behavior on border.color {
+                ColorAnimation {
+                    duration: Theme.movFast
+                }
+            }
+
+            // acid spine — the signature, shared language across every card
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 2
+                color: root.hot ? Theme.alert : Theme.acid
+                radius: 1
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: Theme.movFast
+                    }
+                }
+            }
+
+            // kind label — VOL / BRIGHT / MIC
+            Text {
+                x: Theme.sp4
+                y: Theme.sp2
+                text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : "VOL"
+                color: root.hot ? Theme.alert : Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fsMicro
+                font.weight: Font.Bold
+                font.letterSpacing: 1.5
+            }
+
+            // percentage or status
+            Text {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Theme.sp2
+                text: root.isMic
+                    ? (root.hot ? "MUTED" : "LIVE")
+                    : root.isBright
+                        ? root.pct + "%"
+                        : root.sinkMuted
+                            ? "MUTED"
+                            : (root.pct > 100 ? "+" : "") + root.pct + "%"
+                color: root.hot ? Theme.alert : root.pct > 100 && !root.sinkMuted ? Theme.acid : Theme.ink
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fsBody
+                font.weight: Font.DemiBold
+            }
+
+            // bar track — thin gauge below the text
+            Rectangle {
+                id: barTrack
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Theme.sp3
+                height: 6
+                color: Theme.hairline
+                radius: 3
+
+                // fill
+                Rectangle {
+                    id: barFillRect
+
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    width: root.barFill * barTrack.width
+                    color: root.hot ? Theme.alert : Theme.acid
+                    radius: 3
+
+                    Behavior on width {
+                        NumberAnimation {
+                            duration: Theme.movSnap
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.movFast
+                        }
+                    }
                 }
             }
         }
@@ -208,6 +254,12 @@ PanelWindow {
 
         function onOsdPing(k) {
             root.ping(k);
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible && !outro.running) {
+            intro.restart();
         }
     }
 }
