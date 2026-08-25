@@ -31,6 +31,11 @@ PanelWindow {
 
     readonly property real barFill: Math.max(0, Math.min(1, root.frac))
 
+    readonly property string statusText: root.isMic
+        ? (root.hot ? "MUTED" : "LIVE")
+        : root.sinkMuted ? "MUTED" : ""
+    readonly property string pctText: root.isMic ? "" : root.pct + "%"
+
     function ping(k) {
         const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : ShellState.osdVolume;
         if (!on)
@@ -63,8 +68,8 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Overlay
 
-    implicitWidth: ShellState.osdWidth
-    implicitHeight: 44
+    implicitWidth: 140
+    implicitHeight: 60
 
     Timer {
         id: fadeTimer
@@ -128,8 +133,8 @@ PanelWindow {
 
         x: targetX
         y: targetY + (root.topSide ? -6 : 6)
-        width: root.width - root.pad * 2
-        height: root.height - 6
+        width: root.implicitWidth
+        height: root.implicitHeight
         opacity: 0
 
         MouseArea {
@@ -175,33 +180,29 @@ PanelWindow {
                 }
             }
 
-            Text {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.margins: Theme.sp2
-                text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : "VOL"
-                color: root.hot ? Theme.alert : Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsMicro
-                font.weight: Font.Bold
-                font.letterSpacing: 1
-            }
+            Column {
+                anchors.centerIn: parent
+                anchors.leftMargin: Theme.sp3
+                spacing: 1
 
-            Text {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Theme.sp2
-                text: root.isMic
-                    ? (root.hot ? "MUTED" : "LIVE")
-                    : root.isBright
-                        ? root.pct + "%"
-                        : root.sinkMuted
-                            ? "MUTED"
-                            : (root.pct > 100 ? "+" : "") + root.pct + "%"
-                color: root.hot ? Theme.alert : root.pct > 100 && !root.sinkMuted ? Theme.acid : Theme.ink
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsLabel
-                font.weight: Font.DemiBold
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.statusText.length > 0 ? root.statusText : root.pctText
+                    color: root.hot ? Theme.alert : root.statusText.length > 0 ? Theme.muted : Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 18
+                    font.weight: Font.Bold
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : "VOL"
+                    color: root.hot ? Theme.alert : Theme.faint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
             }
 
             Rectangle {
