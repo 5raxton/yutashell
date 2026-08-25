@@ -211,6 +211,7 @@ PanelWindow {
             // Filler absorbs Loader stretch so segment keeps its natural size
             Loader {
                 id: segLoader
+                property string segId: modelData.id
                 sourceComponent: root.segComponent(modelData.id)
                 // Prevent Loader from stretching the loaded item
                 width: segLoader.item ? segLoader.item.implicitWidth : 0
@@ -657,9 +658,7 @@ PanelWindow {
         Item {
             id: plugBar
 
-            required property var modelData
-
-            property string segId: modelData.id
+            property string segId: parent ? parent.segId : ""
 
             implicitWidth: barLoader.item ? barLoader.item.implicitWidth : 0
             implicitHeight: Theme.barHeight
