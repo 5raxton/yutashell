@@ -2259,14 +2259,69 @@ PanelWindow {
                 id: barPage
 
                 Column {
+                    id: barCol
+
                     width: root.contentW
                     spacing: Theme.sp3
 
-                    readonly property var leftSegs: BarSegments.model.filter(s => s.zone === "left" && s.enabled !== false)
-                    readonly property var centerSegs: BarSegments.model.filter(s => s.zone === "center" && s.enabled !== false)
-                    readonly property var rightSegs: BarSegments.model.filter(s => s.zone === "right" && s.enabled !== false)
+                    readonly property var leftSegs: BarSegments.model.filter(s => s.zone === "left" && (s.enabled !== false || s.id.startsWith("spacer-")))
+                    readonly property var centerSegs: BarSegments.model.filter(s => s.zone === "center" && (s.enabled !== false || s.id.startsWith("spacer-")))
+                    readonly property var rightSegs: BarSegments.model.filter(s => s.zone === "right" && (s.enabled !== false || s.id.startsWith("spacer-")))
                     readonly property var availSegs: BarSegments.model.filter(s => s.enabled === false && !s.id.startsWith("spacer-"))
                     readonly property int totalVisible: leftSegs.length + centerSegs.length + rightSegs.length
+
+                    Component.onDestruction: {
+                        dragGhost.visible = false;
+                        dragGhost.destroy();
+                    }
+
+                    // ═══ DRAG GHOST PROXY ═══
+                    Rectangle {
+                        id: dragGhost
+
+                        parent: root
+                        visible: false
+                        z: 1000
+                        width: 180
+                        height: 32
+                        radius: Theme.sp1
+                        color: Theme.bg
+                        border.width: 2
+                        border.color: Theme.acid
+                        opacity: 0.92
+
+                        property string segId: ""
+                        property string segLabel: ""
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: Theme.sp1
+
+                            Rectangle {
+                                width: 18
+                                height: 14
+                                radius: 2
+                                color: Theme.acid
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: BarSegments.abbrFor(dragGhost.segId)
+                                    color: Theme.bg
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 8
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            Text {
+                                text: dragGhost.segLabel
+                                color: Theme.acid
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                font.weight: Font.Bold
+                            }
+                        }
+                    }
 
                     // ═══ 01  PREVIEW ═══
                     YSection {
@@ -2293,8 +2348,6 @@ PanelWindow {
                             border.color: Theme.hairline
 
                             Row {
-                                id: prevLeft
-
                                 anchors.left: parent.left
                                 anchors.leftMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2337,8 +2390,6 @@ PanelWindow {
                             }
 
                             Row {
-                                id: prevRight
-
                                 anchors.right: parent.right
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2490,136 +2541,120 @@ PanelWindow {
                         wrapMode: Text.WordWrap
                     }
 
-                    // ═══ 04  LEFT ZONE ═══
+                    // ═══ 04  BAR LAYOUT  (Kanban board) ═══
                     YSection {
                         width: parent.width
                         index: "04"
-                        label: "Left zone"
-                        chip: leftSegs.length + " segment" + (leftSegs.length !== 1 ? "s" : "")
+                        label: "Bar Layout"
+                        chip: totalVisible + " active"
                     }
 
-                    Repeater {
-                        model: leftSegs
+                    Row {
+                        id: kanbanRow
 
-                        delegate: segDelegate
-                    }
-
-                    Text {
                         width: parent.width
-                        text: "no segments — enable one from Available below"
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
-                        visible: leftSegs.length === 0
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    // ═══ 05  CENTER ZONE ═══
-                    YSection {
-                        width: parent.width
-                        index: "05"
-                        label: "Center zone"
-                        chip: centerSegs.length + " segment" + (centerSegs.length !== 1 ? "s" : "")
-                    }
-
-                    Repeater {
-                        model: centerSegs
-
-                        delegate: segDelegate
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "no segments — enable one from Available below"
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
-                        visible: centerSegs.length === 0
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    // ═══ 06  RIGHT ZONE ═══
-                    YSection {
-                        width: parent.width
-                        index: "06"
-                        label: "Right zone"
-                        chip: rightSegs.length + " segment" + (rightSegs.length !== 1 ? "s" : "")
-                    }
-
-                    Repeater {
-                        model: rightSegs
-
-                        delegate: segDelegate
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "no segments — enable one from Available below"
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
-                        visible: rightSegs.length === 0
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    // ═══ 07  AVAILABLE ═══
-                    YSection {
-                        width: parent.width
-                        index: "07"
-                        label: "Available"
-                        chip: availSegs.length + " disabled"
-                    }
-
-                    Grid {
-                        width: parent.width
-                        columns: 3
-                        spacing: Theme.sp1
+                        spacing: Theme.sp2
 
                         Repeater {
-                            model: availSegs
+                            model: [
+                                { zone: "left", label: "LEFT", segs: barCol.leftSegs },
+                                { zone: "center", label: "CENTER", segs: barCol.centerSegs },
+                                { zone: "right", label: "RIGHT", segs: barCol.rightSegs }
+                            ]
 
-                            delegate: Rectangle {
+                            delegate: Item {
+                                id: zoneRoot
+
                                 required property var modelData
 
-                                property var segMeta: BarSegments.meta[modelData.id] ?? {}
+                                width: (parent.width - 2 * Theme.sp2) / 3
+                                height: zoneCol.height
 
-                                width: (parent.width - 2 * Theme.sp1) / 3
-                                height: 48
-                                radius: Theme.sp1
-                                color: addArea.containsMouse ? Theme.surface : "transparent"
-                                border.width: 1
-                                border.color: Theme.lineStrong
+                                DropArea {
+                                    id: zoneDrop
 
-                                Column {
-                                    anchors.centerIn: parent
-                                    spacing: 2
+                                    anchors.fill: parent
+                                    keys: ["segment"]
 
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "+"
-                                        color: Theme.acid
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fsBody
-                                        font.weight: Font.Bold
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: Theme.sp1
+                                        color: "transparent"
+                                        border.width: zoneDrop.containsDrag ? 2 : 0
+                                        border.color: Theme.acid
+
+                                        Behavior on border.width {
+                                            NumberAnimation { duration: 120 }
+                                        }
                                     }
 
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: segMeta.label ?? modelData.id
-                                        color: Theme.ink
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fsMicro
-                                        font.weight: Font.DemiBold
+                                    onDropped: {
+                                        BarSegments.setZone(drop.source.segId, zoneRoot.modelData.zone);
+                                        if (!drop.source.isOn)
+                                            BarSegments.setEnabled(drop.source.segId, true);
                                     }
                                 }
 
-                                MouseArea {
-                                    id: addArea
+                                Column {
+                                    id: zoneCol
 
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: BarSegments.setEnabled(modelData.id, true)
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 2
+                                    spacing: Theme.sp1
+
+                                    Rectangle {
+                                        width: parent.width
+                                        height: 24
+                                        radius: Theme.sp1
+                                        color: zoneDrop.containsDrag ? Theme.acid + "11" : Theme.surface
+
+                                        Text {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: Theme.sp2
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: zoneRoot.modelData.label
+                                            color: Theme.faint
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsMicro
+                                            font.weight: Font.Bold
+                                            font.letterSpacing: 1
+                                        }
+
+                                        Text {
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: Theme.sp2
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: zoneRoot.modelData.segs.length
+                                            color: Theme.muted
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsMicro
+                                        }
+                                    }
+
+                                    Repeater {
+                                        model: zoneRoot.modelData.segs
+                                        delegate: kanbanCard
+                                    }
+
+                                    Rectangle {
+                                        visible: zoneRoot.modelData.segs.length === 0
+                                        width: parent.width
+                                        height: 52
+                                        radius: Theme.sp1
+                                        color: "transparent"
+                                        border.width: zoneDrop.containsDrag ? 2 : 1
+                                        border.color: zoneDrop.containsDrag ? Theme.acid : Theme.lineStrong
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: zoneDrop.containsDrag ? "drop here" : "empty"
+                                            color: zoneDrop.containsDrag ? Theme.acid : Theme.faint
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsMicro
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2627,18 +2662,143 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "all modules enabled"
+                        text: "drag cards between zones to move · ▲▼ reorder within · tap L/C/R badge to cycle zone · click DEFAULT to set click action"
                         color: Theme.faint
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
-                        visible: availSegs.length === 0
-                        horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
                     }
 
-                    // ═══ 08  EXTRAS ═══
+                    // ═══ 05  AVAILABLE ═══
                     YSection {
                         width: parent.width
-                        index: "08"
+                        index: "05"
+                        label: "Available"
+                        chip: availSegs.length + " disabled"
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: availInner.height
+
+                        DropArea {
+                            id: availDrop
+
+                            anchors.fill: parent
+                            keys: ["segment"]
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: Theme.sp1
+                                color: "transparent"
+                                border.width: availDrop.containsDrag ? 2 : 0
+                                border.color: Theme.warn
+
+                                Behavior on border.width {
+                                    NumberAnimation { duration: 120 }
+                                }
+                            }
+
+                            onDropped: BarSegments.setEnabled(drop.source.segId, false)
+                        }
+
+                        Grid {
+                            id: availInner
+
+                            width: parent.width
+                            columns: 3
+                            spacing: Theme.sp1
+
+                            Repeater {
+                                model: availSegs
+
+                                delegate: Item {
+                                    id: availCard
+
+                                    required property var modelData
+
+                                    property string segId: modelData.id
+                                    property bool isOn: false
+                                    property var segMeta: BarSegments.meta[modelData.id] ?? {}
+
+                                    width: (parent.width - 2 * Theme.sp1) / 3
+                                    height: 48
+
+                                    Drag.active: availDragArea.drag.active
+                                    Drag.source: availCard
+                                    Drag.keys: ["segment"]
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: Theme.sp1
+                                        color: availDragArea.containsMouse ? Theme.surface : "transparent"
+                                        border.width: 1
+                                        border.color: availCard.Drag.active ? Theme.acid : Theme.lineStrong
+                                        opacity: availCard.Drag.active ? 0.5 : 1
+                                    }
+
+                                    Column {
+                                        anchors.centerIn: parent
+                                        spacing: 2
+
+                                        Text {
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            text: "+"
+                                            color: Theme.acid
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsBody
+                                            font.weight: Font.Bold
+                                        }
+
+                                        Text {
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            text: availCard.segMeta.label ?? availCard.modelData.id
+                                            color: Theme.ink
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsMicro
+                                            font.weight: Font.DemiBold
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: availDragArea
+
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        drag.target: dragGhost
+
+                                        onPressed: {
+                                            dragGhost.visible = true;
+                                            dragGhost.segId = availCard.segId;
+                                            dragGhost.segLabel = availCard.segMeta.label ?? availCard.segId;
+                                        }
+
+                                        onReleased: dragGhost.visible = false
+
+                                        onClicked: BarSegments.setEnabled(availCard.modelData.id, true)
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            anchors.top: availInner.bottom
+                            anchors.topMargin: 2
+                            width: parent.width
+                            text: availDrop.containsDrag ? "release to disable" : (availSegs.length === 0 ? "all modules enabled" : "drag to zone or click to enable")
+                            color: availDrop.containsDrag ? Theme.warn : Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: availSegs.length === 0 || availDrop.containsDrag
+                        }
+                    }
+
+                    // ═══ 06  EXTRAS ═══
+                    YSection {
+                        width: parent.width
+                        index: "06"
                         label: "Extras"
                         chip: BarSegments.model.filter(s => s.id.startsWith("spacer-")).length + " spacers"
                     }
@@ -2680,61 +2840,44 @@ PanelWindow {
                         }
                     }
 
-                    Text {
-                        width: parent.width
-                        text: "preview updates live · ▲▼ reorder within a zone · tap L/C/R to move between zones · click DEFAULT to cycle the click action · toggle segments on/off · add spacers for spacing"
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        wrapMode: Text.WordWrap
-                    }
-
                     Item {
                         width: 1
                         height: Theme.sp2
                     }
 
-                    // ═══ SEGMENT ROW DELEGATE ═══
+                    // ═══ KANBAN CARD DELEGATE ═══
                     Component {
-                        id: segDelegate
+                        id: kanbanCard
 
                         Item {
-                            id: segRow
+                            id: segCard
 
                             required property var modelData
                             required property int index
 
-                            property var meta: modelData.id.startsWith("spacer-") ? ({ label: "Spacer", jp: "余" }) : (BarSegments.meta[modelData.id] ?? { label: modelData.id, jp: "" })
-                            property bool on_: modelData.enabled !== false
+                            property string segId: modelData.id
+                            property string cardLabel: modelData.id.startsWith("spacer-") ? "Spacer" : (BarSegments.meta[modelData.id]?.label ?? modelData.id)
+                            property bool isOn: modelData.enabled !== false
                             property bool isSpacer: modelData.id.startsWith("spacer-")
-                            property string inactiveWhy: {
-                                if (!on_ || BarSegments.present(modelData.id))
-                                    return "";
-                                switch (modelData.id) {
-                                case "media":
-                                    return "shows when media plays";
-                                case "bt":
-                                    return "bluetooth off";
-                                case "nightlight":
-                                    return "night light off";
-                                case "session":
-                                    return "no inhibitors";
-                                case "recording":
-                                    return "not recording";
-                                case "pluginwidgets":
-                                    return "no plugins";
-                                default:
-                                    return "";
-                                }
-                            }
+
+                            Drag.active: cardDragArea.drag.active
+                            Drag.source: segCard
+                            Drag.keys: ["segment"]
 
                             width: parent.width
-                            height: 40
+                            height: 36
 
                             Rectangle {
                                 anchors.fill: parent
                                 radius: Theme.sp1
-                                color: segHover.containsMouse ? Theme.surface : "transparent"
+                                color: segCard.Drag.active ? Theme.acid + "15" : (segHover.containsMouse ? Theme.surface : "transparent")
+                                border.width: 1
+                                border.color: segCard.Drag.active ? Theme.acid : Theme.lineStrong
+                                opacity: segCard.Drag.active ? 0.5 : 1
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 150 }
+                                }
                             }
 
                             Row {
@@ -2755,7 +2898,7 @@ PanelWindow {
                                         anchors.fill: parent
                                         anchors.margins: -4
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: BarSegments.move(segRow.modelData.id, -1)
+                                        onClicked: BarSegments.move(segCard.segId, -1)
                                     }
                                 }
 
@@ -2769,60 +2912,45 @@ PanelWindow {
                                         anchors.fill: parent
                                         anchors.margins: -4
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: BarSegments.move(segRow.modelData.id, 1)
+                                        onClicked: BarSegments.move(segCard.segId, 1)
                                     }
                                 }
                             }
 
                             Text {
-                                id: segLabel
-
                                 anchors.left: reorderArrows.right
                                 anchors.leftMargin: Theme.sp1
-                                anchors.right: segRow.isSpacer ? removeBtn.left : actChip.left
+                                anchors.right: segCard.isSpacer ? removeBtn.left : actChip.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight
-                                text: segRow.meta.label ?? segRow.modelData.id
-                                color: segRow.on_ ? Theme.ink : Theme.muted
+                                text: segCard.cardLabel
+                                color: segCard.isOn ? Theme.ink : Theme.muted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel
                                 font.weight: Font.DemiBold
                             }
 
-                            Text {
-                                visible: segRow.inactiveWhy.length > 0
-
-                                anchors.right: segRow.isSpacer ? removeBtn.left : actChip.left
-                                anchors.rightMargin: Theme.sp2
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: segRow.inactiveWhy
-                                color: Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsMicro
-                            }
-
                             Rectangle {
                                 id: actChip
 
-                                visible: !segRow.isSpacer
+                                visible: !segCard.isSpacer
 
                                 readonly property bool hasPref: {
                                     try {
-                                        const m = JSON.parse(ShellState.barClick);
-                                        return !!m[segRow.modelData.id];
+                                        return !!JSON.parse(ShellState.barClick)[segCard.segId];
                                     } catch (e) {
                                         return false;
                                     }
                                 }
-                                readonly property string effective: BarSegments.clickFor(segRow.modelData.id)
+                                readonly property string effective: BarSegments.clickFor(segCard.segId)
                                 readonly property var cycle: ["", "calendar", "network", "bluetooth", "audio", "media", "controlcenter", "launcher", "settings", "nightlight", "power", "notifications"]
 
                                 function bump() {
                                     let idx = cycle.indexOf(effective);
                                     if (idx < 0)
                                         idx = 0;
-                                    BarSegments.setClick(segRow.modelData.id, cycle[(idx + 1) % cycle.length]);
+                                    BarSegments.setClick(segCard.segId, cycle[(idx + 1) % cycle.length]);
                                 }
 
                                 anchors.right: zoneChips.left
@@ -2830,16 +2958,16 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: actText.width + 14
                                 height: 16
-                                color: actArea.containsMouse && segRow.on_ ? Theme.acid : "transparent"
+                                color: actArea.containsMouse && segCard.isOn ? Theme.acid : "transparent"
                                 border.width: 1
-                                border.color: hasPref ? (actArea.containsMouse && segRow.on_ ? Theme.acid : Theme.acidDeep) : Theme.lineStrong
+                                border.color: hasPref ? (actArea.containsMouse && segCard.isOn ? Theme.acid : Theme.acidDeep) : Theme.lineStrong
 
                                 Text {
                                     id: actText
 
                                     anchors.centerIn: parent
                                     text: actChip.hasPref ? actChip.effective.toUpperCase() : "DEFAULT"
-                                    color: actArea.containsMouse && segRow.on_ ? Theme.bg : actChip.hasPref ? Theme.acid : Theme.muted
+                                    color: actArea.containsMouse && segCard.isOn ? Theme.bg : actChip.hasPref ? Theme.acid : Theme.muted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
                                     font.weight: Font.Bold
@@ -2858,7 +2986,7 @@ PanelWindow {
                             Row {
                                 id: zoneChips
 
-                                anchors.right: segRow.isSpacer ? removeBtn.left : segSwitch.left
+                                anchors.right: segCard.isSpacer ? removeBtn.left : segSwitch.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
@@ -2874,7 +3002,7 @@ PanelWindow {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: segRow.modelData.zone === modelData ? Theme.acid : "transparent"
+                                            color: segCard.modelData.zone === modelData ? Theme.acid : "transparent"
                                             border.width: 1
                                             border.color: Theme.lineStrong
                                         }
@@ -2882,7 +3010,7 @@ PanelWindow {
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData.charAt(0).toUpperCase()
-                                            color: segRow.modelData.zone === modelData ? Theme.bg : Theme.muted
+                                            color: segCard.modelData.zone === modelData ? Theme.bg : Theme.muted
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fsMicro
                                             font.weight: Font.Bold
@@ -2891,7 +3019,7 @@ PanelWindow {
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: BarSegments.setZone(segRow.modelData.id, modelData)
+                                            onClicked: BarSegments.setZone(segCard.segId, modelData)
                                         }
                                     }
                                 }
@@ -2900,7 +3028,7 @@ PanelWindow {
                             Text {
                                 id: removeBtn
 
-                                visible: segRow.isSpacer
+                                visible: segCard.isSpacer
 
                                 anchors.right: parent.right
                                 anchors.rightMargin: Theme.sp2
@@ -2916,20 +3044,36 @@ PanelWindow {
                                     anchors.fill: parent
                                     anchors.margins: -4
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: BarSegments.removeSpacer(segRow.modelData.id)
+                                    onClicked: BarSegments.removeSpacer(segCard.segId)
                                 }
                             }
 
                             YSwitch {
                                 id: segSwitch
 
-                                visible: !segRow.isSpacer
+                                visible: !segCard.isSpacer
 
-                                checked: segRow.on_
+                                checked: segCard.isOn
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.right: parent.right
                                 anchors.rightMargin: Theme.sp2
-                                onToggled: BarSegments.setEnabled(segRow.modelData.id, !segRow.modelData.enabled)
+                                onToggled: BarSegments.setEnabled(segCard.segId, !segCard.modelData.enabled)
+                            }
+
+                            MouseArea {
+                                id: cardDragArea
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                drag.target: dragGhost
+
+                                onPressed: {
+                                    dragGhost.visible = true;
+                                    dragGhost.segId = segCard.segId;
+                                    dragGhost.segLabel = segCard.cardLabel;
+                                }
+
+                                onReleased: dragGhost.visible = false
                             }
 
                             MouseArea {
