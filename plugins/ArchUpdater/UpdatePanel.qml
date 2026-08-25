@@ -3,7 +3,7 @@ import Quickshell.Wayland
 import QtQuick
 import qs.theme
 import qs.modules.common
-import "../common/ui"
+import qs.modules.common.ui
 
 // Arch Updater panel — categorized update list with refresh + update-all.
 PanelWindow {

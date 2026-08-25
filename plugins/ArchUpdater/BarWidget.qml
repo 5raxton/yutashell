@@ -59,6 +59,6 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: BarActions.dispatch("plugin:arch-updater")
+        onClicked: PluginService.togglePluginPanel("arch-updater")
     }
 }
