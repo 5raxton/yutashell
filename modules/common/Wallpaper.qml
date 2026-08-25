@@ -67,6 +67,20 @@ Singleton {
         apply(root.entries[idx].path);
     }
 
+    // awww falls back to the same 'simple' crossfade when unflagged — pick a
+    // fresh effect (plus its angle / growth origin) for every paint instead
+    function _transitionArgs() {
+        const kinds = ["fade", "wipe", "wave", "grow", "center", "any", "outer",
+            "left", "right", "top", "bottom"];
+        const kind = kinds[Math.floor(Math.random() * kinds.length)];
+        let args = "--transition-type " + kind;
+        if (kind === "wipe" || kind === "wave")
+            args += " --transition-angle " + Math.floor(Math.random() * 360);
+        else if (kind === "grow" || kind === "outer")
+            args += " --transition-pos " + (0.1 + Math.random() * 0.8).toFixed(2) + "," + (0.1 + Math.random() * 0.8).toFixed(2);
+        return args;
+    }
+
     // ======== TEMPLATE REGISTRY ========
     // Built-in catalog entries live in TemplateCatalog (all OFF by default);
     // ShellState.tplEnabled holds the enabled ids, ShellState.customTpl holds
@@ -578,7 +592,7 @@ Singleton {
             const img = imagePath.replace(/'/g, "'\\''");
             daemonProc.command = ["sh", "-c",
                 "pgrep -x awww-daemon >/dev/null || setsid awww-daemon >/dev/null 2>&1 &\n" +
-                "for i in 1 2 3 4 5 6 7 8; do awww img '" + img + "' && exit 0; sleep 0.25; done\n" +
+                "for i in 1 2 3 4 5 6 7 8; do awww img '" + img + "' " + root._transitionArgs() + " && exit 0; sleep 0.25; done\n" +
                 "echo 'awww img failed after retries' >&2; exit 1"];
             daemonProc.running = true;
         }
@@ -615,5 +629,14 @@ Singleton {
         }
         if (Theme.followWallpaper && String(ShellState.wallpaperPath ?? "").length === 0)
             console.warn("[wallpaper] follow-wallpaper is on but no wallpaper has been applied yet");
+        // paint-only boot restore: the palette already lives in theme.json
+        // (loaded by Theme), so skip matugen — and never flip followWallpaper
+        // back on for users who switched to a manual scheme after applying
+        const saved = String(ShellState.wallpaperPath ?? "");
+        if (saved.length > 0) {
+            root.current = saved;
+            paintTimer.imagePath = saved;
+            paintTimer.restart();
+        }
     }
 }
