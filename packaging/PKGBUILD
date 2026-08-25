@@ -6,12 +6,12 @@
 # and autostart `qs -c yuta-qs` from Hyprland.
 
 pkgname=yutashell-git
-pkgver=r1.ae37a2b
+pkgver=r1.0.0.5c15cc0
 pkgrel=1
-pkgdesc="Quickshell desktop shell config for Hyprland"
+pkgdesc="Quickshell desktop shell config for Hyprland — 89 matugen templates, 22 bar segments, 30 IPC targets"
 arch=(any)
 url="https://github.com/braxtonculver/yuta-qs"
-license=(CC-BY-NC-SA-4.0)
+license=(GPL-3.0-only)
 depends=(
     quickshell
     hyprland
@@ -19,14 +19,23 @@ depends=(
     grim
     slurp
     curl
+    wl-clipboard
+    cliphist
+    awww
+    jq
+    pipewire
+    networkmanager
+    bluez
+    ttf-jetbrains-mono-nerd
 )
 optdepends=(
     'cava: audio visualizer in the bar'
-    'cliphist: clipboard history widget'
-    'gpu-screen-recorder: recording widget'
-    'hyprsunset: night light'
-    'ddcutil: external monitor brightness'
+    'hyprsunset: night light (wayland)'
+    'hyprpicker: color picker'
+    'ddcutil: external monitor brightness (DDC/CI)'
     'powerprofilesctl: power profile switching'
+    'gpu-screen-recorder: screen recording widget'
+    'noto-fonts-cjk: Japanese labels (romaji fallback otherwise)'
 )
 makedepends=(git)
 provides=(yutashell)

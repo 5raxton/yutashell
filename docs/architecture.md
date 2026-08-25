@@ -4,15 +4,15 @@
 
 ```
 yuta-qs/
-├── shell.qml              entry point, per-screen instances, IPC handlers
+├── shell.qml              entry point, 30 IPC handlers (130+ functions), per-screen instances
 ├── theme/                 Theme singleton, 12 preset palettes, matugen setup
 ├── modules/
-│   ├── bar/               taskbar segments + segment framework
-│   ├── common/            ShellState, Wallpaper/template pipeline, SystemStats,
-│   │                      PluginService, FocusMonitor, Compositor, Health, ui kit
-│   ├── settings/          settings panel (15 pages)
+│   ├── bar/               22 segment types + Kanban drag-drop editor, BarActions dispatcher
+│   ├── common/            ShellState, Wallpaper/89-template pipeline, SystemStats,
+│   │                      PluginService, FocusMonitor, Compositor, Health, 13 UI primitives
+│   ├── settings/          settings panel (15 pages behind searchable nav rail)
 │   ├── control/           control center (11 tabs)
-│   ├── launcher/          app launcher
+│   ├── launcher/          app launcher (grid/list/detail + :command mode + calculator)
 │   ├── picker/            wallpaper archive
 │   ├── notify/            notification daemon, toasts, history center
 │   ├── net/               network + bluetooth panels, bar chips

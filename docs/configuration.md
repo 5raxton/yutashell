@@ -28,7 +28,7 @@ Baseline tokens of the `acid` scheme: bg `#0a0a0c`, ink `#eae8e0`, acid `#c8ff3d
 
 ## App templates
 
-The theming pipeline also recolors external apps through [matugen](https://github.com/InioX/matugen) templates (`~70 vendored`: terminals, editors, GTK, bars, prompts…). For include-style configs the shell writes and strips its own managed block inside the target app's config, so toggling a template is zero-friction and fully reversible.
+The theming pipeline also recolors external apps through [matugen](https://github.com/InioX/matugen) templates (89 vendored across 10 groups: terminals, editors, shells, browsers, launchers, notifications, compositor, desktop, media, system). For include-style configs the shell writes and strips its own managed block inside the target app's config, so toggling a template is zero-friction and fully reversible.
 
 Manage via Settings → APPEARANCE → Matugen templates, or:
 

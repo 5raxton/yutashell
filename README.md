@@ -13,30 +13,33 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 ## Features
 
-- **Bar** — data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks, clock; reorder/toggle everything live (even from the settings UI)
+- **Bar** — 22 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp), clock, chips; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC
 - **Theme engine** — 12 preset schemes, wallpaper-derived palettes via matugen, runtime light mode, any-hex accent override; the whole shell repaints live
-- **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (~70 vendored matugen templates)
-- **Surfaces** — settings panel, control center, app launcher, notification center, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview, power menu, lock screen — each spawns from the bar, a screen edge, or float, per panel
+- **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
+- **Surfaces** — settings panel (15 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview, AltTab, power menu, lock screen, color picker, recording widget, updates checker; each spawns from the bar, a screen edge, or float, per panel
 - **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, DND, per-app rules, persisted history with replay
 - **Connectivity & audio** — NetworkManager + BlueZ panels, PipeWire console with perceptual volume taper, OSDs, night light, brightness (internal + DDC/CI)
 - **Session** — hold-to-confirm power menu, PAM lock screen, inhibitor-aware idle actions, power profiles, polkit dialog
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
+- **IPC** — 30 targets, 130+ functions; keybinds, CLI and settings panel share one implementation
 
 ## Requirements
 
 | dependency | why |
 |---|---|
 | `quickshell` ≥ 0.3.1 | shell runtime |
+| `hyprland` | compositor |
 | `matugen` ≥ 4.x | theming pipeline |
-| `awww` | wallpaper painting |
+| `awww` + `awww-daemon` | wallpaper painting |
 | `grim` | screenshot capture |
 | `slurp` | region selection |
 | `wl-clipboard` | clipboard write |
 | `cliphist` | clipboard history |
+| `curl` | weather API, geolocation |
 | JetBrainsMono Nerd Font | typeface |
 | `noto-fonts-cjk` *(optional)* | Japanese labels (romaji fallback otherwise) |
 
-Required backends (`grim`, `cliphist`, `wl-clipboard`) are probed at startup — missing ones hide their feature cleanly. Optional backends (`cava`, `hyprsunset`, `ddcutil`, `power-profiles-daemon`, `hyprpicker`, `networkmanager`, `bluez`, …) are also checked; if absent the related feature simply disappears.
+Required backends (`grim`, `cliphist`, `wl-clipboard`) are probed at startup — missing ones hide their feature cleanly. Optional backends (`cava`, `hyprsunset`, `ddcutil`, `power-profiles-daemon`, `hyprpicker`, `gpu-screen-recorder`, `networkmanager`, `bluez`, `pipewire`) are also checked; if absent the related feature simply disappears.
 
 ## Installation
 
@@ -82,6 +85,14 @@ hl.bind("ALT + Tab",                 hl.dsp.exec_cmd(yuta .. " overview alttab")
 ```
 
 Full command table → [docs/ipc.md](docs/ipc.md)
+
+## Architecture at a glance
+
+```
+87 QML files · 28 singletons · 13 UI primitives · 30 IPC targets · 130+ functions
+89 matugen templates · 17 snippet rules · 22 bar segments · 12 color schemes
+15 settings pages · 11 control center tabs · 4 spawn modes
+```
 
 ## Documentation
 
