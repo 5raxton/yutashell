@@ -9,7 +9,7 @@ Item {
     implicitWidth: timeBlock.width + 14 + dateCol.width
     implicitHeight: Theme.barHeight
 
-    property date now: new Date()
+    property var now: new Date()
     property bool colonOn: true
 
     readonly property var weekdayKanji: ["月", "火", "水", "木", "金", "土", "日"]

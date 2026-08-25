@@ -19,7 +19,7 @@ Item {
     readonly property int pct: AudioService.nodePct(sink)
     readonly property bool overdriven: pct > 100
     // five bars across the FULL ceiling
-    readonly property int tiers: muted ? 0 : Math.max(pct > 0 ? 1 : 0, Math.round(AudioService.volToFrac(pct / 100) * 5))
+    readonly property int tiers: muted ? 0 : Math.max(pct > 0 ? 1 : 0, Math.round(AudioService.nodeFrac(sink) * 5))
     readonly property var src: AudioService.source
     readonly property bool micMuted: src && src.audio ? src.audio.muted : true
 

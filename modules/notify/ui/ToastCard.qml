@@ -187,11 +187,14 @@ Rectangle {
             visible: ShellState.notifyActions && root.entry.acts.length > 0
 
             Repeater {
-                model: ShellState.notifyActions ? root.entry.acts : []
+                model: ShellState.notifyActions ? root.entry.acts.slice(0, 3) : []
 
                 delegate: YButton {
                     required property var modelData
 
+                    // server-supplied labels can be arbitrarily long — cap so
+                    // three actions can never run the row past the card edge
+                    width: Math.min(implicitWidth, 120)
                     label: modelData.text.toUpperCase()
                     onClicked: Notify.invokeAction(root.entry.id, modelData.id)
                 }

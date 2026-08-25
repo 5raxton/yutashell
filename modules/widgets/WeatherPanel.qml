@@ -182,6 +182,8 @@ PanelWindow {
                     }
 
                     Text {
+                        id: heroTemp
+
                         anchors.left: heroGlyph.right
                         anchors.leftMargin: Theme.sp3
                         anchors.verticalCenter: parent.verticalCenter
@@ -194,8 +196,10 @@ PanelWindow {
                     }
 
                     Column {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 150
+                        // anchored to the real temp width — a fixed offset let
+                        // negative/3-digit temps graze the conditions text
+                        anchors.left: heroTemp.right
+                        anchors.leftMargin: Theme.sp3
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2

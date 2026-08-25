@@ -239,6 +239,8 @@ PanelWindow {
                             }
 
                             Rectangle {
+                                id: urgTick
+
                                 anchors.left: timeText.visible ? timeText.right : parent.left
                                 anchors.leftMargin: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
@@ -248,8 +250,10 @@ PanelWindow {
                             }
 
                             Column {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 64
+                                id: entryCol
+
+                                anchors.left: urgTick.right
+                                anchors.leftMargin: Theme.sp2
                                 anchors.right: actionsRow.visible ? actionsRow.left : parent.right
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
@@ -259,6 +263,9 @@ PanelWindow {
                                     spacing: Theme.sp2
 
                                     Text {
+                                        // cap so long app ids can't run under the hover actions
+                                        width: Math.min(implicitWidth, entryCol.width * 0.6)
+                                        elide: Text.ElideRight
                                         text: rowRoot.modelData.app.toUpperCase()
                                         color: Theme.muted
                                         font.family: Theme.fontFamily

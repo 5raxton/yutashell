@@ -67,7 +67,7 @@ PanelWindow {
     readonly property string activePageId: activePage.id
 
     // visible tabs, in the persisted order (PH.16 CC tab edits this)
-    readonly property var visiblePages: {
+    readonly property var _visiblePagesCache: {
         try {
             const ids = JSON.parse(ShellState.ccTabs);
             if (Array.isArray(ids) && ids.length > 0)
@@ -75,6 +75,7 @@ PanelWindow {
         } catch (e) {}
         return root.pages;
     }
+    readonly property var visiblePages: root._visiblePagesCache
 
     readonly property string anchorX: ShellState.ccAnchor === "left" ? "left" : ShellState.ccAnchor === "right" ? "right" : "center"
 
@@ -178,6 +179,8 @@ PanelWindow {
                 }
 
                 Text {
+                    id: ccTitle
+
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: mark.right
                     anchors.leftMargin: Theme.sp2
@@ -191,8 +194,8 @@ PanelWindow {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.leftMargin: 168
+                    anchors.left: ccTitle.right
+                    anchors.leftMargin: Theme.sp2
                     visible: Theme.jpEnabled
                     text: "中枢"
                     color: Theme.muted
@@ -1242,6 +1245,7 @@ PanelWindow {
 
                         width: parent.width
                         interactive: false
+                        trailingW: 78
                         title: modelData.name
                         sub: "signal " + modelData.signalStrength + "%" + (modelData.connected ? " · connected" : "")
                         note: modelData.connected ? "●" : ""
@@ -1371,6 +1375,7 @@ PanelWindow {
 
                         width: parent.width
                         interactive: false
+                        trailingW: 56
                         title: modelData.deviceName.length > 0 ? modelData.deviceName : modelData.name
                         sub: drow.conn ? "connected" : (modelData.paired ? "paired" : "unpaired")
                         note: modelData.batteryAvailable ? Math.round(modelData.battery * 100) + "%" : ""
@@ -1654,6 +1659,7 @@ PanelWindow {
 
                             width: parent.width
                             interactive: false
+                            trailingW: 80
                             title: modelData.app.toUpperCase()
                             sub: modelData.sum + (modelData.body.length > 0 ? " — " + modelData.body.replace(/\n/g, " ").replace(/<[^>]*>/g, "") : "")
                             note: modelData.urg === 2 ? "CRIT" : (modelData.sup ? "QUIET" : "")

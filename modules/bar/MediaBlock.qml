@@ -59,7 +59,7 @@ Item {
         property: "x"
         from: tickerClip.width
         to: -trackText.width - 12
-        duration: Math.max(4000, (tickerClip.width + trackText.width + 12) * 45)
+        duration: trackText.width > 0 ? Math.max(4000, (tickerClip.width + trackText.width + 12) * 45) : 4000
         loops: Animation.Infinite
     }
 

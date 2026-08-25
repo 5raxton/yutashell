@@ -61,6 +61,6 @@ fi
 
 echo
 echo "Next steps:"
-echo "  1. Add to your Hyprland/Helmsman autostart:  qs -c yuta-qs   (or quickshell -p $CONFIG_DIR)"
+echo "  1. Add to your Hyprland autostart:  qs -c yuta-qs   (or quickshell -p $CONFIG_DIR)"
 echo "  2. Bind keys (see README 'Keybinds & IPC') — e.g. SUPER A -> qs ipc call launcher toggle"
 echo "  3. Fonts: JetBrainsMono Nerd Font is required; noto-fonts-cjk enables the Japanese labels"

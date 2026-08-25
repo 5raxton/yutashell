@@ -58,9 +58,9 @@ Item {
                     id: iconImg
                     anchors.centerIn: parent
                     implicitSize: 15
-                    source: cell.modelData.icon
+                    source: (cell.modelData.icon && cell.modelData.icon.length > 0) ? cell.modelData.icon : ""
                     opacity: area.containsMouse ? 1 : 0.85
-                    visible: status !== Image.Error && status !== Image.Null
+                    visible: source.length > 0 && status !== Image.Error && status !== Image.Null
                 }
 
                 HoverHandler {

@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Quickshell desktop shell for Hyprland running the **Helmsman Lua dispatcher** — every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
+Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
 README.md is the public-facing doc (features, install, IPC table) — keep it accurate when features change.
 
@@ -29,7 +29,7 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - **Process**: assigning `command` does NOT start it — nothing runs until `running: true`. `StdioWriter` does not exist; write files via FileView (`setText` stages AND writes) then move with a Process.
 - Singletons instantiate lazily on first access — IPC right after spawn races their boot probes; shell.qml has a warm-up Timer touching each service's `available`.
 
-## Hyprland / Helmsman facts
+## Hyprland facts
 
 - **Warm-client rule**: `Hyprland.dispatch('hl.dsp.*')` silently no-ops from a fresh instance unless the event socket is subscribed AND ~8 s uptime elapsed. Live shell always qualifies; 2 s test instances don't. `hyprctl eval '<lua>'` is always cold — fine for `hl.config`, inert for `hl.dsp.*`.
 - `Hyprland.dispatch()` return value is meaningless — verify dispatches by effect, not return.
@@ -101,7 +101,7 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 - Acid is semantic (active/focus/primary CTA/status ticks), never decoration; may pulse/draw/sweep only where meaningful.
 - Motion: hover/focus snap (`movSnap`); indicators movFast/movMed OutCubic; idle life = opacity-only at movDrift; never pulse text. YButton hard-shadow press collapse is the one physical flourish.
 - User actions go through IpcHandlers (keybinds + CLI + panel share one implementation). Persistence only via `ShellState.set(key,value)` → state.json.
-- Compositor calls through wrapper functions (Helmsman Lua form), never inline strings. JP labels gated on `Theme.jpEnabled` with romaji fallback.
+- Compositor calls through wrapper functions (Lua form), never inline strings. JP labels gated on `Theme.jpEnabled` with romaji fallback.
 - Name IPC list functions `list`, not `show` (collides with built-in target listing).
 
 ## Testing protocol

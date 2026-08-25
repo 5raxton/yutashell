@@ -614,6 +614,8 @@ Singleton {
         id: genConfigFile
         path: root.genConfigPath
         printErrors: false
+        atomicWrites: true
+        blockWrites: true
     }
 
     Component.onCompleted: {

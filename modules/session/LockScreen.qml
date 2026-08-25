@@ -342,7 +342,9 @@ Item {
 
                 Text {
                     anchors.baseline: parent.bottom
-                    visible: clockRow.colonOn
+                    // opacity, not visible — toggling visible resizes the row
+                    // and makes the whole clock jitter sideways every second
+                    opacity: clockRow.colonOn ? 1 : 0
                     text: ":"
                     color: Theme.acid
                     font.family: Theme.fontFamily

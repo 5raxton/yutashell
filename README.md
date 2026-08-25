@@ -26,14 +26,17 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 | dependency | why |
 |---|---|
-| `wayland compositor` | cause |
 | `quickshell` ≥ 0.3.1 | shell runtime |
 | `matugen` ≥ 4.x | theming pipeline |
 | `awww` | wallpaper painting |
+| `grim` | screenshot capture |
+| `slurp` | region selection |
+| `wl-clipboard` | clipboard write |
+| `cliphist` | clipboard history |
 | JetBrainsMono Nerd Font | typeface |
 | `noto-fonts-cjk` *(optional)* | Japanese labels (romaji fallback otherwise) |
 
-Optional backends (`grim`, `cliphist`, `cava`, `hyprsunset`, `brightnessctl`, `ddcutil`, `curl`, `power-profiles-daemon`, …) are probed at startup — missing ones hide their feature cleanly instead of breaking.
+Required backends (`grim`, `cliphist`, `wl-clipboard`) are probed at startup — missing ones hide their feature cleanly. Optional backends (`cava`, `hyprsunset`, `ddcutil`, `power-profiles-daemon`, `hyprpicker`, `networkmanager`, `bluez`, …) are also checked; if absent the related feature simply disappears.
 
 ## Installation
 

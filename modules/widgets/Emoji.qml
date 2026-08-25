@@ -206,12 +206,16 @@ PanelWindow {
 
                             width: 54
                             height: 54
+                            clip: true
                             color: symArea.containsMouse ? Theme.surface : Theme.bg
                             border.width: 1
                             border.color: symArea.containsMouse ? Theme.lineStrong : Theme.hairline
 
                             Text {
                                 anchors.centerIn: parent
+                                width: parent.width - Theme.sp2
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
                                 text: sym.modelData
                                 color: Theme.ink
                                 font.family: Theme.fontFamily

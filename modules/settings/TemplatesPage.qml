@@ -17,6 +17,7 @@ Column {
     readonly property string query: searchField.text.trim().toLowerCase()
     readonly property var rows: Wallpaper.templatesList()
     readonly property int enabledCount: rows.filter(r => r.enabled).length
+    property string formError: ""
 
     // sections rebuild recreates every group header + TemplateRow (~60
     // delegates) — debounce the search text so typing doesn't do that per key
@@ -73,7 +74,7 @@ Column {
             onClicked: {
                 form.visible = !form.visible;
                 if (!form.visible)
-                    formError.label = "";
+                    root.formError = "";
                 else
                     fieldId.forceFocus();
             }
@@ -122,8 +123,8 @@ Column {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: formError.label
-                visible: formError.label.length > 0
+                text: root.formError
+                visible: root.formError.length > 0
                 color: Theme.alert
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fsLabel
@@ -138,19 +139,11 @@ Column {
                 fieldId.text = "";
                 fieldInput.text = "";
                 fieldOutput.text = "";
-                formError.label = "";
+                root.formError = "";
                 form.visible = false;
             } else {
-                formError.label = "! bad args or duplicate id";
+                root.formError = "! bad args or duplicate id";
             }
-        }
-
-        Item {
-            id: formError
-
-            property string label: ""
-            width: 0
-            height: 0
         }
 
         Text {

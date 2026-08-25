@@ -51,7 +51,7 @@ Item {
                 readonly property string appId: modelData.id
                 readonly property bool active: Dock.isActive(appId)
                 readonly property bool running: modelData.running
-                readonly property string iconUrl: modelData.iconSrc === "" ? "" : Quickshell.iconPath(modelData.iconSrc)
+                readonly property string iconUrl: (modelData.iconSrc && modelData.iconSrc.length > 0) ? Quickshell.iconPath(modelData.iconSrc) : ""
 
                 width: 30
                 height: 30

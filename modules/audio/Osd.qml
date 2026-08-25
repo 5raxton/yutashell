@@ -170,7 +170,7 @@ PanelWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.sp3 - 4
+            anchors.bottomMargin: Theme.sp2
             anchors.leftMargin: Theme.sp3
             anchors.rightMargin: Theme.sp3
             implicitHeight: 20

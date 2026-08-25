@@ -15,7 +15,7 @@ Rectangle {
     readonly property color liveLine: isAcid ? Theme.acid : isDanger ? Theme.alert : Theme.lineStrong
     readonly property color liveText: isAcid ? Theme.acid : isDanger ? Theme.alert : Theme.ink
 
-    implicitWidth: labelText.width + Theme.sp3 * 2
+    implicitWidth: labelText.implicitWidth + Theme.sp3 * 2
     implicitHeight: Theme.ctlH
     activeFocusOnTab: true
     color: area.containsMouse || activeFocus ? liveLine : "transparent"
@@ -57,6 +57,10 @@ Rectangle {
         id: labelText
 
         anchors.centerIn: parent
+        // when a consumer forces a width below the label's natural size,
+        // truncate with an ellipsis instead of painting past the border
+        width: Math.max(0, Math.min(implicitWidth, root.width - Theme.sp1))
+        elide: Text.ElideRight
         text: root.label.toUpperCase()
         color: area.containsMouse || root.activeFocus ? Theme.bg : root.liveText
         font.family: Theme.fontFamily

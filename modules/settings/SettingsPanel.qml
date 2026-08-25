@@ -191,7 +191,17 @@ PanelWindow {
         return hay.indexOf(q) >= 0;
     }
 
-    readonly property var visiblePages: root.pages.filter(p => root.matchesQuery(p))
+    property var _visiblePagesCache: []
+    readonly property var visiblePages: root._visiblePagesCache
+
+    // update cache when query changes
+    onSearchQueryChanged: {
+        root._visiblePagesCache = root.pages.filter(p => root.matchesQuery(p));
+    }
+
+    Component.onCompleted: {
+        root._visiblePagesCache = root.pages.filter(p => root.matchesQuery(p));
+    }
 
     Timer {
         id: hideDelay
@@ -247,6 +257,30 @@ PanelWindow {
     }
 
     property bool blinkOn: true
+
+    // TEMP AUDIT — remove before commit
+    function _auditWalk(it) {
+        if (!it)
+            return;
+        const kids = it.children;
+        for (let i = 0; i < kids.length; i++) {
+            const c = kids[i];
+            if (c instanceof Text && c.elide === Text.ElideNone && c.width > 0
+                && c.implicitWidth > c.width + 2 && c.wrapMode === Text.NoWrap)
+                console.warn("[audit] CUT:", JSON.stringify(String(c.text).slice(0, 48)), Math.round(c.implicitWidth) + ">" + Math.round(c.width));
+            root._auditWalk(c);
+        }
+    }
+
+    Timer {
+        interval: 300
+        running: Quickshell.env("YUTA_AUDIT") === "1" && Quickshell.env("YUTA_DEBUG_CYCLE") === "1"
+        repeat: true
+        onTriggered: {
+            root._auditWalk(pageLoader.item);
+            root._auditWalk(railFlick);
+        }
+    }
 
     // YUTA_DEBUG_CYCLE=1 walks every tab on a timer — validates all lazy pages
     // build cleanly without manual clicking
@@ -369,7 +403,7 @@ PanelWindow {
 
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
-                    anchors.rightMargin: root.padX - 6
+                    anchors.rightMargin: root.padX
                     width: 30
                     label: "×"
                     onClicked: ShellState.closePanel()
@@ -421,13 +455,30 @@ PanelWindow {
                     onTextChanged: root.searchQuery = searchField.text
                 }
 
-                Column {
-                    id: railCol
+                // wheel-scrollable so short viewports can still reach PLUGINS /
+                // ABOUT; drag gestures stay off — rail clicks must never be eaten
+                Flickable {
+                    id: railFlick
 
                     x: 0
                     y: searchField.y + searchField.height + Theme.sp2
                     width: parent.width
-                    spacing: Theme.sp1
+                    height: parent.height - y
+                    contentWidth: width
+                    contentHeight: railCol.height
+                    clip: true
+                    interactive: false
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    FastWheel {}
+
+                    Column {
+                        id: railCol
+
+                        x: 0
+                        y: 0
+                        width: railFlick.width
+                        spacing: Theme.sp1
 
                         Repeater {
                             model: root.groups
@@ -522,6 +573,7 @@ PanelWindow {
                                 }
                             }
                         }
+                    }
                     }
 
                     // search produced nothing — honest empty state
@@ -950,7 +1002,7 @@ PanelWindow {
                     }
 
                     Row {
-                        spacing: 5
+                        spacing: Theme.sp1
 
                         Repeater {
                             model: root.accentChoices
@@ -1123,6 +1175,7 @@ PanelWindow {
                     YRow {
                         width: root.contentW
                         interactive: false
+                        trailingW: 72
                         title: "Default timeout"
                         sub: ShellState.notifyTimeout === 0 ? "0 — honor each app's own timeout" : ShellState.notifyTimeout + "s (client may ask for less)"
                         note: "SEC"
@@ -1146,6 +1199,7 @@ PanelWindow {
                     YRow {
                         width: root.contentW
                         interactive: false
+                        trailingW: 72
                         title: "Max visible toasts"
                         sub: String(ShellState.notifyMaxVisible)
                         note: "MAX"
@@ -1231,6 +1285,7 @@ PanelWindow {
 
                             width: root.contentW
                             interactive: false
+                            trailingW: 104
                             title: modelData.match
                             sub: modelData.mode === "block" ? "drop entirely — no toast, no history" : "quiet — history only unless critical"
 
@@ -1542,7 +1597,7 @@ PanelWindow {
                             readonly property string cur: PanelSpawn.modeFor(modelData.id)
 
                             width: root.contentW
-                            height: 36
+                            height: Theme.rowH
 
                             Rectangle {
                                 anchors.fill: parent
@@ -2306,7 +2361,7 @@ PanelWindow {
                                 id: segLabel
 
                                 anchors.left: parent.left
-                                anchors.leftMargin: Theme.sp2
+                                anchors.leftMargin: 30
                                 anchors.right: statusNote.left
                                 anchors.rightMargin: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2793,6 +2848,7 @@ PanelWindow {
                         sub: "volume allowed past 100%, flagged in acid"
                         note: "VOL"
                         interactive: false
+                        trailingW: 68
 
                         Row {
                             anchors.verticalCenter: parent.verticalCenter

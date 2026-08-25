@@ -40,9 +40,20 @@ Item {
     }
 
     // hottest CPU package temp from SystemStats.temps (label "CPU")
-    readonly property int cpuTemp: {
+    // cached so the find() doesn't run on every binding evaluation
+    property int _cpuTemp: -1
+    readonly property int cpuTemp: root._cpuTemp
+
+    Connections {
+        target: SystemStats
+        function onTempsChanged() {
+            const s = SystemStats.temps.find(t => t.label === "CPU");
+            root._cpuTemp = s ? s.temp : -1;
+        }
+    }
+    Component.onCompleted: {
         const s = SystemStats.temps.find(t => t.label === "CPU");
-        return s ? s.temp : -1;
+        root._cpuTemp = s ? s.temp : -1;
     }
 
     readonly property string value: {

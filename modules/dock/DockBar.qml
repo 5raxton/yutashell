@@ -111,6 +111,9 @@ PanelWindow {
         y: root.autoHide && !root.hovered ? parent.height + 10 : parent.height - root.dockH
         width: Math.min(row.width + Theme.sp2 * 2, parent.width - Theme.outerPad * 2)
         height: root.dockH - 4
+        // many pinned+running apps can outgrow the clamped frame — cut them
+        // at the border instead of painting onto the bare backdrop
+        clip: true
         color: Theme.bg
         border.width: 1
         border.color: Theme.lineStrong
@@ -282,7 +285,7 @@ PanelWindow {
             anchors.bottom: parent.top
             anchors.bottomMargin: Theme.sp2
             anchors.horizontalCenter: parent.horizontalCenter
-            width: titleText.width + Theme.sp2 * 2
+            width: Math.min(titleText.implicitWidth + Theme.sp2 * 2, 180)
             height: 24
             visible: hover.containsMouse && root.menuApp === ""
             color: Theme.bgAlt
@@ -293,6 +296,8 @@ PanelWindow {
                 id: titleText
 
                 anchors.centerIn: parent
+                width: Math.min(implicitWidth, parent.width - Theme.sp2)
+                elide: Text.ElideRight
                 text: item.modelData.name
                 color: Theme.ink
                 font.family: Theme.fontFamily

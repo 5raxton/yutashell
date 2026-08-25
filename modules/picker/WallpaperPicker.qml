@@ -246,7 +246,7 @@ PanelWindow {
 
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
-                    anchors.rightMargin: root.padX - 6
+                    anchors.rightMargin: root.padX
                     width: 30
                     label: "×"
                     onClicked: ShellState.closePicker()
@@ -469,8 +469,8 @@ PanelWindow {
                             anchors.fill: parent
                             anchors.margins: 6
                             source: card.selRow && root.open && frame.width > 50 ? "file://" + card.selRow.path : ""
-                            sourceSize.width: Math.min(1024, Math.round(frame.width))
-                            sourceSize.height: Math.min(640, Math.round(frame.height))
+                            sourceSize.width: frame.width > 0 ? Math.min(1024, Math.round(frame.width)) : 1024
+                            sourceSize.height: frame.height > 0 ? Math.min(640, Math.round(frame.height)) : 640
                             fillMode: Image.PreserveAspectFit
                             asynchronous: true
                             cache: false
@@ -611,6 +611,11 @@ PanelWindow {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             leftPadding: Theme.sp2
+                            // elide before the card edge — the stage is narrower
+                            // than the action row on smaller monitors
+                            width: Math.min(implicitWidth + leftPadding,
+                                            stage.width - stage.pad * 2 - (150 + 40 + 40 + Theme.sp2 * 3))
+                            elide: Text.ElideRight
                             text: "↵ APPLY · DOUBLE-CLICK INDEX ROW · TYPE TO FILTER"
                             color: Theme.faint
                             font.family: Theme.fontFamily

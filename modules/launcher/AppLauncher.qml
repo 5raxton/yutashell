@@ -375,7 +375,7 @@ PanelWindow {
 
                 y: 0
                 width: parent.width
-                height: 46
+                height: Theme.headH
 
                 Text {
                     x: Theme.sp4
@@ -893,7 +893,7 @@ PanelWindow {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
-                height: 30
+                height: Theme.footH
                 color: Theme.bgAlt
 
                 Rectangle {
@@ -905,6 +905,8 @@ PanelWindow {
                 }
 
                 YChip {
+                    id: countChip
+
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.sp4
                     anchors.verticalCenter: parent.verticalCenter
@@ -912,9 +914,12 @@ PanelWindow {
                 }
 
                 Text {
+                    anchors.left: countChip.right
+                    anchors.leftMargin: Theme.sp2
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.sp4
                     anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
                     text: "↵ RUN · ↑↓ NAV · ←→ GRID · TAB MODE · RCLICK PIN · ⇧DEL FORGET · ESC CLOSE"
                     color: Theme.muted
                     font.family: Theme.fontFamily
