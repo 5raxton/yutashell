@@ -155,6 +155,7 @@ PanelWindow {
                 if (!selRow || Wallpaper.generating)
                     return;
                 Wallpaper.apply(selRow.path);
+                ShellState.closePicker();
             }
 
             Connections {
@@ -419,6 +420,7 @@ PanelWindow {
                             onClicked: {
                                 Wallpaper.applyRandom();
                                 card.selectCurrent();
+                                ShellState.closePicker();
                             }
                         }
 

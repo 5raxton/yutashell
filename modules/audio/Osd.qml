@@ -29,7 +29,6 @@ PanelWindow {
     readonly property bool sinkMuted: !isMic && !isBright && sinkNode && sinkNode.audio ? sinkNode.audio.muted : false
     readonly property bool hot: isMic ? (srcNode && srcNode.audio ? srcNode.audio.muted : false) : isBright ? false : root.sinkMuted || pct > 100
 
-    // bar fill clamped 0..1 — the visual gauge
     readonly property real barFill: Math.max(0, Math.min(1, root.frac))
 
     function ping(k) {
@@ -51,7 +50,7 @@ PanelWindow {
         right: rightSide || centeredX
     }
 
-    margins.top: topSide ? Theme.barHeight + pad : pad + 6
+    margins.top: topSide ? Theme.barHeight + pad : pad + 4
     margins.left: centeredX ? 0 : pad
     margins.right: centeredX ? 0 : pad
 
@@ -65,7 +64,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
 
     implicitWidth: ShellState.osdWidth
-    implicitHeight: 68
+    implicitHeight: 44
 
     Timer {
         id: fadeTimer
@@ -77,7 +76,6 @@ PanelWindow {
         }
     }
 
-    // exit: fade up + drift
     ParallelAnimation {
         id: outro
 
@@ -93,13 +91,12 @@ PanelWindow {
         NumberAnimation {
             target: shown
             property: "y"
-            to: shown.targetY - (root.topSide ? 6 : -6)
+            to: shown.targetY - (root.topSide ? 4 : -4)
             duration: Theme.movFast
             easing.type: Easing.OutCubic
         }
     }
 
-    // entrance: fade in + drift from offset
     ParallelAnimation {
         id: intro
 
@@ -116,7 +113,7 @@ PanelWindow {
         NumberAnimation {
             target: shown
             property: "y"
-            from: shown.targetY + (root.topSide ? -10 : 10)
+            from: shown.targetY + (root.topSide ? -6 : 6)
             to: shown.targetY
             duration: Theme.movMed
             easing.type: Easing.OutCubic
@@ -130,9 +127,9 @@ PanelWindow {
         property real targetX: root.centeredX ? (root.width - width) / 2 : root.rightSide ? root.width - width - root.pad : root.pad
 
         x: targetX
-        y: targetY + (root.topSide ? -10 : 10)
+        y: targetY + (root.topSide ? -6 : 6)
         width: root.width - root.pad * 2
-        height: root.height - 8
+        height: root.height - 6
         opacity: 0
 
         MouseArea {
@@ -154,7 +151,7 @@ PanelWindow {
             anchors.fill: parent
             color: Theme.bgAlt
             border.width: 1
-            border.color: root.hot ? Qt.rgba(Theme.alert.r, Theme.alert.g, Theme.alert.b, 0.4) : Theme.lineStrong
+            border.color: root.hot ? Qt.rgba(Theme.alert.r, Theme.alert.g, Theme.alert.b, 0.3) : Theme.hairline
             radius: Theme.sp1
 
             Behavior on border.color {
@@ -163,7 +160,6 @@ PanelWindow {
                 }
             }
 
-            // acid spine — the signature, shared language across every card
             Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top
@@ -179,19 +175,18 @@ PanelWindow {
                 }
             }
 
-            // kind label — VOL / BRIGHT / MIC
             Text {
-                x: Theme.sp4
-                y: Theme.sp2
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.margins: Theme.sp2
                 text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : "VOL"
                 color: root.hot ? Theme.alert : Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fsMicro
                 font.weight: Font.Bold
-                font.letterSpacing: 1.5
+                font.letterSpacing: 1
             }
 
-            // percentage or status
             Text {
                 anchors.right: parent.right
                 anchors.top: parent.top
@@ -205,32 +200,26 @@ PanelWindow {
                             : (root.pct > 100 ? "+" : "") + root.pct + "%"
                 color: root.hot ? Theme.alert : root.pct > 100 && !root.sinkMuted ? Theme.acid : Theme.ink
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsBody
+                font.pixelSize: Theme.fsLabel
                 font.weight: Font.DemiBold
             }
 
-            // bar track — thin gauge below the text
             Rectangle {
-                id: barTrack
-
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: Theme.sp3
-                height: 6
+                anchors.margins: Theme.sp2
+                height: 3
                 color: Theme.hairline
-                radius: 3
+                radius: 1
 
-                // fill
                 Rectangle {
-                    id: barFillRect
-
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
-                    width: root.barFill * barTrack.width
+                    width: root.barFill * parent.width
                     color: root.hot ? Theme.alert : Theme.acid
-                    radius: 3
+                    radius: 1
 
                     Behavior on width {
                         NumberAnimation {
