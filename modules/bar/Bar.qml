@@ -157,6 +157,8 @@ PanelWindow {
     }
 
     function _renderable(id) {
+        if (id.startsWith("spacer-"))
+            return BarSegments.enabled(id);
         return id !== "activewindow" && BarSegments.present(id);
     }
 
@@ -263,6 +265,8 @@ PanelWindow {
             return pluginWidgetsComp;
         case "clock":
             return clockComp;
+        case "spacer":
+            return spacerComp;
         }
         return null;
     }
@@ -514,6 +518,15 @@ PanelWindow {
         id: clockComp
 
         ClockBlock {}
+    }
+
+    Component {
+        id: spacerComp
+
+        Item {
+            implicitWidth: Theme.sp4
+            implicitHeight: Theme.barHeight
+        }
     }
 
     // ---- boot entrance animation ----

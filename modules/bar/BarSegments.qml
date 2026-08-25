@@ -39,7 +39,8 @@ Singleton {
             "session": { label: "Inhibit chip", jp: "阻" },
             "recording": { label: "Recording chip", jp: "録" },
             "pluginwidgets": { label: "Plugin widgets", jp: "拡" },
-            "clock": { label: "Clock", jp: "時" }
+            "clock": { label: "Clock", jp: "時" },
+            "spacer": { label: "Spacer", jp: "余" }
         })
 
     // persisted model, parsed with fallback to the default order; legacy
@@ -231,5 +232,53 @@ Singleton {
         else
             map[id] = action;
         ShellState.set("barClick", JSON.stringify(map));
+    }
+
+    function addSpacer() {
+        let maxN = 0;
+        for (const s of root.model) {
+            if (s.id.startsWith("spacer-")) {
+                const n = parseInt(s.id.substring(7));
+                if (!isNaN(n) && n > maxN)
+                    maxN = n;
+            }
+        }
+        const newId = "spacer-" + (maxN + 1);
+        const list = [];
+        for (const s of root.model)
+            list.push({ id: s.id, zone: s.zone, enabled: s.enabled !== false });
+        list.push({ id: newId, zone: "right", enabled: true });
+        ShellState.set("barSegments", JSON.stringify(list));
+    }
+
+    function removeSpacer(id) {
+        if (!id.startsWith("spacer-"))
+            return;
+        const list = [];
+        for (const s of root.model) {
+            if (s.id !== id)
+                list.push({ id: s.id, zone: s.zone, enabled: s.enabled !== false });
+        }
+        ShellState.set("barSegments", JSON.stringify(list));
+    }
+
+    function labelFor(id) {
+        if (id.startsWith("spacer-"))
+            return "Spacer";
+        return (root.meta[id] ?? {}).label ?? id;
+    }
+
+    function abbrFor(id) {
+        const map = {
+            "identity": "ID", "workspaces": "WS", "taskbar": "TB",
+            "activewindow": "AW", "tray": "TR", "media": "MD", "net": "NT",
+            "bt": "BT", "audio": "AU", "cpu": "C", "mem": "M", "bat": "B",
+            "cputemp": "T", "gpu": "G", "disk": "D", "nightlight": "NL",
+            "session": "INK", "recording": "REC", "pluginwidgets": "PW",
+            "clock": "CK"
+        };
+        if (id.startsWith("spacer-"))
+            return "···";
+        return map[id] ?? id.substring(0, 3).toUpperCase();
     }
 }

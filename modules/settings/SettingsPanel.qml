@@ -2262,9 +2262,153 @@ PanelWindow {
                     width: root.contentW
                     spacing: Theme.sp3
 
+                    readonly property var leftSegs: BarSegments.model.filter(s => s.zone === "left" && s.enabled !== false)
+                    readonly property var centerSegs: BarSegments.model.filter(s => s.zone === "center" && s.enabled !== false)
+                    readonly property var rightSegs: BarSegments.model.filter(s => s.zone === "right" && s.enabled !== false)
+                    readonly property var availSegs: BarSegments.model.filter(s => s.enabled === false && !s.id.startsWith("spacer-"))
+                    readonly property int totalVisible: leftSegs.length + centerSegs.length + rightSegs.length
+
+                    // ═══ 01  PREVIEW ═══
                     YSection {
                         width: parent.width
                         index: "01"
+                        label: "Preview"
+                        chip: totalVisible + " active"
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 52
+
+                        Rectangle {
+                            id: prevBar
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            height: 28
+                            radius: Theme.sp1
+                            color: Theme.bg
+                            border.width: 1
+                            border.color: Theme.hairline
+
+                            Row {
+                                id: prevLeft
+
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 3
+
+                                Repeater {
+                                    model: BarSegments.model.filter(s => s.zone === "left" && s.enabled !== false && s.id !== "activewindow")
+
+                                    delegate: Rectangle {
+                                        required property var modelData
+
+                                        width: prevChipText.contentWidth + 8
+                                        height: 14
+                                        radius: 3
+                                        color: Theme.acid
+                                        opacity: 0.15
+
+                                        Text {
+                                            id: prevChipText
+
+                                            anchors.centerIn: parent
+                                            text: BarSegments.abbrFor(modelData.id)
+                                            color: Theme.acid
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: 9
+                                            font.weight: Font.Bold
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: BarSegments.enabled("activewindow") ? "ACTIVE WINDOW" : ""
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 8
+                                font.weight: Font.Medium
+                                font.letterSpacing: 1
+                            }
+
+                            Row {
+                                id: prevRight
+
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 3
+
+                                Repeater {
+                                    model: BarSegments.model.filter(s => s.zone === "right" && s.enabled !== false && s.id !== "activewindow")
+
+                                    delegate: Rectangle {
+                                        required property var modelData
+
+                                        width: prevChipTextR.contentWidth + 8
+                                        height: 14
+                                        radius: 3
+                                        color: Theme.acid
+                                        opacity: 0.15
+
+                                        Text {
+                                            id: prevChipTextR
+
+                                            anchors.centerIn: parent
+                                            text: BarSegments.abbrFor(modelData.id)
+                                            color: Theme.acid
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: 9
+                                            font.weight: Font.Bold
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Row {
+                            anchors.top: prevBar.bottom
+                            anchors.topMargin: 4
+                            width: parent.width
+
+                            Text {
+                                width: parent.width / 3
+                                text: "LEFT"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 9
+                                horizontalAlignment: Text.AlignLeft
+                            }
+
+                            Text {
+                                width: parent.width / 3
+                                text: "CENTER"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 9
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            Text {
+                                width: parent.width / 3
+                                text: "RIGHT"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 9
+                                horizontalAlignment: Text.AlignRight
+                            }
+                        }
+                    }
+
+                    // ═══ 02  LAYOUT ═══
+                    YSection {
+                        width: parent.width
+                        index: "02"
                         label: "Layout"
                         chip: ShellState.barScale + "× · " + ShellState.barPosition.toUpperCase()
                     }
@@ -2300,13 +2444,7 @@ PanelWindow {
                         spacing: Theme.sp1
 
                         Repeater {
-                            model: [{
-                                    id: "top",
-                                    label: "TOP"
-                                }, {
-                                    id: "bottom",
-                                    label: "BOTTOM"
-                                }]
+                            model: [{ id: "top", label: "TOP" }, { id: "bottom", label: "BOTTOM" }]
 
                             delegate: YButton {
                                 required property var modelData
@@ -2318,11 +2456,12 @@ PanelWindow {
                         }
                     }
 
+                    // ═══ 03  WORKSPACES ═══
                     YSection {
                         width: parent.width
-                        index: "02"
+                        index: "03"
                         label: "Workspaces"
-                        chip: (ShellState.wsMode === "active" ? "ACTIVE ONLY" : ShellState.wsMode.toUpperCase())
+                        chip: (ShellState.wsMode === "active" ? "ACTIVE" : ShellState.wsMode.toUpperCase())
                     }
 
                     Row {
@@ -2330,19 +2469,7 @@ PanelWindow {
                         spacing: Theme.sp1
 
                         Repeater {
-                            model: [{
-                                    id: "default",
-                                    label: "DEFAULT"
-                                }, {
-                                    id: "numbers",
-                                    label: "NUMBERS"
-                                }, {
-                                    id: "pills",
-                                    label: "PILLS"
-                                }, {
-                                    id: "active",
-                                    label: "ACTIVE ONLY"
-                                }]
+                            model: [{ id: "default", label: "DEFAULT" }, { id: "numbers", label: "NUMBERS" }, { id: "pills", label: "PILLS" }, { id: "active", label: "ACTIVE ONLY" }]
 
                             delegate: YButton {
                                 required property var modelData
@@ -2356,72 +2483,307 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "DEFAULT numbered pills · NUMBERS bare digits · PILLS boxes without digits · ACTIVE ONLY occupied/focused workspaces"
+                        text: "DEFAULT numbered pills · NUMBERS bare digits · PILLS boxes without digits · ACTIVE ONLY occupied or focused workspaces"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
                         wrapMode: Text.WordWrap
                     }
 
+                    // ═══ 04  LEFT ZONE ═══
                     YSection {
                         width: parent.width
-                        index: "03"
-                        label: "Segments"
-                        chip: BarSegments.model.length + " · " + (BarSegments.leftVisible.length + BarSegments.rightVisible.length) + " visible"
+                        index: "04"
+                        label: "Left zone"
+                        chip: leftSegs.length + " segment" + (leftSegs.length !== 1 ? "s" : "")
                     }
 
                     Repeater {
-                        model: BarSegments.model
+                        model: leftSegs
 
-                        delegate: Item {
+                        delegate: segDelegate
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "no segments — enable one from Available below"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        visible: leftSegs.length === 0
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    // ═══ 05  CENTER ZONE ═══
+                    YSection {
+                        width: parent.width
+                        index: "05"
+                        label: "Center zone"
+                        chip: centerSegs.length + " segment" + (centerSegs.length !== 1 ? "s" : "")
+                    }
+
+                    Repeater {
+                        model: centerSegs
+
+                        delegate: segDelegate
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "no segments — enable one from Available below"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        visible: centerSegs.length === 0
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    // ═══ 06  RIGHT ZONE ═══
+                    YSection {
+                        width: parent.width
+                        index: "06"
+                        label: "Right zone"
+                        chip: rightSegs.length + " segment" + (rightSegs.length !== 1 ? "s" : "")
+                    }
+
+                    Repeater {
+                        model: rightSegs
+
+                        delegate: segDelegate
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "no segments — enable one from Available below"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        visible: rightSegs.length === 0
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    // ═══ 07  AVAILABLE ═══
+                    YSection {
+                        width: parent.width
+                        index: "07"
+                        label: "Available"
+                        chip: availSegs.length + " disabled"
+                    }
+
+                    Grid {
+                        width: parent.width
+                        columns: 3
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: availSegs
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                property var segMeta: BarSegments.meta[modelData.id] ?? {}
+
+                                width: (parent.width - 2 * Theme.sp1) / 3
+                                height: 48
+                                radius: Theme.sp1
+                                color: addArea.containsMouse ? Theme.surface : "transparent"
+                                border.width: 1
+                                border.color: Theme.lineStrong
+
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "+"
+                                        color: Theme.acid
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsBody
+                                        font.weight: Font.Bold
+                                    }
+
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: segMeta.label ?? modelData.id
+                                        color: Theme.ink
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: addArea
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: BarSegments.setEnabled(modelData.id, true)
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "all modules enabled"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        visible: availSegs.length === 0
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    // ═══ 08  EXTRAS ═══
+                    YSection {
+                        width: parent.width
+                        index: "08"
+                        label: "Extras"
+                        chip: BarSegments.model.filter(s => s.id.startsWith("spacer-")).length + " spacers"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            label: "+ SPACER"
+                            onClicked: BarSegments.addSpacer()
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "adds empty space between segments in a zone"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                        }
+                    }
+
+                    // ═══ RESET ═══
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        YButton {
+                            label: "RESET SEGMENTS"
+                            onClicked: BarSegments.reset()
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "restore the default order, zones and toggles"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "preview updates live · ▲▼ reorder within a zone · tap L/C/R to move between zones · click DEFAULT to cycle the click action · toggle segments on/off · add spacers for spacing"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+
+                    // ═══ SEGMENT ROW DELEGATE ═══
+                    Component {
+                        id: segDelegate
+
+                        Item {
                             id: segRow
 
-                            required property int index
                             required property var modelData
+                            required property int index
 
-                            readonly property var meta: BarSegments.meta[modelData.id] ?? { label: modelData.id, jp: "" }
-                            readonly property bool on_: modelData.enabled !== false
-                            // state-driven chips only appear while active — tell
-                            // the user why the bar looks unchanged after enabling
-                            readonly property string inactiveWhy: {
-                                if (!segRow.on_ || BarSegments.present(modelData.id))
+                            property var meta: modelData.id.startsWith("spacer-") ? ({ label: "Spacer", jp: "余" }) : (BarSegments.meta[modelData.id] ?? { label: modelData.id, jp: "" })
+                            property bool on_: modelData.enabled !== false
+                            property bool isSpacer: modelData.id.startsWith("spacer-")
+                            property string inactiveWhy: {
+                                if (!on_ || BarSegments.present(modelData.id))
                                     return "";
                                 switch (modelData.id) {
                                 case "media":
-                                    return "inactive · shows when media plays";
+                                    return "shows when media plays";
                                 case "bt":
-                                    return "inactive · shows when bluetooth is on";
+                                    return "bluetooth off";
                                 case "nightlight":
-                                    return "inactive · toggle night light first";
+                                    return "night light off";
                                 case "session":
-                                    return "inactive · shows while idle inhibitors run";
+                                    return "no inhibitors";
                                 case "recording":
-                                    return "inactive · shows while recording";
+                                    return "not recording";
                                 case "pluginwidgets":
-                                    return "inactive · enable a plugin first";
+                                    return "no plugins";
                                 default:
                                     return "";
                                 }
                             }
 
-                            width: root.contentW
+                            width: parent.width
                             height: 40
 
                             Rectangle {
                                 anchors.fill: parent
-                                color: segArea.containsMouse ? Theme.surface : "transparent"
+                                radius: Theme.sp1
+                                color: segHover.containsMouse ? Theme.surface : "transparent"
+                            }
+
+                            Row {
+                                id: reorderArrows
+
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.sp1
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+
+                                Text {
+                                    text: "▲"
+                                    color: segHover.containsMouse ? Theme.ink : Theme.faint
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsMicro
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: BarSegments.move(segRow.modelData.id, -1)
+                                    }
+                                }
+
+                                Text {
+                                    text: "▼"
+                                    color: segHover.containsMouse ? Theme.ink : Theme.faint
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsMicro
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: BarSegments.move(segRow.modelData.id, 1)
+                                    }
+                                }
                             }
 
                             Text {
                                 id: segLabel
 
-                                anchors.left: parent.left
-                                anchors.leftMargin: 30
-                                anchors.right: statusNote.left
-                                anchors.rightMargin: Theme.sp1
+                                anchors.left: reorderArrows.right
+                                anchors.leftMargin: Theme.sp1
+                                anchors.right: segRow.isSpacer ? removeBtn.left : actChip.left
+                                anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight
-                                text: segRow.meta.label
+                                text: segRow.meta.label ?? segRow.modelData.id
                                 color: segRow.on_ ? Theme.ink : Theme.muted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsLabel
@@ -2429,24 +2791,21 @@ PanelWindow {
                             }
 
                             Text {
-                                id: statusNote
+                                visible: segRow.inactiveWhy.length > 0
 
-                                anchors.right: actChip.left
+                                anchors.right: segRow.isSpacer ? removeBtn.left : actChip.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: visible ? contentWidth : 0
-                                visible: segRow.inactiveWhy.length > 0
                                 text: segRow.inactiveWhy
                                 color: Theme.faint
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsMicro
                             }
 
-                            // click-action chip — cycles the segment's click
-                            // target; DEFAULT clears the override back to the
-                            // built-in sane default
                             Rectangle {
                                 id: actChip
+
+                                visible: !segRow.isSpacer
 
                                 readonly property bool hasPref: {
                                     try {
@@ -2496,11 +2855,10 @@ PanelWindow {
                                 }
                             }
 
-                            // zone chips
                             Row {
                                 id: zoneChips
 
-                                anchors.right: segSwitch.left
+                                anchors.right: segRow.isSpacer ? removeBtn.left : segSwitch.left
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 2
@@ -2539,8 +2897,33 @@ PanelWindow {
                                 }
                             }
 
+                            Text {
+                                id: removeBtn
+
+                                visible: segRow.isSpacer
+
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.sp2
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "×"
+                                color: removeBtnArea.containsMouse ? Theme.warn : Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsBody
+
+                                MouseArea {
+                                    id: removeBtnArea
+
+                                    anchors.fill: parent
+                                    anchors.margins: -4
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: BarSegments.removeSpacer(segRow.modelData.id)
+                                }
+                            }
+
                             YSwitch {
                                 id: segSwitch
+
+                                visible: !segRow.isSpacer
 
                                 checked: segRow.on_
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2549,84 +2932,14 @@ PanelWindow {
                                 onToggled: BarSegments.setEnabled(segRow.modelData.id, !segRow.modelData.enabled)
                             }
 
-                            // up/down reorder
-                            Row {
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: Theme.sp2
-                                visible: segArea.containsMouse
-                                spacing: 1
-
-                                Text {
-                                    text: "▲"
-                                    color: Theme.faint
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsMicro
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        anchors.margins: -4
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: BarSegments.move(segRow.modelData.id, -1)
-                                    }
-                                }
-
-                                Text {
-                                    text: "▼"
-                                    color: Theme.faint
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsMicro
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        anchors.margins: -4
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: BarSegments.move(segRow.modelData.id, 1)
-                                    }
-                                }
-                            }
-
                             MouseArea {
-                                id: segArea
+                                id: segHover
 
                                 anchors.fill: parent
-                                anchors.leftMargin: 30
                                 hoverEnabled: true
                                 acceptedButtons: Qt.NoButton
                             }
                         }
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: Theme.sp2
-
-                        YButton {
-                            label: "RESET SEGMENTS"
-                            onClicked: BarSegments.reset()
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "restore the default order, zones and toggles"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "hover a row for ▲▼ reorder · L/C/R picks which zone it renders in (C = true screen center) · state chips (media/bluetooth/night light/inhibit/recording) only appear on the bar while their condition is active · the action chip cycles what a click opens — DEFAULT restores the built-in"
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Item {
-                        width: 1
-                        height: Theme.sp2
                     }
                 }
             }
