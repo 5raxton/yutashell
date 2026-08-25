@@ -62,7 +62,7 @@ Singleton {
     readonly property int outerPad: 14
     readonly property int sectionGap: 16
 
-    readonly property string version: "0.7.0"
+    readonly property string version: "1.0.0"
 
     // ======== SCHEME ENGINE ========
     readonly property var presets: [{
@@ -355,9 +355,24 @@ Singleton {
         watchChanges: true
         printErrors: false
         preload: true
+        property int _debounceMs: 500
+        property var _lastSize: 0
+        property var _debounceTimer: null
         onLoaded: {
-            if (root.followWallpaper)
+            if (!root.followWallpaper)
+                return;
+            const sz = wallThemeFile.text().length;
+            if (sz === _lastSize) {
                 root.applyWallpaperTokens();
+            } else {
+                _lastSize = sz;
+                if (_debounceTimer)
+                    _debounceTimer.stop();
+                _debounceTimer = Qt.callLater(() => {
+                    if (wallThemeFile.text().length === _lastSize)
+                        root.applyWallpaperTokens();
+                });
+            }
         }
     }
 

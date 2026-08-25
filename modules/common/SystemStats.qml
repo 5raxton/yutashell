@@ -256,52 +256,6 @@ Singleton {
             root.uptime = v;
     }
 
-    function _sampleTemp(t) {
-        // "LABEL value\n" lines, one per discovered sensor (Celsius)
-        const out = [];
-        const lines = t.trim().split("\n");
-        const seen = {};
-        for (let i = 0; i < lines.length; i++) {
-            const f = lines[i].trim().split(/\s+/);
-            if (f.length < 2)
-                continue;
-            const label = f[0];
-            const v = parseFloat(f[1]);
-            if (isNaN(v))
-                continue;
-            // disambiguate duplicate labels (nvme ×2, spd5118 ×2)
-            seen[label] = (seen[label] ?? 0) + 1;
-            const id = seen[label] > 1 ? label + seen[label] : label;
-            out.push({
-                id: id,
-                label: label,
-                temp: Math.round(v)
-            });
-        }
-        // same readings → keep array identity so sensor-row delegates don't
-        // rebuild every SLOW tick while the temps tab is open
-        const old = root.temps;
-        if (old.length === out.length) {
-            let same = true;
-            for (let j = 0; j < out.length; j++) {
-                if (!old[j] || old[j].id !== out[j].id || old[j].temp !== out[j].temp) {
-                    same = false;
-                    break;
-                }
-            }
-            if (same)
-                return;
-        }
-        root.temps = out;
-        // hottest temp drives the threshold
-        let hot = -1;
-        for (const s of out)
-            if (s.temp > hot)
-                hot = s.temp;
-        if (hot >= 0)
-            root._threshold("temp", hot, root.tempWarn, root.tempCrit);
-    }
-
     // ---- FileViews -------------------------------------------------------
     FileView {
         id: cpuFile
@@ -405,9 +359,70 @@ Singleton {
     Process {
         id: tempProc
         stdout: StdioCollector {
-            onStreamFinished: root._sampleTemp(this.text)
+            onStreamFinished: root._sampleTempJson(this.text)
         }
         stderr: StdioCollector {}
+        command: ["sensors", "-j"]
+    }
+
+    // ---- sensors -j JSON parsing ----
+    function _sampleTempJson(jsonText) {
+        try {
+            const data = JSON.parse(jsonText);
+            const out = [];
+            const seen = {};
+            for (const chip in data) {
+                const chipData = data[chip];
+                for (const feature in chipData) {
+                    const feat = chipData[feature];
+                    if (feat.temp1_input !== undefined) {
+                        const label = feat.temp1_label || chip;
+                        const v = feat.temp1_input;
+                        if (typeof v === "number" && !isNaN(v)) {
+                            seen[label] = (seen[label] ?? 0) + 1;
+                            const id = seen[label] > 1 ? label + seen[label] : label;
+                            out.push({ id: id, label: label, temp: Math.round(v) });
+                        }
+                    }
+                    // Also check for other temp inputs (temp2_input, etc.)
+                    for (const key in feat) {
+                        if (key.startsWith("temp") && key.endsWith("_input") && key !== "temp1_input") {
+                            const v = feat[key];
+                            const labelKey = key.replace("_input", "_label");
+                            const label = feat[labelKey] || chip + " " + key;
+                            if (typeof v === "number" && !isNaN(v)) {
+                                seen[label] = (seen[label] ?? 0) + 1;
+                                const id = seen[label] > 1 ? label + seen[label] : label;
+                                out.push({ id: id, label: label, temp: Math.round(v) });
+                            }
+                        }
+                    }
+                }
+            }
+            // same readings → keep array identity so sensor-row delegates don't rebuild
+            const old = root.temps;
+            if (old.length === out.length) {
+                let same = true;
+                for (let j = 0; j < out.length; j++) {
+                    if (!old[j] || old[j].id !== out[j].id || old[j].temp !== out[j].temp) {
+                        same = false;
+                        break;
+                    }
+                }
+                if (same)
+                    return;
+            }
+            root.temps = out;
+            // hottest temp drives the threshold
+            let hot = -1;
+            for (const s of out)
+                if (s.temp > hot)
+                    hot = s.temp;
+            if (hot >= 0)
+                root._threshold("temp", hot, root.tempWarn, root.tempCrit);
+        } catch (e) {
+            console.warn("[systemstats] sensors -j parse failed:", e);
+        }
     }
 
     Process {
@@ -470,8 +485,7 @@ Singleton {
                 batStatFile.reload();
             }
             // hwmon: discover + read temps in one shot
-            tempProc.command = ["sh", "-c",
-                "for h in /sys/class/hwmon/hwmon*; do n=$(cat \"$h/name\" 2>/dev/null); case \"$n\" in coretemp) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"CPU $((t/1000))\";; nvme) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"NVME $((t/1000))\";; spd5118) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"RAM $((t/1000))\";; acpitz) t=$(cat \"$h/temp1_input\" 2>/dev/null); [ -n \"$t\" ] && echo \"CHIP $((t/1000))\";; esac; done"];
+            tempProc.command = ["sensors", "-j"];
             tempProc.running = true;
             // GPU: one batched nvidia-smi query — but once absence is proven,
             // stop paying a failed fork/exec every tick forever. A missing

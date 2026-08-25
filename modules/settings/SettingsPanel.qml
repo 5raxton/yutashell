@@ -112,7 +112,7 @@ PanelWindow {
             label: "LAUNCHER",
             jp: "発",
             group: "PANELS",
-            keywords: "launcher anchor grid list icon pins recents placement"
+            keywords: "launcher anchor grid list detail icon pins recents category panel placement width"
         }, {
             id: "controlcenter",
             label: "CONTROL CENTER",
@@ -732,10 +732,12 @@ PanelWindow {
 
                         ignoreUnknownSignals: true
                         function onHeightChanged() {
-                            pageScroll.syncContentH();
+                            if (geoWatch.target === pageLoader.item)
+                                pageScroll.syncContentH();
                         }
                         function onChildrenRectChanged() {
-                            pageScroll.syncContentH();
+                            if (geoWatch.target === pageLoader.item)
+                                pageScroll.syncContentH();
                         }
                     }
                 }
@@ -1782,7 +1784,7 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "01"
-                        label: "View"
+                        label: "View mode"
                         chip: ShellState.launcherMode.toUpperCase()
                     }
 
@@ -1792,11 +1794,14 @@ PanelWindow {
 
                         Repeater {
                             model: [{
+                                    id: "list",
+                                    label: "LIST"
+                                }, {
                                     id: "grid",
                                     label: "GRID"
                                 }, {
-                                    id: "list",
-                                    label: "LIST"
+                                    id: "detail",
+                                    label: "DETAIL"
                                 }]
 
                             delegate: YButton {
@@ -1806,6 +1811,29 @@ PanelWindow {
                                 label: modelData.label
                                 onClicked: ShellState.set("launcherMode", modelData.id)
                             }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "list = compact rows · grid = icon tiles · detail = rich rows with category tags"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    YRow {
+                        width: parent.width
+                        title: "Detail panel"
+                        sub: "shows selected app info + action buttons at the bottom"
+                        note: "PANEL"
+                        on_: ShellState.launcherDetail
+
+                        YSwitch {
+                            checked: ShellState.launcherDetail
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: ShellState.set("launcherDetail", !ShellState.launcherDetail)
                         }
                     }
 
@@ -1856,7 +1884,7 @@ PanelWindow {
                         YButton {
                             width: 32
                             label: "−"
-                            onClicked: ShellState.set("launcherW", Math.max(480, ShellState.launcherW - 32))
+                            onClicked: ShellState.set("launcherW", Math.max(520, ShellState.launcherW - 32))
                         }
 
                         YButton {
@@ -1864,6 +1892,15 @@ PanelWindow {
                             label: "+"
                             onClicked: ShellState.set("launcherW", Math.min(960, ShellState.launcherW + 32))
                         }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "minimum 520px for the detail layout; max adapts to 42% of screen"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
                     }
 
                     YSection {

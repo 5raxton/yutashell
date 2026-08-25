@@ -9,16 +9,7 @@ Item {
     implicitWidth: contentRow.width
     implicitHeight: Theme.barHeight
 
-    property bool blinkOn: true
-
-    readonly property string hostname: (Quickshell.env("HOSTNAME") || "yuta").toUpperCase()
-
-    Timer {
-        interval: 600
-        running: true
-        repeat: true
-        onTriggered: root.blinkOn = !root.blinkOn
-    }
+    readonly property string hostname: (Quickshell.env("HOSTNAME") ?? "yuta").toUpperCase()
 
     MouseArea {
         id: hoverArea
@@ -76,7 +67,24 @@ Item {
                     width: 4
                     height: 11
                     color: Theme.acid
-                    opacity: root.blinkOn ? 1 : 0
+
+                    SequentialAnimation on opacity {
+                        running: true
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            from: 1
+                            to: 0.15
+                            duration: 520
+                            easing.type: Easing.InOutSine
+                        }
+                        NumberAnimation {
+                            from: 0.15
+                            to: 1
+                            duration: 520
+                            easing.type: Easing.InOutSine
+                        }
+                    }
                 }
             }
 

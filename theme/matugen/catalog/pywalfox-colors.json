@@ -7,7 +7,7 @@
     "color2": "",
     "color3": "{{colors.primary.default.hex}}",
     "color4": "",
-    "color5": "{{colors.secondary.default.hex}}",
+    "color5": "{{colors.tertiary.default.hex}}",
     "color6": "",
     "color7": "{{colors.surface_container_highest.default.hex}}",
     "color8": "",

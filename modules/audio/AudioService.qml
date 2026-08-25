@@ -22,9 +22,9 @@ Singleton {
     // overdrive ceiling as a multiplier (1.3 = 130 %); persisted knob
     readonly property real ceiling: Math.max(1.0, ShellState.audioCeiling / 100)
 
-    // keep every node's properties/audio populated
+    // keep sink/source nodes' properties/audio populated (streams handled separately)
     readonly property PwObjectTracker tracker: PwObjectTracker {
-        objects: Pipewire.nodes.values
+        objects: Pipewire.nodes.values.filter(n => n.audio && (n.isSink || (!n.isSink && !n.isStream)))
     }
 
     // ---- handles -----------------------------------------------------------

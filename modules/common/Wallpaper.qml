@@ -230,7 +230,30 @@ Singleton {
             "zellij": ["zellij"],
             "zathura": ["zathura"],
             "clipse": ["clipse"],
-            "wine": ["wine"]
+            "wine": ["wine"],
+            "gimp": ["gimp"],
+            "inkscape": ["inkscape"],
+            "darktable": ["darktable"],
+            "lazygit": ["lazygit"],
+            "blender": ["blender"],
+            "libreoffice": ["libreoffice", "soffice"],
+            "fastfetch": ["fastfetch"],
+            "qutebrowser": ["qutebrowser"],
+            "feishin": ["feishin"],
+            "tauon": ["tauon-music-box"],
+            "ytm-player": ["ytm-player"],
+            "walker": ["walker"],
+            "obs": ["obs"],
+            "nchat": ["nchat"],
+            "senpai": ["senpai"],
+            "spicetify-comfy": ["spicetify"],
+            "spicetify-colorful": ["spicetify"],
+            "heroic": ["heroic-launcher"],
+            "discord-midnight": ["vesktop", "webcord", "legcord", "equibop"],
+            "discord-material": ["vesktop", "webcord", "legcord", "equibop"],
+            "discord-system24": ["vesktop", "webcord", "legcord", "equibop"],
+            "antigravity": ["gemini"],
+            "pi-agent": ["pi-agent"]
         })
 
     // id -> is the app present? ids WITHOUT a binMap entry are config-drop
@@ -309,6 +332,14 @@ Singleton {
             "wlogout": {
                 file: "~/.config/wlogout/style.css",
                 line: "@import \"colors.css\";"
+            },
+            "qutebrowser": {
+                file: "~/.config/qutebrowser/config.py",
+                line: "config.source('noctalia/colors.py')"
+            },
+            "walker": {
+                file: "~/.config/walker/config.toml",
+                line: "theme = \"noctalia\""
             }
         })
 
@@ -585,16 +616,23 @@ Singleton {
     Timer {
         id: paintTimer
         property string imagePath: ""
-        interval: 250
+        interval: 2000
+        property bool _daemonStarted: false
         onTriggered: {
             // start the daemon detached if missing, then retry the paint until
             // its socket is up (fixed sleeps raced and dropped wallpapers)
             const img = imagePath.replace(/'/g, "'\\''");
-            daemonProc.command = ["sh", "-c",
-                "pgrep -x awww-daemon >/dev/null || setsid awww-daemon >/dev/null 2>&1 &\n" +
-                "for i in 1 2 3 4 5 6 7 8; do awww img '" + img + "' " + root._transitionArgs() + " && exit 0; sleep 0.25; done\n" +
-                "echo 'awww img failed after retries' >&2; exit 1"];
-            daemonProc.running = true;
+            if (!paintTimer._daemonStarted) {
+                paintTimer._daemonStarted = true;
+                daemonProc.command = ["sh", "-c",
+                    "pgrep -x awww-daemon >/dev/null || setsid awww-daemon >/dev/null 2>&1 &\n" +
+                    "for i in 1 2 3 4 5 6 7 8; do awww img '" + img + "' " + root._transitionArgs() + " && exit 0; sleep 0.25; done\n" +
+                    "echo 'awww img failed after retries' >&2; exit 1"];
+                daemonProc.running = true;
+            } else {
+                daemonProc.command = ["awww", "img", img].concat(root._transitionArgs().split(" "));
+                daemonProc.running = true;
+            }
         }
     }
 

@@ -328,6 +328,11 @@ PanelWindow {
                         return homePage;
                     }
                 }
+
+                onItemChanged: {
+                    if (ShellState.ccOpen && surface.cascade)
+                        surface.reveal(item);
+                }
             }
         }
     }

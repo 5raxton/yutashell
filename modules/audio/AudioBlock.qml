@@ -133,13 +133,12 @@ Item {
 
     Connections {
         function onPressedChanged() {
-            if (area.pressed)
-                ;
-            else if (area.containsMouse) {
+            if (!area.pressed && area.containsMouse) {
                 const dev = AudioService.sink ? AudioService.deviceLabel(AudioService.sink) : "no device";
                 root.showCol(audRow, (root.muted ? "muted · " : "") + dev + " · " + root.pct + "%" + (root.micMuted ? "" : " · mic live"));
-            } else
+            } else if (!area.pressed) {
                 root.hideCol();
+            }
         }
 
         target: area

@@ -255,6 +255,54 @@ Item {
             }
         }
 
+        // ghost trail that follows the underline on workspace switches
+        Rectangle {
+            id: underlineTrail
+
+            y: root.slotH + 4
+            height: 2
+            width: root.slotW
+            radius: root.pillOnly ? 1 : 0
+            color: Theme.acid
+            opacity: 0
+            visible: !root.pillOnly && root.ids.includes(root.focusedId)
+            x: underline.x
+
+            SequentialAnimation {
+                id: trailAnim
+
+                running: false
+
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: underlineTrail
+                        property: "opacity"
+                        from: 0.55
+                        to: 0
+                        duration: 520
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        target: underlineTrail
+                        property: "width"
+                        from: root.slotW + 14
+                        to: root.slotW
+                        duration: 520
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
+
+            Connections {
+                target: underline
+
+                function onXChanged() {
+                    if (!trailAnim.running)
+                        trailAnim.start();
+                }
+            }
+        }
+
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.NoButton

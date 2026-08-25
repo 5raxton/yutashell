@@ -263,8 +263,10 @@ Singleton {
         Hyprland.rawEvent.connect(evt => {
             const n = String(evt.name || "");
             if (n === "activewindow" || n === "activewindowv2") {
-                const addr = String(evt.data || "").split(",")[0];
-                root._bump(addr);
+                const data = String(evt.data || "").trim();
+                const addr = data.split(",")[0]?.trim();
+                if (addr)
+                    root._bump(addr);
             }
         });
     }

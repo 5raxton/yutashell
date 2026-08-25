@@ -245,6 +245,7 @@ Singleton {
     // launcher
     readonly property alias launcherMode: adapter.launcherMode
     readonly property alias launcherAnchor: adapter.launcherAnchor
+    readonly property alias launcherDetail: adapter.launcherDetail
     readonly property alias launcherPins: adapter.launcherPins
     readonly property alias launcherRecents: adapter.launcherRecents
 
@@ -330,7 +331,7 @@ Singleton {
         id: stateFile
         path: Quickshell.env("HOME") + "/.local/state/yutashell/state.json"
         printErrors: false
-        blockLoading: true
+        preload: true
 
         adapter: JsonAdapter {
             id: adapter
@@ -380,10 +381,11 @@ Singleton {
             // launcher card width (px, clamped by consumer)
             property int launcherW: 640
 
-    // launcher: view mode (grid|list), placement (center|left|top),
-    // pinned + recent app ids as JSON arrays
-    property string launcherMode: "grid"
+    // launcher: view mode (grid|list|detail), placement (center|left|right),
+    // detail panel toggle, pinned + recent app ids as JSON arrays
+    property string launcherMode: "list"
     property string launcherAnchor: "center"
+    property bool launcherDetail: true
     property string launcherPins: "[]"
     property string launcherRecents: "[]"
 
@@ -467,7 +469,8 @@ Singleton {
     Component.onCompleted: {
         // Seed defaults ONLY when the file is absent/empty. A transient read
         // race must never clobber the user's persisted prefs with defaults.
-        if (stateFile.loadFailed && stateFile.text().length === 0)
+        // text() is "" when the file doesn't exist or hasn't loaded yet.
+        if (stateFile.text().length === 0)
             stateFile.writeAdapter();
     }
 }

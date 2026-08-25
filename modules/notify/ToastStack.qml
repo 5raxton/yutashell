@@ -79,12 +79,10 @@ PanelWindow {
     // Entry refs — index-aligned with toastModel (cards at the same slots)
     property var _items: []
 
-    function _syncAdd(vm) {
+function _syncAdd(vm) {
         const stagger = Math.min(root._items.length, 6) * 70;
-        // parent straight into the live column — creating under the window
-        // leaves the card out of the graphics scene until the ObjectModel
-        // adopts it ("not placed in the graphics scene" warnings)
-        const card = cardComp.createObject(contentCol, {
+        // Create without parent — ObjectModel will adopt and place in scene
+        const card = cardComp.createObject(root, {
                 "entry": vm,
                 "staggerMs": stagger
             });

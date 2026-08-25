@@ -43,6 +43,8 @@ PanelWindow {
         id: frame
 
         anchors.fill: parent
+        opacity: 0
+        y: root.topBar ? -6 : 6
         color: Theme.bg
 
         // hairline — bottom edge for a top bar, top edge for a bottom bar
@@ -193,8 +195,19 @@ PanelWindow {
                 visible: index > 0
             }
 
+            // Filler absorbs Loader stretch so segment keeps its natural size
             Loader {
+                id: segLoader
                 sourceComponent: root.segComponent(modelData.id)
+                // Prevent Loader from stretching the loaded item
+                width: segLoader.item ? segLoader.item.implicitWidth : 0
+                height: segLoader.item ? segLoader.item.implicitHeight : Theme.barHeight
+                onLoaded: {
+                    if (item) {
+                        item.width = undefined;
+                        item.height = undefined;
+                    }
+                }
             }
         }
     }
@@ -491,6 +504,86 @@ PanelWindow {
         id: clockComp
 
         ClockBlock {}
+    }
+
+    // ---- boot entrance animation ----
+    // Frame slides in from off-screen with opacity fade; a vertical acid
+    // scanline sweeps left-to-right across the bar at startup.
+    Rectangle {
+        id: bootScanline
+
+        width: 2
+        height: parent.height
+        color: Theme.acid
+        opacity: 0
+        x: -4
+    }
+
+    Timer {
+        id: bootTimer
+
+        interval: 300
+        running: true
+        repeat: false
+        onTriggered: bootScanSweep.start()
+    }
+
+    NumberAnimation {
+        id: bootFadeIn
+
+        target: frame
+        property: "opacity"
+        from: 0
+        to: 1
+        duration: Theme.movSlow
+        easing.type: Easing.OutCubic
+    }
+
+    NumberAnimation {
+        id: bootSlideIn
+
+        target: frame
+        property: "y"
+        from: root.topBar ? -6 : 6
+        to: 0
+        duration: Theme.movSlow
+        easing.type: Easing.OutCubic
+    }
+
+    ParallelAnimation {
+        id: bootScanSweep
+
+        running: false
+
+        SequentialAnimation {
+            NumberAnimation {
+                target: bootScanline
+                property: "opacity"
+                from: 0
+                to: 0.9
+                duration: 80
+            }
+            NumberAnimation {
+                target: bootScanline
+                property: "x"
+                from: -4
+                to: root.width + 4
+                duration: 420
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                target: bootScanline
+                property: "opacity"
+                from: 0.9
+                to: 0
+                duration: 140
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        bootFadeIn.start();
+        bootSlideIn.start();
     }
 
     // PH.05: widget plugins from <config>/plugins, enabled via settings

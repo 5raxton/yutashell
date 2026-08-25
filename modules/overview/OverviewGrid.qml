@@ -42,13 +42,19 @@ PanelWindow {
         interval: Theme.lingerMs
     }
 
-    // linger mapped after close so YSurface's exit ceremony renders
+    // staggered reveal counter — increments each time the grid opens,
+    // delegate tiles watch it and animate in with per-index delay
+    property int _revealTick: 0
+
     Connections {
         target: ShellState
 
         function onOverviewOpenChanged() {
-            if (!ShellState.overviewOpen)
+            if (ShellState.overviewOpen) {
+                root._revealTick++;
+            } else {
                 hideDelay.restart();
+            }
         }
     }
 
@@ -127,6 +133,7 @@ PanelWindow {
 
                             readonly property bool focused: modelData.focused
                             readonly property var wins: modelData.windows || []
+                            property bool entered: false
 
                             width: 250
                             // sized from real column content — the old arithmetic
@@ -135,6 +142,40 @@ PanelWindow {
                             color: area.containsMouse ? Theme.surface : Theme.bgAlt
                             border.width: 1
                             border.color: focused ? Theme.acid : (area.containsMouse ? Theme.lineStrong : Theme.hairline)
+                            opacity: entered ? 1 : 0
+                            y: entered ? 0 : 16
+
+                            Behavior on opacity {
+                                enabled: entered
+                                NumberAnimation {
+                                    duration: Theme.movSlow
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            Behavior on y {
+                                enabled: entered
+                                NumberAnimation {
+                                    duration: Theme.movSlow
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            // staggered entrance: each tile delays by index * 40ms
+                            Connections {
+                                target: root
+
+                                function on_RevealTickChanged() {
+                                    entranceDelay.restart();
+                                }
+                            }
+
+                            Timer {
+                                id: entranceDelay
+
+                                interval: ws.index * 40
+                                onTriggered: ws.entered = true
+                            }
 
                             Behavior on border.color {
                                 ColorAnimation {

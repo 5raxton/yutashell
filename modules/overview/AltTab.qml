@@ -129,8 +129,8 @@ PanelWindow {
                         // selection AND mapped clicks to the wrong window
                         model: root.shown
 
-                        delegate: Rectangle {
-                            id: card
+                        delegate: Item {
+                            id: cardWrapper
 
                             required property int index
                             required property var modelData
@@ -140,59 +140,100 @@ PanelWindow {
 
                             width: 74
                             height: 72
-                            color: sel ? Theme.surface : Theme.bgAlt
-                            border.width: sel ? 2 : 1
-                            border.color: sel ? Theme.acid : Theme.hairline
+                            scale: cardArea.containsMouse ? 1.06 : (cardWrapper.sel ? 1.02 : 1)
 
-                            Column {
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: Theme.movSnap
+                                    easing.type: Easing.OutBack
+                                    easing.overshoot: 0.3
+                                }
+                            }
+
+                            // selection glow — acid aura behind the selected card
+                            Rectangle {
+                                anchors.centerIn: card
+                                width: card.width + 8
+                                height: card.height + 8
+                                radius: 4
+                                color: Theme.acid
+                                opacity: cardWrapper.sel ? 0.12 : 0
+                                visible: cardWrapper.sel
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: Theme.movMed
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                id: card
+
                                 anchors.fill: parent
-                                anchors.margins: Theme.sp2
-                                spacing: Theme.sp1
+                                color: cardArea.containsMouse ? Theme.surface : (cardWrapper.sel ? Theme.surface : Theme.bgAlt)
+                                border.width: cardWrapper.sel ? 2 : 1
+                                border.color: cardWrapper.sel ? Theme.acid : (cardArea.containsMouse ? Theme.lineStrong : Theme.hairline)
 
-                                Rectangle {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 32
-                                    height: 32
-                                    color: Theme.acid
-                                    visible: card.iconUrl === "" || icon.status !== Image.Ready
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.name.charAt(0).toUpperCase()
-                                        color: Theme.bg
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fsTitle
-                                        font.weight: Font.ExtraBold
+                                Behavior on border.color {
+                                    ColorAnimation {
+                                        duration: Theme.movFast
                                     }
                                 }
 
-                                IconImage {
-                                    id: icon
+                                Column {
+                                    anchors.fill: parent
+                                    anchors.margins: Theme.sp2
+                                    spacing: Theme.sp1
 
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    implicitSize: 32
-                                    source: card.iconUrl
-                                    asynchronous: true
-                                    visible: card.iconUrl !== "" && icon.status !== Image.Error && icon.status !== Image.Null
-                                }
+                                    Rectangle {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: 32
+                                        height: 32
+                                        color: Theme.acid
+                                        visible: cardWrapper.iconUrl === "" || icon.status !== Image.Ready
 
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: parent.width
-                                    text: modelData.name
-                                    elide: Text.ElideRight
-                                    horizontalAlignment: Text.AlignHCenter
-                                    color: card.sel ? Theme.acid : Theme.muted
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsMicro
-                                    font.letterSpacing: 1
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: cardWrapper.modelData.name.charAt(0).toUpperCase()
+                                            color: Theme.bg
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsTitle
+                                            font.weight: Font.ExtraBold
+                                        }
+                                    }
+
+                                    IconImage {
+                                        id: icon
+
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        implicitSize: 32
+                                        source: cardWrapper.iconUrl
+                                        asynchronous: true
+                                        visible: cardWrapper.iconUrl !== "" && icon.status !== Image.Error && icon.status !== Image.Null
+                                    }
+
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: parent.width
+                                        text: cardWrapper.modelData.name
+                                        elide: Text.ElideRight
+                                        horizontalAlignment: Text.AlignHCenter
+                                        color: cardWrapper.sel ? Theme.acid : Theme.muted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                        font.letterSpacing: 1
+                                    }
                                 }
                             }
 
                             MouseArea {
+                                id: cardArea
+
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Overview.selectAltTab(root.sliceStart + card.index)
+                                onClicked: Overview.selectAltTab(root.sliceStart + cardWrapper.index)
                             }
                         }
                     }

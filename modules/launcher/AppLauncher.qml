@@ -9,10 +9,8 @@ import qs.modules.notify
 import "../common/ui"
 import "fuzzy.js" as Fuzzy
 
-// App launcher — centered overlay indexing every installed .desktop entry.
-// Fuzzy subsequence ranking, grid/list modes, pins + recents weighting,
-// ":command" mode driving the shell's own IPC implementations, inline
-// calculator row, desktop-action rows. Prefs persist through ShellState.
+// App launcher v2 — hacker-native command interface. Terminal-style search,
+// category filtering, rich detail panel, grid/list/detail modes, pins + recents.
 PanelWindow {
     id: root
 
@@ -31,8 +29,6 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     visible: root.open || hideDelay.running
-    // full window accepts input while open; the click-catcher closes on any
-    // press outside the card (the card's own swallow area eats in-card clicks)
     mask: Region {
         item: root.open ? clickAway : null
     }
@@ -40,21 +36,17 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    // placement persists so PH.16's launcher tab can just edit values
     readonly property string anchorMode: ShellState.launcherAnchor === "left" ? "left" : ShellState.launcherAnchor === "right" ? "right" : "center"
 
     Timer {
         id: hideDelay
-
         interval: Theme.lingerMs
     }
 
-    onOpenChanged: if (!root.open)
-        hideDelay.restart()
+    onOpenChanged: if (!root.open) hideDelay.restart()
 
     Item {
         id: contentRoot
-
         anchors.fill: parent
         focus: root.open
 
@@ -62,15 +54,11 @@ PanelWindow {
 
         YClickAway {
             id: clickAway
-
             onOutsideClicked: ShellState.closeLauncher()
         }
 
-        // whole UI builds lazily on first open, then stays warm so every
-        // later open paints instantly
         Loader {
             id: uiLoader
-
             anchors.fill: parent
             active: root.everOpened
             sourceComponent: cardComponent
@@ -78,855 +66,1129 @@ PanelWindow {
     }
 
     onVisibleChanged: {
-        if (!visible)
-            return;
+        if (!visible) return;
         everOpened = true;
-        if (uiLoader.item)
-            uiLoader.item.surface.resetForOpen();
+        if (uiLoader.item) uiLoader.item.surface.resetForOpen();
     }
 
     Component {
         id: cardComponent
 
-        // filler absorbs the Loader's stretch (Loaders resize their loaded
-        // root to the Loader's own size) so YSurface below keeps its card
-        // geometry instead of going fullscreen
         Item {
             id: filler
-
             anchors.fill: parent
 
             readonly property alias surface: card
 
             YSurface {
-
-            spawnId: "launcher"
+                spawnId: "launcher"
                 id: card
 
                 open: root.open
                 anchorX: root.anchorMode
-                // compact center box — never a fullscreen feel
-                cardW: Math.min(Math.max(480, ShellState.launcherW), Math.round(parent.width * 0.38))
-                cardH: Math.min(460, Math.round(parent.height * 0.42))
+                cardW: Math.min(Math.max(520, ShellState.launcherW), Math.round(parent.width * 0.42))
+                cardH: Math.min(580, Math.round(parent.height * 0.54))
 
-            function resetForOpen() {
-                searchField.text = "";
-                selIdx = 0;
-                searchField.forceFocus();
-            }
-
-            // ---- selection ----
-            property int selIdx: 0
-            readonly property int selCount: commandMode ? cmdMatches.length : results.length
-
-            // every keystroke reshapes the model — the old highlight would
-            // otherwise sit on whatever row now occupies that index
-            onQueryChanged: selIdx = 0
-
-            function clampSel() {
-                selIdx = Math.max(0, Math.min(selIdx, Math.max(0, selCount - 1)));
-            }
-
-            function moveSel(d) {
-                const n = selCount;
-                if (n === 0)
-                    return;
-                selIdx = ((selIdx + d) % n + n) % n;
-            }
-
-            // ---- pins / recents (JSON id arrays in state.json) ----
-            function parseIds(s) {
-                try {
-                    const v = JSON.parse(s);
-                    return Array.isArray(v) ? v.filter(x => typeof x === "string") : [];
-                } catch (err) {
-                    return [];
+                function resetForOpen() {
+                    searchField.text = "";
+                    selIdx = 0;
+                    catFilter = "all";
+                    searchField.forceFocus();
                 }
-            }
 
-            function pushRecent(id) {
-                const r = parseIds(ShellState.launcherRecents).filter(x => x !== id);
-                r.unshift(id);
-                ShellState.set("launcherRecents", JSON.stringify(r.slice(0, 8)));
-            }
+                // ---- selection ----
+                property int selIdx: 0
+                readonly property int selCount: commandMode ? cmdMatches.length : results.length
+                onQueryChanged: selIdx = 0
 
-            function removeRecent(id) {
-                ShellState.set("launcherRecents", JSON.stringify(parseIds(ShellState.launcherRecents).filter(x => x !== id)));
-            }
+                function clampSel() {
+                    selIdx = Math.max(0, Math.min(selIdx, Math.max(0, selCount - 1)));
+                }
 
-            function togglePin(id) {
-                let p = parseIds(ShellState.launcherPins);
-                p = p.includes(id) ? p.filter(x => x !== id) : [id].concat(p);
-                ShellState.set("launcherPins", JSON.stringify(p));
-            }
+                function moveSel(d) {
+                    const n = selCount;
+                    if (n === 0) return;
+                    selIdx = ((selIdx + d) % n + n) % n;
+                }
 
-            readonly property var pinIds: parseIds(ShellState.launcherPins)
+                // ---- category filter ----
+                property string catFilter: "all"
 
-            // ---- data ----
-            readonly property var allApps: DesktopEntries.applications.values.filter(e => !e.noDisplay)
-            readonly property string query: searchField.text
-            // this Qt build's JS engine has no String.trimStart — lstrip by regex
-            readonly property string queryLs: query.replace(/^\s+/, "")
-            readonly property bool commandMode: queryLs.startsWith(":")
-            readonly property int mode: ShellState.launcherMode === "list" ? 1 : 0
-
-            function byName(a, b) {
-                return a.name.localeCompare(b.name);
-            }
-
-            function wrapApp(e) {
-                return {
-                    kind: "app",
-                    entry: e,
-                    action: null
-                };
-            }
-
-            readonly property var results: {
-                const q = query.trim();
-                const apps = allApps;
-                let out = [];
-
-                if (q.length === 0) {
-                    const pinList = parseIds(ShellState.launcherPins).map(id => apps.find(e => e.id === id)).filter(Boolean);
-                    const recs = parseIds(ShellState.launcherRecents).map(id => apps.find(e => e.id === id)).filter(e => e && !pinList.includes(e));
-                    const rest = apps.filter(e => !pinList.includes(e) && !recs.includes(e)).sort(byName);
-                    out = pinList.concat(recs, rest).map(wrapApp);
-                } else {
-                    const scored = [];
+                readonly property var categories: {
+                    const map = {};
+                    const apps = allApps;
                     for (let i = 0; i < apps.length; i++) {
-                        const s = Fuzzy.entryScore(q, apps[i]);
-                        if (s >= 0)
-                            scored.push({
-                                s: s,
-                                item: wrapApp(apps[i]),
-                                name: apps[i].name
-                            });
-                        // desktop-action rows ride along once the query is real
-                        if (q.length >= 2) {
-                            const acts = apps[i].actions ?? [];
-                            for (let j = 0; j < acts.length; j++) {
-                                const as = Fuzzy.score(q, acts[j].name) * 0.85;
-                                if (as > 0)
-                                    scored.push({
-                                        s: as,
-                                        item: {
-                                            kind: "action",
-                                            entry: apps[i],
-                                            action: acts[j]
-                                        },
-                                        name: acts[j].name
-                                    });
+                        const cats = apps[i].categories;
+                        if (cats && Array.isArray(cats)) {
+                            for (let j = 0; j < cats.length; j++) {
+                                const c = cats[j];
+                                if (c && c.length > 0) {
+                                    const key = c.charAt(0).toUpperCase() + c.slice(1).toLowerCase();
+                                    map[key] = (map[key] || 0) + 1;
+                                }
                             }
                         }
                     }
-                    scored.sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
-                    out = scored.slice(0, 64).map(x => x.item);
+                    const sorted = Object.keys(map).sort((a, b) => map[b] - map[a]);
+                    return sorted.slice(0, 8);
                 }
-                return out;
-            }
 
-            // keep selection valid WITHOUT touching it inside the bindings —
-            // clampSel reads selCount -> results, so calling it there loops
-            onResultsChanged: clampSel()
-            onCmdMatchesChanged: if (commandMode)
-                clampSel()
+                readonly property var categoryLabels: {
+                    const out = [{label: "ALL", count: allApps.length}];
+                    for (let i = 0; i < categories.length; i++) {
+                        out.push({label: categories[i].toUpperCase(), count: categories[categories[i]]});
+                    }
+                    return out;
+                }
 
-            // ---- :command mode ----
-            readonly property var commands: [{
-                    cmd: ":scheme",
-                    argHint: "<preset>",
-                    desc: "apply scheme preset",
+                // ---- pins / recents ----
+                function parseIds(s) {
+                    try {
+                        const v = JSON.parse(s);
+                        return Array.isArray(v) ? v.filter(x => typeof x === "string") : [];
+                    } catch (err) { return []; }
+                }
+
+                function pushRecent(id) {
+                    const r = parseIds(ShellState.launcherRecents).filter(x => x !== id);
+                    r.unshift(id);
+                    ShellState.set("launcherRecents", JSON.stringify(r.slice(0, 10)));
+                }
+
+                function removeRecent(id) {
+                    ShellState.set("launcherRecents", JSON.stringify(parseIds(ShellState.launcherRecents).filter(x => x !== id)));
+                }
+
+                function togglePin(id) {
+                    let p = parseIds(ShellState.launcherPins);
+                    p = p.includes(id) ? p.filter(x => x !== id) : [id].concat(p);
+                    ShellState.set("launcherPins", JSON.stringify(p));
+                }
+
+                readonly property var pinIds: parseIds(ShellState.launcherPins)
+
+                // ---- data ----
+                readonly property var allApps: DesktopEntries.applications.values.filter(e => !e.noDisplay)
+                readonly property string query: searchField.text
+                readonly property string queryLs: query.replace(/^\s+/, "")
+                readonly property bool commandMode: queryLs.startsWith(":")
+                readonly property int mode: ShellState.launcherMode === "grid" ? 0 : ShellState.launcherMode === "detail" ? 2 : 1
+
+                function byName(a, b) { return a.name.localeCompare(b.name); }
+
+                function wrapApp(e) {
+                    return {kind: "app", entry: e, action: null};
+                }
+
+                function appMatchesCat(e) {
+                    if (catFilter === "all") return true;
+                    const cats = e.categories;
+                    if (!cats || !Array.isArray(cats)) return false;
+                    for (let i = 0; i < cats.length; i++) {
+                        if (cats[i] && cats[i].toLowerCase() === catFilter.toLowerCase()) return true;
+                    }
+                    return false;
+                }
+
+                readonly property var results: {
+                    const q = query.trim();
+                    const apps = allApps;
+                    let pool = catFilter === "all" ? apps : apps.filter(e => appMatchesCat(e));
+                    let out = [];
+
+                    if (q.length === 0) {
+                        const pinList = parseIds(ShellState.launcherPins).map(id => pool.find(e => e.id === id)).filter(Boolean);
+                        const recs = parseIds(ShellState.launcherRecents).map(id => pool.find(e => e.id === id)).filter(e => e && !pinList.includes(e));
+                        const rest = pool.filter(e => !pinList.includes(e) && !recs.includes(e)).sort(byName);
+                        out = pinList.concat(recs, rest).map(wrapApp);
+                    } else {
+                        const scored = [];
+                        for (let i = 0; i < apps.length; i++) {
+                            if (catFilter !== "all" && !appMatchesCat(apps[i])) continue;
+                            const s = Fuzzy.entryScore(q, apps[i]);
+                            if (s >= 0) scored.push({s: s, item: wrapApp(apps[i]), name: apps[i].name});
+                            if (q.length >= 2) {
+                                const acts = apps[i].actions ?? [];
+                                for (let j = 0; j < acts.length; j++) {
+                                    const as = Fuzzy.score(q, acts[j].name) * 0.85;
+                                    if (as > 0) scored.push({s: as, item: {kind: "action", entry: apps[i], action: acts[j]}, name: acts[j].name});
+                                }
+                            }
+                        }
+                        scored.sort((a, b) => b.s - a.s || a.name.localeCompare(b.name));
+                        out = scored.slice(0, 64).map(x => x.item);
+                    }
+                    return out;
+                }
+
+                onResultsChanged: clampSel()
+                onCmdMatchesChanged: if (commandMode) clampSel()
+
+                // ---- :command mode ----
+                readonly property var commands: [{
+                    cmd: ":scheme", argHint: "<preset>", desc: "apply scheme preset",
                     fn: a => Theme.applyPreset(String(a))
                 }, {
-                    cmd: ":wall",
-                    argHint: "<next|random>",
-                    desc: "cycle wallpaper",
+                    cmd: ":wall", argHint: "<next|random>", desc: "cycle wallpaper",
                     fn: a => a === "random" ? Wallpaper.applyRandom() : Wallpaper.applyNext()
                 }, {
-                    cmd: ":dark",
-                    argHint: "",
-                    desc: "toggle light / dark",
+                    cmd: ":dark", argHint: "", desc: "toggle light / dark",
                     fn: () => Theme.setDark(!Theme.dark)
                 }, {
-                    cmd: ":accent",
-                    argHint: "<#hex|none>",
-                    desc: "accent override",
+                    cmd: ":accent", argHint: "<#hex|none>", desc: "accent override",
                     fn: a => Theme.setAccent(String(a))
                 }, {
-                    cmd: ":panel",
-                    argHint: "",
-                    desc: "toggle control core",
+                    cmd: ":panel", argHint: "", desc: "toggle control core",
                     fn: () => ShellState.togglePanel()
                 }, {
-                    cmd: ":picker",
-                    argHint: "",
-                    desc: "toggle wallpaper picker",
+                    cmd: ":picker", argHint: "", desc: "toggle wallpaper picker",
                     fn: () => ShellState.togglePicker()
                 }]
 
-            readonly property var cmdMatches: {
-                if (!commandMode)
-                    return [];
-                const body = queryLs.slice(1);
-                const sp = body.indexOf(" ");
-                const head = (sp === -1 ? body : body.slice(0, sp)).toLowerCase();
-                const args = sp === -1 ? "" : body.slice(sp + 1).trim();
-                const m = commands.filter(c => head === "" || c.cmd.slice(1).startsWith(head)).map(c => ({
-                            kind: "cmd",
-                            c: c,
-                            args: args
-                        }));
-                return m;
-            }
-
-            function runCommand(m) {
-                try {
-                    m.c.fn(m.args);
-                } catch (err) {
-                    console.warn("[launcher] command failed:", m.c.cmd, err);
+                readonly property var cmdMatches: {
+                    if (!commandMode) return [];
+                    const body = queryLs.slice(1);
+                    const sp = body.indexOf(" ");
+                    const head = (sp === -1 ? body : body.slice(0, sp)).toLowerCase();
+                    const args = sp === -1 ? "" : body.slice(sp + 1).trim();
+                    return commands.filter(c => head === "" || c.cmd.slice(1).startsWith(head)).map(c => ({kind: "cmd", c: c, args: args}));
                 }
-                ShellState.closeLauncher();
-            }
 
-            // calculator — charset whitelist means no identifiers reach eval
-            readonly property string calcText: {
-                const q = query.trim();
-                if (q.startsWith(":") || !/[0-9]/.test(q) || !/[+\-*/^]/.test(q) || !/^[0-9+\-*/().^\s]+$/.test(q))
-                    return "";
-                try {
-                    const v = Function('"use strict";return (' + q.replace(/\^/g, "**") + ')')();
-                    if (typeof v !== "number" || !isFinite(v))
-                        return "";
-                    return String(Math.round(v * 1e10) / 1e10);
-                } catch (err) {
-                    return "";
+                function runCommand(m) {
+                    try { m.c.fn(m.args); } catch (err) { console.warn("[launcher] command failed:", m.c.cmd, err); }
+                    ShellState.closeLauncher();
                 }
-            }
 
-            Process {
-                id: copyProc
+                // ---- calculator ----
+                readonly property string calcText: {
+                    const q = query.trim();
+                    if (q.startsWith(":") || !/[0-9]/.test(q) || !/[+\-*/^]/.test(q) || !/^[0-9+\-*/().^\s]+$/.test(q)) return "";
+                    try {
+                        const v = Function('"use strict";return (' + q.replace(/\^/g, "**") + ')')();
+                        if (typeof v !== "number" || !isFinite(v)) return "";
+                        return String(Math.round(v * 1e10) / 1e10);
+                    } catch (err) { return ""; }
+                }
 
-                stdout: StdioCollector {}
-                stderr: StdioCollector {}
-            }
+                Process {
+                    id: copyProc
+                    stdout: StdioCollector {}
+                    stderr: StdioCollector {}
+                }
 
-            // wl-copy is optional — the calc copy path must say so, not no-op
-            property bool wlCopyOk: false
+                property bool wlCopyOk: false
 
-            Process {
-                id: wlProbe
-
-                command: ["sh", "-c", "command -v wl-copy >/dev/null 2>&1 && echo yes || echo no"]
-                stdout: StdioCollector {
-                    onStreamFinished: {
-                        card.wlCopyOk = text.trim() === "yes";
-                        if (!card.wlCopyOk)
-                            Health.report("wl-clipboard", "launcher calculator copy unavailable (install wl-clipboard)");
+                Process {
+                    id: wlProbe
+                    command: ["sh", "-c", "command -v wl-copy >/dev/null 2>&1 && echo yes || echo no"]
+                    stdout: StdioCollector {
+                        onStreamFinished: {
+                            card.wlCopyOk = text.trim() === "yes";
+                            if (!card.wlCopyOk)
+                                Health.report("wl-clipboard", "launcher calculator copy unavailable (install wl-clipboard)");
+                        }
                     }
                 }
-            }
 
-            Component.onCompleted: {
-                wlProbe.running = true;
-                if (root.open)
-                    resetForOpen();
-            }
-
-            function acceptCurrent() {
-                if (commandMode) {
-                    // empty command match must not fall through to app activation
-                    if (selCount > 0)
-                        runCommand(cmdMatches[Math.min(selIdx, selCount - 1)]);
-                    return;
+                Component.onCompleted: {
+                    wlProbe.running = true;
+                    if (root.open) resetForOpen();
                 }
-                if (calcText !== "") {
-                    if (card.wlCopyOk) {
-                        copyProc.command = ["wl-copy", calcText];
-                        copyProc.running = true;
-                        ShellState.closeLauncher();
-                    } else {
-                        Notify.announce("LAUNCHER", "copy unavailable (install wl-clipboard)", 2);
+
+                function acceptCurrent() {
+                    if (commandMode) {
+                        if (selCount > 0) runCommand(cmdMatches[Math.min(selIdx, selCount - 1)]);
+                        return;
                     }
-                    return;
-                }
-                activate(results[selIdx]);
-            }
-
-            function activate(r) {
-                if (!r)
-                    return;
-                try {
-                    if (r.kind === "action")
-                        r.action.execute();
-                    else
-                        r.entry.execute();
-                } catch (err) {
-                    console.warn("[launcher] execute failed:", err);
-                    return;
-                }
-                pushRecent(r.entry.id);
-                ShellState.closeLauncher();
-            }
-
-            // ===== HEADER =====
-            Item {
-                id: header
-
-                y: 0
-                width: parent.width
-                height: Theme.headH
-
-                Text {
-                    x: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Theme.jpEnabled ? "アプリ // APP.LAUNCHER" : "APP.LAUNCHER"
-                    color: Theme.ink
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsLabel
-                    font.weight: Font.Bold
-                    font.letterSpacing: 1.5
+                    if (calcText !== "") {
+                        if (card.wlCopyOk) {
+                            copyProc.command = ["wl-copy", calcText];
+                            copyProc.running = true;
+                            ShellState.closeLauncher();
+                        } else {
+                            Notify.announce("LAUNCHER", "copy unavailable (install wl-clipboard)", 2);
+                        }
+                        return;
+                    }
+                    activate(results[selIdx]);
                 }
 
-                Row {
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.sp1
+                function activate(r) {
+                    if (!r) return;
+                    try {
+                        if (r.kind === "action") r.action.execute(); else r.entry.execute();
+                    } catch (err) { console.warn("[launcher] execute failed:", err); return; }
+                    pushRecent(r.entry.id);
+                    ShellState.closeLauncher();
+                }
 
-                    YButton {
-                        label: "GRID"
-                        tone: card.mode === 0 ? "acid" : "default"
+                // ---- selected app detail ----
+                readonly property var selectedEntry: {
+                    if (commandMode || results.length === 0 || selIdx >= results.length) return null;
+                    const r = results[selIdx];
+                    return r ? r.entry : null;
+                }
 
-                        onClicked: ShellState.set("launcherMode", "grid")
+                readonly property var selectedActions: {
+                    if (!selectedEntry || !selectedEntry.actions) return [];
+                    return selectedEntry.actions;
+                }
+
+                readonly property bool selectedPinned: selectedEntry ? pinIds.includes(selectedEntry.id) : false
+
+                readonly property string selectedCategories: {
+                    if (!selectedEntry || !selectedEntry.categories) return "";
+                    return selectedEntry.categories.join(" · ");
+                }
+
+                // ===== HEADER =====
+                Item {
+                    id: header
+                    y: 0
+                    width: parent.width
+                    height: Theme.headH
+
+                    Rectangle {
+                        x: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 24
+                        height: 24
+                        color: Theme.acid
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: ">"
+                            color: Theme.bg
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsTitle
+                            font.weight: Font.ExtraBold
+                        }
                     }
 
-                    YButton {
-                        label: "LIST"
-                        tone: card.mode === 1 ? "acid" : "default"
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.right
+                        anchors.leftMargin: Theme.sp2
+                        text: Theme.jpEnabled ? "アプリ // LAUNCHER" : "APP.LAUNCHER"
+                        color: Theme.ink
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        font.weight: Font.Bold
+                        font.letterSpacing: 1.5
+                    }
 
-                        onClicked: ShellState.set("launcherMode", "list")
+                    Row {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.sp1
+
+                        YButton {
+                            label: "LIST"
+                            tone: card.mode === 1 ? "acid" : "default"
+                            onClicked: ShellState.set("launcherMode", "list")
+                        }
+
+                        YButton {
+                            label: "GRID"
+                            tone: card.mode === 0 ? "acid" : "default"
+                            onClicked: ShellState.set("launcherMode", "grid")
+                        }
+
+                        YButton {
+                            label: "DETAIL"
+                            tone: card.mode === 2 ? "acid" : "default"
+                            onClicked: ShellState.set("launcherMode", "detail")
+                        }
                     }
                 }
-            }
 
-            Rectangle {
-                id: hairlineTop
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-                y: header.height
-                height: 1
-                color: Theme.hairline
-            }
-
-            // ===== SEARCH =====
-            Item {
-                id: searchBand
-
-                anchors.top: hairlineTop.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: Theme.ctlH + Theme.sp3 * 2
-
-                YField {
-                    id: searchField
-
+                Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.leftMargin: Theme.sp4
-                    anchors.rightMargin: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    placeholder: Theme.jpEnabled ? "検索 // SEARCH OR :COMMANDS" : "SEARCH OR :COMMANDS"
-                    navKeys: true
-
-                    onAccepted: card.acceptCurrent()
-                    // grid mode: up/down travel a full row, left/right one
-                    // column; list/command modes keep single-row stepping
-                    onNavUp: card.mode === 0 && !card.commandMode ? card.moveSel(-gridView.cols) : card.moveSel(-1)
-                    onNavDown: card.mode === 0 && !card.commandMode ? card.moveSel(gridView.cols) : card.moveSel(1)
-                    onNavLeft: if (!card.commandMode && card.mode === 0)
-                        card.moveSel(-1)
-                    onNavRight: if (!card.commandMode && card.mode === 0)
-                        card.moveSel(1)
-                    onNavTab: {
-                        ShellState.set("launcherMode", ShellState.launcherMode === "grid" ? "list" : "grid");
-                        card.clampSel();
-                    }
-                    onNavEscape: ShellState.closeLauncher()
-                    onNavShiftDel: {
-                        const r = card.results[card.selIdx];
-                        if (r && r.kind === "app")
-                            card.removeRecent(r.entry.id);
-                    }
-                }
-            }
-
-            // ===== CALC STRIP =====
-            Rectangle {
-                id: calcStrip
-
-                anchors.top: searchBand.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                // height SNAPS — an animated height here relayouts the whole
-                // results area on every keystroke of a math expression;
-                // the fade below carries the motion instead
-                height: card.calcText !== "" ? 34 : 0
-                visible: height > 0
-                color: Theme.surface
-
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: card.wlCopyOk && card.calcText !== ""
-
-                    onClicked: {
-                        copyProc.command = ["wl-copy", card.calcText];
-                        copyProc.running = true;
-                        ShellState.closeLauncher();
-                    }
+                    y: header.height
+                    height: 1
+                    color: Theme.hairline
                 }
 
-                Text {
-                    x: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "= " + card.calcText
-                    color: Theme.acid
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsBody
-                    font.weight: Font.Bold
-                    opacity: card.calcText !== "" ? 1 : 0
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Theme.movFast
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                }
-
-                Text {
+                // ===== SEARCH BAR =====
+                Item {
+                    id: searchBand
+                    anchors.top: header.bottom
+                    anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.rightMargin: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: !card.wlCopyOk ? "wl-copy missing" : Theme.jpEnabled ? "クリックでコピー" : "CLICK TO COPY"
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsLabel
-                    font.letterSpacing: 0.8
-                    opacity: card.calcText !== "" ? 1 : 0
+                    height: Theme.ctlH + Theme.sp3 * 2
 
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Theme.movFast
-                            easing.type: Easing.OutCubic
+                    YField {
+                        id: searchField
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: Theme.sp4
+                        anchors.rightMargin: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        placeholder: Theme.jpEnabled ? "検索 // SEARCH OR :COMMANDS" : "SEARCH OR :COMMANDS"
+                        navKeys: true
+
+                        onAccepted: card.acceptCurrent()
+                        onNavUp: card.mode === 0 && !card.commandMode ? card.moveSel(-gridView.cols) : card.moveSel(-1)
+                        onNavDown: card.mode === 0 && !card.commandMode ? card.moveSel(gridView.cols) : card.moveSel(1)
+                        onNavLeft: if (!card.commandMode && card.mode === 0) card.moveSel(-1)
+                        onNavRight: if (!card.commandMode && card.mode === 0) card.moveSel(1)
+                        onNavTab: {
+                            const modes = ["list", "grid", "detail"];
+                            const cur = modes.indexOf(ShellState.launcherMode);
+                            ShellState.set("launcherMode", modes[(cur + 1) % modes.length]);
+                            card.clampSel();
                         }
-                    }
-                }
-            }
-
-            // ===== RESULTS =====
-            Item {
-                id: resultsArea
-
-                anchors.top: calcStrip.bottom
-                anchors.bottom: footer.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: !card.commandMode && card.results.length === 0
-                    text: Theme.jpEnabled ? "該当なし // NO MATCH" : "NO MATCH"
-                    color: Theme.faint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsLabel
-                    font.letterSpacing: 2
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: card.commandMode && card.cmdMatches.length === 0
-                    text: Theme.jpEnabled ? "不明なコマンド // UNKNOWN COMMAND" : "UNKNOWN COMMAND"
-                    color: Theme.faint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsLabel
-                    font.letterSpacing: 2
-                }
-
-                ListView {
-                    id: commandList
-
-                    anchors.fill: parent
-                    anchors.margins: Theme.sp2
-                    visible: card.commandMode
-                    clip: true
-                    model: card.cmdMatches
-                    currentIndex: card.selIdx
-                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-
-                    FastWheel {}
-
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    delegate: Item {
-                        id: cmdRoot
-
-                        required property var modelData
-                        required property int index
-
-                        readonly property bool sel: index === card.selIdx
-
-                        width: commandList.width
-                        height: 36
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: cmdRoot.sel ? Theme.surface : "transparent"
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: 2
-                                color: cmdRoot.sel ? Theme.acid : "transparent"
-                            }
-                        }
-
-                        Text {
-                            x: Theme.sp3
-                            width: parent.width * 0.38
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: cmdRoot.modelData.c.cmd + (cmdRoot.modelData.c.argHint !== "" ? " " + cmdRoot.modelData.c.argHint : "")
-                            color: cmdRoot.sel ? Theme.acid : Theme.ink
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsBody
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            x: parent.width * 0.38 + Theme.sp3
-                            width: parent.width - parent.width * 0.38 - Theme.sp3 * 2
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: cmdRoot.modelData.c.desc + (cmdRoot.modelData.args !== "" ? "  →  " + cmdRoot.modelData.args : "")
-                            color: Theme.muted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsBody
-                            elide: Text.ElideRight
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-
-                            onClicked: card.runCommand(cmdRoot.modelData)
+                        onNavEscape: ShellState.closeLauncher()
+                        onNavShiftDel: {
+                            const r = card.results[card.selIdx];
+                            if (r && r.kind === "app") card.removeRecent(r.entry.id);
                         }
                     }
                 }
 
-                GridView {
-                    id: gridView
+                // ===== CATEGORY FILTER BAR =====
+                Item {
+                    id: catBar
+                    anchors.top: searchBand.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 26
+                    visible: !card.commandMode
 
-                    readonly property int gridW: width - Theme.sp2 * 2
-                    readonly property int cols: Math.max(4, Math.floor(gridW / 104))
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.sp4
+                        anchors.rightMargin: Theme.sp4
+                        contentWidth: catRow.width
+                        clip: true
+                        interactive: contentWidth > width
+                        boundsBehavior: Flickable.StopAtBounds
+                        FastWheel {}
 
-                    anchors.fill: parent
-                    anchors.margins: Theme.sp2
-                    visible: !card.commandMode && card.mode === 0
-                    clip: true
-                    model: card.results
-                    currentIndex: card.selIdx
-                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
-                    cellWidth: Math.floor(gridW / cols)
-                    cellHeight: 92
-                    boundsBehavior: Flickable.StopAtBounds
+                        Row {
+                            id: catRow
+                            spacing: Theme.sp1
+                            anchors.verticalCenter: parent.verticalCenter
 
-                    FastWheel {}
+                            Repeater {
+                                model: card.categoryLabels
 
-                    delegate: Item {
-                        id: tileRoot
+                                delegate: Rectangle {
+                                    id: catChip
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool active: card.catFilter === modelData.label.toLowerCase()
 
-                        required property var modelData
-                        required property int index
+                                    width: catLabel.implicitWidth + Theme.sp2 * 2
+                                    height: 20
+                                    radius: 2
+                                    color: active ? Theme.acid : "transparent"
+                                    border.width: 1
+                                    border.color: active ? Theme.acid : Theme.lineStrong
 
-                        width: gridView.cellWidth
-                        height: gridView.cellHeight
+                                    Text {
+                                        id: catLabel
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: active ? Theme.bg : Theme.muted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                        font.weight: Font.Bold
+                                        font.letterSpacing: 1
+                                    }
 
-                        readonly property bool sel: index === card.selIdx
-                        readonly property bool isAction: modelData.kind === "action"
-                        readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
-                        readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
-                        readonly property string label: isAction ? modelData.action.name : modelData.entry.name
+                                    Text {
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: Theme.sp1
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: !active
+                                        text: modelData.count
+                                        color: Theme.faint
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 7
+                                    }
 
-                        Rectangle {
-                            id: tileBox
-
-                            x: 4
-                            y: 4
-                            width: parent.width - 8
-                            height: parent.height - 8
-                            color: tileRoot.sel || area.containsMouse ? Theme.surface : "transparent"
-                            border.width: 1
-                            border.color: tileRoot.sel ? Theme.acid : "transparent"
-
-                            Rectangle {
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                width: 5
-                                height: 5
-                                color: Theme.acid
-                                visible: !tileRoot.isAction && card.pinIds.includes(tileRoot.modelData.entry.id)
-                            }
-
-                            // acid square + initial when no icon resolves
-                            Rectangle {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.top: parent.top
-                                anchors.topMargin: 10
-                                width: 34
-                                height: 34
-                                color: Theme.acid
-                                visible: tileRoot.iconSrc === "" || gTileIcon.status === Image.Error || gTileIcon.status === Image.Null || gTileIcon.status === Image.Loading
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: tileRoot.label.charAt(0).toUpperCase()
-                                    color: Theme.bg
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsTitle
-                                    font.weight: Font.ExtraBold
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: card.catFilter = catChip.modelData.label.toLowerCase()
+                                    }
                                 }
                             }
+                        }
+                    }
+                }
 
-                            IconImage {
-                                id: gTileIcon
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    y: catBar.y + catBar.height
+                    height: catBar.visible ? 1 : 0
+                    color: Theme.hairline
+                }
 
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.top: parent.top
-                                anchors.topMargin: 10
-                                implicitSize: 36
-                                visible: tileRoot.iconUrl !== "" && gTileIcon.status !== Image.Error && gTileIcon.status !== Image.Null
-                                source: tileRoot.iconUrl
-                                asynchronous: true
+                // ===== CALC STRIP =====
+                Rectangle {
+                    id: calcStrip
+                    anchors.top: catBar.visible ? catBar.bottom : searchBand.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: card.calcText !== "" ? 34 : 0
+                    visible: height > 0
+                    color: Theme.surface
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: card.wlCopyOk && card.calcText !== ""
+                        onClicked: {
+                            copyProc.command = ["wl-copy", card.calcText];
+                            copyProc.running = true;
+                            ShellState.closeLauncher();
+                        }
+                    }
+
+                    Text {
+                        x: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "= " + card.calcText
+                        color: Theme.acid
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsBody
+                        font.weight: Font.Bold
+                        opacity: card.calcText !== "" ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: Theme.movFast } }
+                    }
+
+                    Text {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: !card.wlCopyOk ? "wl-copy missing" : Theme.jpEnabled ? "クリックでコピー" : "CLICK TO COPY"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: 0.8
+                        opacity: card.calcText !== "" ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: Theme.movFast } }
+                    }
+                }
+
+                // ===== RESULTS =====
+                Item {
+                    id: resultsArea
+                    anchors.top: calcStrip.bottom
+                    anchors.bottom: footer.top
+                    anchors.bottomMargin: detailPanel.height
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: !card.commandMode && card.results.length === 0
+                        text: Theme.jpEnabled ? "該当なし // NO MATCH" : "NO MATCH"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: 2
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: card.commandMode && card.cmdMatches.length === 0
+                        text: Theme.jpEnabled ? "不明なコマンド // UNKNOWN COMMAND" : "UNKNOWN COMMAND"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: 2
+                    }
+
+                    // ---- command list ----
+                    ListView {
+                        id: commandList
+                        anchors.fill: parent
+                        anchors.margins: Theme.sp2
+                        visible: card.commandMode
+                        clip: true
+                        model: card.cmdMatches
+                        currentIndex: card.selIdx
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                        boundsBehavior: Flickable.StopAtBounds
+                        FastWheel {}
+
+                        delegate: Item {
+                            id: cmdRoot
+                            required property var modelData
+                            required property int index
+                            readonly property bool sel: index === card.selIdx
+
+                            width: commandList.width
+                            height: 36
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: cmdRoot.sel ? Theme.surface : "transparent"
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: 2
+                                    color: cmdRoot.sel ? Theme.acid : "transparent"
+                                }
                             }
 
                             Text {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                text: tileRoot.label + (tileRoot.isAction ? " ↩" : "")
-                                color: Theme.ink
+                                x: Theme.sp3
+                                width: parent.width * 0.38
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: cmdRoot.modelData.c.cmd + (cmdRoot.modelData.c.argHint !== "" ? " " + cmdRoot.modelData.c.argHint : "")
+                                color: cmdRoot.sel ? Theme.acid : Theme.ink
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsLabel
-                                horizontalAlignment: Text.AlignHCenter
+                                font.pixelSize: Theme.fsBody
                                 elide: Text.ElideRight
-                                maximumLineCount: 1
                             }
-                        }
 
-                        MouseArea {
-                            id: area
+                            Text {
+                                x: parent.width * 0.38 + Theme.sp3
+                                width: parent.width - parent.width * 0.38 - Theme.sp3 * 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: cmdRoot.modelData.c.desc + (cmdRoot.modelData.args !== "" ? "  →  " + cmdRoot.modelData.args : "")
+                                color: Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsBody
+                                elide: Text.ElideRight
+                            }
 
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
-
-                            onClicked: mouse => {
-                                if (mouse.button === Qt.RightButton) {
-                                    if (!tileRoot.isAction)
-                                        card.togglePin(tileRoot.modelData.entry.id);
-                                    return;
-                                }
-                                if (mouse.button === Qt.LeftButton)
-                                    card.activate(tileRoot.modelData);
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: card.runCommand(cmdRoot.modelData)
                             }
                         }
                     }
-                }
 
-                ListView {
-                    id: listView
+                    // ---- grid view ----
+                    GridView {
+                        id: gridView
+                        readonly property int gridW: width - Theme.sp2 * 2
+                        readonly property int cols: Math.max(4, Math.floor(gridW / 104))
 
-                    anchors.fill: parent
-                    anchors.margins: Theme.sp2
-                    visible: !card.commandMode && card.mode === 1
-                    clip: true
-                    model: card.results
-                    currentIndex: card.selIdx
-                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-                    spacing: 1
-                    boundsBehavior: Flickable.StopAtBounds
+                        anchors.fill: parent
+                        anchors.margins: Theme.sp2
+                        visible: !card.commandMode && card.mode === 0
+                        clip: true
+                        model: card.results
+                        currentIndex: card.selIdx
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
+                        cellWidth: Math.floor(gridW / cols)
+                        cellHeight: 92
+                        boundsBehavior: Flickable.StopAtBounds
+                        FastWheel {}
 
-                    FastWheel {}
+                        delegate: Item {
+                            id: tileRoot
+                            required property var modelData
+                            required property int index
 
-                    delegate: Item {
-                        id: rowRoot
+                            width: gridView.cellWidth
+                            height: gridView.cellHeight
 
-                        required property var modelData
-                        required property int index
-
-                        width: listView.width
-                        height: 36
-
-                        readonly property bool sel: index === card.selIdx
-                        readonly property bool isAction: modelData.kind === "action"
-                        readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
-                        readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
-                        readonly property string label: isAction ? modelData.action.name : modelData.entry.name
-                        readonly property string sub: isAction ? modelData.entry.name : (modelData.entry.genericName ?? "")
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: rowRoot.sel ? Theme.surface : areaR.containsMouse ? Theme.bg : "transparent"
+                            readonly property bool sel: index === card.selIdx
+                            readonly property bool isAction: modelData.kind === "action"
+                            readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
+                            readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
+                            readonly property string label: isAction ? modelData.action.name : modelData.entry.name
 
                             Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: 2
-                                color: rowRoot.sel ? Theme.acid : "transparent"
-                            }
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 5
-                                height: 5
-                                color: Theme.acid
-                                visible: !rowRoot.isAction && card.pinIds.includes(rowRoot.modelData.entry.id)
-                            }
-
-                            Item {
-                                x: 26
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 22
-                                height: 22
+                                id: tileBox
+                                x: 4; y: 4
+                                width: parent.width - 8; height: parent.height - 8
+                                color: tileRoot.sel || area.containsMouse ? Theme.surface : "transparent"
+                                border.width: 1
+                                border.color: tileRoot.sel ? Theme.acid : "transparent"
 
                                 Rectangle {
-                                    anchors.fill: parent
+                                    anchors.right: parent.right; anchors.top: parent.top
+                                    width: 5; height: 5
                                     color: Theme.acid
-                                    visible: rowRoot.iconSrc === "" || rRowIcon.status === Image.Error || rRowIcon.status === Image.Null || rRowIcon.status === Image.Loading
+                                    visible: !tileRoot.isAction && card.pinIds.includes(tileRoot.modelData.entry.id)
+                                }
+
+                                Rectangle {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.top: parent.top; anchors.topMargin: 10
+                                    width: 34; height: 34
+                                    color: Theme.acid
+                                    visible: tileRoot.iconSrc === "" || gTileIcon.status === Image.Error || gTileIcon.status === Image.Null || gTileIcon.status === Image.Loading
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: rowRoot.label.charAt(0).toUpperCase()
+                                        text: tileRoot.label.charAt(0).toUpperCase()
                                         color: Theme.bg
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fsLabel
+                                        font.pixelSize: Theme.fsTitle
                                         font.weight: Font.ExtraBold
                                     }
                                 }
 
                                 IconImage {
-                                    id: rRowIcon
-
-                                    anchors.fill: parent
-                                    implicitSize: 22
-                                    visible: rowRoot.iconUrl !== "" && rRowIcon.status !== Image.Error && rRowIcon.status !== Image.Null
-                                    source: rowRoot.iconUrl
+                                    id: gTileIcon
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.top: parent.top; anchors.topMargin: 10
+                                    implicitSize: 36
+                                    visible: tileRoot.iconUrl !== "" && gTileIcon.status !== Image.Error && gTileIcon.status !== Image.Null
+                                    source: tileRoot.iconUrl
                                     asynchronous: true
                                 }
+
+                                Text {
+                                    anchors.left: parent.left; anchors.right: parent.right
+                                    anchors.bottom: parent.bottom; anchors.bottomMargin: 8
+                                    text: tileRoot.label + (tileRoot.isAction ? " ↩" : "")
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsLabel
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                }
                             }
 
-                            Text {
-                                x: 60
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - 60 - subLabel.width - Theme.sp3 * 3
-                                text: rowRoot.label + (rowRoot.isAction ? " ↩" : "")
-                                color: Theme.ink
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsBody
-                                font.weight: Font.Medium
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                id: subLabel
-
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.sp3
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: rowRoot.sub
-                                color: Theme.muted
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsLabel
-                                horizontalAlignment: Text.AlignRight
-                                elide: Text.ElideRight
-                                width: Math.min(implicitWidth, parent.width * 0.35)
+                            MouseArea {
+                                id: area
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.RightButton) {
+                                        if (!tileRoot.isAction) card.togglePin(tileRoot.modelData.entry.id);
+                                        return;
+                                    }
+                                    if (mouse.button === Qt.LeftButton) card.activate(tileRoot.modelData);
+                                }
                             }
                         }
+                    }
 
-                        MouseArea {
-                            id: areaR
+                    // ---- list view ----
+                    ListView {
+                        id: listView
+                        anchors.fill: parent
+                        anchors.margins: Theme.sp2
+                        visible: !card.commandMode && card.mode === 1
+                        clip: true
+                        model: card.results
+                        currentIndex: card.selIdx
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                        spacing: 1
+                        boundsBehavior: Flickable.StopAtBounds
+                        FastWheel {}
 
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        delegate: Item {
+                            id: rowRoot
+                            required property var modelData
+                            required property int index
 
-                            onClicked: mouse => {
-                                if (mouse.button === Qt.RightButton) {
-                                    if (!rowRoot.isAction)
-                                        card.togglePin(rowRoot.modelData.entry.id);
-                                    return;
+                            width: listView.width
+                            height: 36
+
+                            readonly property bool sel: index === card.selIdx
+                            readonly property bool isAction: modelData.kind === "action"
+                            readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
+                            readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
+                            readonly property string label: isAction ? modelData.action.name : modelData.entry.name
+                            readonly property string sub: isAction ? modelData.entry.name : (modelData.entry.genericName ?? "")
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: rowRoot.sel ? Theme.surface : areaR.containsMouse ? Theme.bg : "transparent"
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top; anchors.bottom: parent.bottom
+                                    width: 2
+                                    color: rowRoot.sel ? Theme.acid : "transparent"
                                 }
-                                card.activate(rowRoot.modelData);
+
+                                Rectangle {
+                                    anchors.left: parent.left; anchors.leftMargin: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 5; height: 5
+                                    color: Theme.acid
+                                    visible: !rowRoot.isAction && card.pinIds.includes(rowRoot.modelData.entry.id)
+                                }
+
+                                Item {
+                                    x: 26
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 22; height: 22
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: Theme.acid
+                                        visible: rowRoot.iconSrc === "" || rRowIcon.status === Image.Error || rRowIcon.status === Image.Null || rRowIcon.status === Image.Loading
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: rowRoot.label.charAt(0).toUpperCase()
+                                            color: Theme.bg
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsLabel
+                                            font.weight: Font.ExtraBold
+                                        }
+                                    }
+
+                                    IconImage {
+                                        id: rRowIcon
+                                        anchors.fill: parent
+                                        implicitSize: 22
+                                        visible: rowRoot.iconUrl !== "" && rRowIcon.status !== Image.Error && rRowIcon.status !== Image.Null
+                                        source: rowRoot.iconUrl
+                                        asynchronous: true
+                                    }
+                                }
+
+                                Text {
+                                    x: 60
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 60 - subLabel.width - Theme.sp3 * 3
+                                    text: rowRoot.label + (rowRoot.isAction ? " ↩" : "")
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Medium
+                                    elide: Text.ElideRight
+                                }
+
+                                Text {
+                                    id: subLabel
+                                    anchors.right: parent.right; anchors.rightMargin: Theme.sp3
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: rowRoot.sub
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsLabel
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideRight
+                                    width: Math.min(implicitWidth, parent.width * 0.35)
+                                }
                             }
+
+                            MouseArea {
+                                id: areaR
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.RightButton) {
+                                        if (!rowRoot.isAction) card.togglePin(rowRoot.modelData.entry.id);
+                                        return;
+                                    }
+                                    card.activate(rowRoot.modelData);
+                                }
+                            }
+                        }
+                    }
+
+                    // ---- detail view: single-column rich list ----
+                    ListView {
+                        id: detailList
+                        anchors.fill: parent
+                        anchors.margins: Theme.sp2
+                        visible: !card.commandMode && card.mode === 2
+                        clip: true
+                        model: card.results
+                        currentIndex: card.selIdx
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                        spacing: 2
+                        boundsBehavior: Flickable.StopAtBounds
+                        FastWheel {}
+
+                        delegate: Item {
+                            id: detRoot
+                            required property var modelData
+                            required property int index
+
+                            width: detailList.width
+                            height: 58
+
+                            readonly property bool sel: index === card.selIdx
+                            readonly property bool isAction: modelData.kind === "action"
+                            readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
+                            readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
+                            readonly property string label: isAction ? modelData.action.name : modelData.entry.name
+                            readonly property string sub: isAction ? modelData.entry.name : (modelData.entry.genericName ?? "")
+                            readonly property string catStr: {
+                                if (isAction || !modelData.entry.categories) return "";
+                                return modelData.entry.categories.slice(0, 3).join(" · ");
+                            }
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: detRoot.sel ? Theme.surface : areaD.containsMouse ? Theme.bg : "transparent"
+                                border.width: 1
+                                border.color: detRoot.sel ? Theme.acid : "transparent"
+
+                                Behavior on border.color { ColorAnimation { duration: Theme.movFast } }
+
+                                // left accent bar
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top; anchors.bottom: parent.bottom
+                                    width: detRoot.sel ? 3 : 0
+                                    color: Theme.acid
+
+                                    Behavior on width { NumberAnimation { duration: Theme.movSnap; easing.type: Easing.OutCubic } }
+                                }
+
+                                // pin indicator
+                                Rectangle {
+                                    anchors.left: parent.left; anchors.leftMargin: 10
+                                    anchors.top: parent.top; anchors.topMargin: 8
+                                    width: 5; height: 5
+                                    color: Theme.acid
+                                    visible: !detRoot.isAction && card.pinIds.includes(detRoot.modelData.entry.id)
+                                }
+
+                                // icon
+                                Item {
+                                    anchors.left: parent.left; anchors.leftMargin: 18
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 32; height: 32
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: Theme.acid
+                                        visible: detRoot.iconSrc === "" || detIcon.status === Image.Error || detIcon.status === Image.Null || detIcon.status === Image.Loading
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: detRoot.label.charAt(0).toUpperCase()
+                                            color: Theme.bg
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsBody
+                                            font.weight: Font.ExtraBold
+                                        }
+                                    }
+
+                                    IconImage {
+                                        id: detIcon
+                                        anchors.fill: parent
+                                        implicitSize: 32
+                                        visible: detRoot.iconUrl !== "" && detIcon.status !== Image.Error && detIcon.status !== Image.Null
+                                        source: detRoot.iconUrl
+                                        asynchronous: true
+                                    }
+                                }
+
+                                // name
+                                Text {
+                                    anchors.left: parent.left; anchors.leftMargin: 58
+                                    anchors.top: parent.top; anchors.topMargin: 8
+                                    anchors.right: parent.right; anchors.rightMargin: Theme.sp3
+                                    text: detRoot.label + (detRoot.isAction ? " ↩" : "")
+                                    color: detRoot.sel ? Theme.acid : Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.DemiBold
+                                    elide: Text.ElideRight
+                                }
+
+                                // subtitle
+                                Text {
+                                    anchors.left: parent.left; anchors.leftMargin: 58
+                                    anchors.top: parent.top; anchors.topMargin: 26
+                                    anchors.right: parent.right; anchors.rightMargin: Theme.sp3
+                                    text: detRoot.sub
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsLabel
+                                    elide: Text.ElideRight
+                                }
+
+                                // category tag
+                                Text {
+                                    anchors.left: parent.left; anchors.leftMargin: 58
+                                    anchors.bottom: parent.bottom; anchors.bottomMargin: 6
+                                    visible: detRoot.catStr.length > 0
+                                    text: detRoot.catStr.toUpperCase()
+                                    color: Theme.faint
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 7
+                                    font.letterSpacing: 1
+                                }
+                            }
+
+                            MouseArea {
+                                id: areaD
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.RightButton) {
+                                        if (!detRoot.isAction) card.togglePin(detRoot.modelData.entry.id);
+                                        return;
+                                    }
+                                    card.activate(detRoot.modelData);
+                                }
+                            }
+                        }
+                    }
+
+                    YScroll {
+                        target: card.commandMode ? commandList : card.mode === 0 ? gridView : card.mode === 2 ? detailList : listView
+                        x: parent.width - 7
+                        y: Theme.sp2
+                        width: 3
+                        height: parent.height - Theme.sp2 * 2
+                    }
+                }
+
+                // ===== DETAIL PANEL =====
+                Rectangle {
+                    id: detailPanel
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: footer.top
+                    height: card.selectedEntry && ShellState.launcherDetail && !card.commandMode ? 64 : 0
+                    visible: height > 0
+                    color: Theme.bgAlt
+                    clip: true
+
+                    Behavior on height {
+                        NumberAnimation { duration: Theme.movMed; easing.type: Easing.OutCubic }
+                    }
+
+                    Rectangle {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 1
+                        color: Theme.hairline
+                    }
+
+                    // pin dot
+                    Rectangle {
+                        x: Theme.sp4; y: Theme.sp3
+                        width: 8; height: 8
+                        color: card.selectedPinned ? Theme.acid : "transparent"
+                        border.width: 1
+                        border.color: card.selectedPinned ? Theme.acid : Theme.faint
+                    }
+
+                    // name
+                    Text {
+                        x: Theme.sp4 + (card.selectedPinned ? 14 : 0)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: -12
+                        text: card.selectedEntry ? card.selectedEntry.name : ""
+                        color: Theme.ink
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsBody
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.5
+                    }
+
+                    // id
+                    Text {
+                        x: Theme.sp4 + (card.selectedPinned ? 14 : 0)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: 4
+                        text: card.selectedEntry ? card.selectedEntry.id : ""
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        font.letterSpacing: 1
+                    }
+
+                    // category
+                    Text {
+                        x: Theme.sp4 + (card.selectedPinned ? 14 : 0)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: 16
+                        visible: card.selectedCategories.length > 0
+                        text: card.selectedCategories.toUpperCase()
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 7
+                        font.letterSpacing: 1.5
+                    }
+
+                    // action chips
+                    Row {
+                        anchors.right: parent.right; anchors.rightMargin: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.sp1
+                        visible: card.selectedActions.length > 0
+
+                        Repeater {
+                            model: card.selectedActions.slice(0, 4)
+
+                            delegate: YButton {
+                                required property var modelData
+                                label: modelData.name.toUpperCase()
+                                onClicked: {
+                                    modelData.execute();
+                                    card.pushRecent(card.selectedEntry.id);
+                                    ShellState.closeLauncher();
+                                }
+                            }
+                        }
+                    }
+
+                    // pin/unpin button
+                    YButton {
+                        anchors.right: parent.right; anchors.rightMargin: Theme.sp4
+                        anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.sp2
+                        visible: card.selectedEntry && !card.selectedActions.length
+                        label: card.selectedPinned ? "UNPIN" : "PIN"
+                        tone: card.selectedPinned ? "default" : "acid"
+                        onClicked: {
+                            if (card.selectedEntry) card.togglePin(card.selectedEntry.id);
                         }
                     }
                 }
 
-                // scroll rail over whichever list is live
-                YScroll {
-                    target: card.commandMode ? commandList : card.mode === 0 ? gridView : listView
-                    x: parent.width - 7
-                    y: Theme.sp2
-                    width: 3
-                    height: parent.height - Theme.sp2 * 2
-                }
-            }
-
-            // ===== FOOTER =====
-            Rectangle {
-                id: footer
-
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: Theme.footH
-                color: Theme.bgAlt
-
+                // ===== FOOTER =====
                 Rectangle {
-                    anchors.top: parent.top
+                    id: footer
+                    anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: 1
-                    color: Theme.hairline
-                }
+                    height: Theme.footH
+                    color: Theme.bgAlt
 
-                YChip {
-                    id: countChip
+                    Rectangle {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 1
+                        color: Theme.hairline
+                    }
 
-                    anchors.left: parent.left
-                    anchors.leftMargin: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    label: String(card.selCount) + (card.commandMode ? " CMD" : " APPS")
-                }
+                    YChip {
+                        id: countChip
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: String(card.selCount) + (card.commandMode ? " CMD" : " APPS")
+                    }
 
-                Text {
-                    anchors.left: countChip.right
-                    anchors.leftMargin: Theme.sp2
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.sp4
-                    anchors.verticalCenter: parent.verticalCenter
-                    elide: Text.ElideRight
-                    text: "↵ RUN · ↑↓ NAV · ←→ GRID · TAB MODE · RCLICK PIN · ⇧DEL FORGET · ESC CLOSE"
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsLabel
-                    font.letterSpacing: 0.8
+                    Text {
+                        anchors.left: countChip.right
+                        anchors.leftMargin: Theme.sp2
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.sp4
+                        anchors.verticalCenter: parent.verticalCenter
+                        elide: Text.ElideRight
+                        text: "↵ RUN · ↑↓ NAV · TAB MODE · RCLICK PIN · ⇧DEL FORGET · ESC CLOSE"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: 0.8
+                    }
                 }
-            }
             }
         }
     }

@@ -66,7 +66,7 @@ Item {
             anchors.left: hhText.right
             text: ":"
             opacity: root.colonOn ? 1 : 0.2
-            color: Theme.acid
+            color: root.colonOn ? Theme.acid : Theme.faint
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsTitle
             font.weight: Font.Bold
@@ -74,6 +74,13 @@ Item {
             // breathe, don't strobe
             Behavior on opacity {
                 NumberAnimation {
+                    duration: 340
+                    easing.type: Easing.InOutSine
+                }
+            }
+
+            Behavior on color {
+                ColorAnimation {
                     duration: 340
                     easing.type: Easing.InOutSine
                 }

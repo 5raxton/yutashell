@@ -98,11 +98,9 @@ Item {
 
     Connections {
         function onPressedChanged() {
-            if (area.pressed)
-                ;
-            else if (area.containsMouse)
+            if (!area.pressed && area.containsMouse)
                 root.showCol(btRow, "bluetooth · " + (root.adapter ? root.adapter.devices.values.length + " devices" : "no adapter"));
-            else
+            else if (!area.pressed)
                 root.hideCol();
         }
 

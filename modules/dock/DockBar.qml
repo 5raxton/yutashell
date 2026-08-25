@@ -228,10 +228,19 @@ PanelWindow {
         width: 52
         height: 46
         color: hover.containsMouse ? Theme.surface : "transparent"
+        scale: hover.containsMouse ? 1.08 : 1
 
         Behavior on color {
             ColorAnimation {
                 duration: Theme.movFast
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.movSnap
+                easing.type: Easing.OutBack
+                easing.overshoot: 0.3
             }
         }
 

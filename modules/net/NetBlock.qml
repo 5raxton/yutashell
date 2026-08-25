@@ -112,9 +112,7 @@ Item {
 
     Connections {
         function onPressedChanged() {
-            if (area.pressed)
-                ;
-            else if (area.containsMouse) {
+            if (!area.pressed && area.containsMouse) {
                 const c = Connectivity;
                 let t;
                 if (root.wiredUp)
@@ -124,8 +122,9 @@ Item {
                 else
                     t = c.wifiOn ? "wifi on · not connected" : "wifi off";
                 root.showCol(netRow, t);
-            } else
+            } else if (!area.pressed) {
                 root.hideCol();
+            }
         }
 
         target: area

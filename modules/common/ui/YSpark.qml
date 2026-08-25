@@ -37,8 +37,15 @@ Canvas {
         for (let i = 0; i < n; i++) {
             const v = root.samples[i];
             const h = Math.max(1, v * root.height);
-            ctx.fillStyle = v >= root.hotThreshold ? root.hotColor.toString() : root.barColor.toString();
-            ctx.fillRect(Math.floor(i * bw), root.height - h, Math.max(1, bw - 1), h);
+            const x = Math.floor(i * bw);
+            const barW = Math.max(1, bw - 1);
+            const baseColor = v >= root.hotThreshold ? root.hotColor : root.barColor;
+            // gradient: full opacity at the tip, fading to transparent at the base
+            const grad = ctx.createLinearGradient(x, root.height, x, root.height - h);
+            grad.addColorStop(0, Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.15));
+            grad.addColorStop(1, Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.95));
+            ctx.fillStyle = grad;
+            ctx.fillRect(x, root.height - h, barW, h);
         }
     }
 }

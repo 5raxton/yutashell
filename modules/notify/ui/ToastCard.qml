@@ -43,6 +43,29 @@ Rectangle {
         }
     }
 
+    // acid border flash on arrival, then cool to the final edge color
+    SequentialAnimation {
+        id: borderFlash
+
+        running: false
+
+        ColorAnimation {
+            target: root
+            property: "border.color"
+            to: Theme.acid
+            duration: 120
+        }
+        PauseAnimation {
+            duration: 180
+        }
+        ColorAnimation {
+            target: root
+            property: "border.color"
+            to: root.edge
+            duration: Theme.movMed
+        }
+    }
+
     Timer {
         id: enterT
 
@@ -50,6 +73,7 @@ Rectangle {
         onTriggered: {
             root.opacity = 1;
             root.y = 0;
+            borderFlash.start();
         }
     }
 

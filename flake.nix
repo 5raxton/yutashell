@@ -28,7 +28,7 @@
       # the config itself, as a versioned store path
       packages.${system}.default = pkgs.stdenvNoCC.mkDerivation {
         pname = "yutashell";
-        version = "0.1.0";
+        version = "1.0.0";
         src = self;
         dontBuild = true;
         installPhase = ''

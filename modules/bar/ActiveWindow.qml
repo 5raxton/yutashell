@@ -116,14 +116,50 @@ Item {
         font.pixelSize: 10
     }
 
-    Text {
+    Item {
         visible: !root.hasClient
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        text: Theme.jpEnabled ? "NO SIGNAL // 待機中" : "NO SIGNAL // TAIKI"
-        color: Theme.muted
-        font.family: Theme.fontFamily
-        font.pixelSize: 10
-        font.letterSpacing: 1
+        width: noSignalLabel.implicitWidth + 10
+        height: 14
+
+        Text {
+            id: noSignalLabel
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: Theme.jpEnabled ? "NO SIGNAL // 待機中" : "NO SIGNAL // TAIKI"
+            color: Theme.muted
+            font.family: Theme.fontFamily
+            font.pixelSize: 10
+            font.letterSpacing: 1
+        }
+
+        // blinking cursor — hacker terminal aesthetic
+        Rectangle {
+            anchors.left: noSignalLabel.right
+            anchors.leftMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
+            width: 6
+            height: 11
+            color: Theme.acid
+
+            SequentialAnimation on opacity {
+                running: !root.hasClient
+                loops: Animation.Infinite
+
+                NumberAnimation {
+                    from: 1
+                    to: 0
+                    duration: 530
+                    easing.type: Easing.InOutSine
+                }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: 530
+                    easing.type: Easing.InOutSine
+                }
+            }
+        }
     }
 }
