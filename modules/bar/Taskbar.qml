@@ -57,6 +57,10 @@ Item {
                 height: 30
                 color: hover.containsMouse ? Theme.surface : "transparent"
 
+                Behavior on color {
+                    ColorAnimation { duration: Theme.movFast }
+                }
+
                 // active / running tick along the bottom
                 Rectangle {
                     anchors.bottom: parent.bottom

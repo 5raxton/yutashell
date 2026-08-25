@@ -42,22 +42,15 @@ PanelWindow {
         interval: Theme.lingerMs
     }
 
-    // linger mapped after close so YSurface's exit ceremony renders
     Connections {
         target: ShellState
 
         function onWeatherOpenChanged() {
-            if (!ShellState.weatherOpen)
-                hideDelay.restart();
-        }
-    }
-
-    Connections {
-        target: ShellState
-
-        function onWeatherOpenChanged() {
-            if (ShellState.weatherOpen)
+            if (ShellState.weatherOpen) {
                 Weather.refresh();
+            } else {
+                hideDelay.restart();
+            }
         }
     }
 

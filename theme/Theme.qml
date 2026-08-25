@@ -254,10 +254,8 @@ Singleton {
         try {
             const m = JSON.parse(wallThemeFile.text());
             const tokens = m.colors ?? m;
-            if (_applyTokens(tokens)) {
+            if (_applyTokens(tokens))
                 root.wallpaperSource = String(m.name ?? "").slice(0, 24);
-                console.log("[theme] wallpaper palette applied" + (m.name ? ": " + m.name : ""));
-            }
         } catch (e) {
             console.warn("[theme] theme.json unreadable:", e);
         }
@@ -344,7 +342,6 @@ Singleton {
                         ShellState.set("scheme", root.activeScheme);
                     if (ShellState.followWallpaper)
                         ShellState.set("followWallpaper", false);
-                    console.log("[theme] preset applied:", root.activeScheme);
                 }
             } catch (e) {
                 console.warn("[theme] scheme json unreadable:", e);

@@ -25,6 +25,20 @@ Rectangle {
     border.width: 1
     border.color: root.active ? Theme.acid : area.containsMouse ? Theme.lineStrong : Theme.hairline
 
+    Behavior on color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
+    Behavior on border.color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
+    Behavior on scale {
+        NumberAnimation { duration: Theme.movSnap; easing.type: Easing.OutBack; easing.overshoot: 0.25 }
+    }
+
+    scale: area.containsMouse ? 1.03 : 1.0
+
     MouseArea {
         id: area
 
@@ -107,6 +121,10 @@ Rectangle {
             font.pixelSize: Theme.fsMicro
             font.weight: Font.Bold
             font.letterSpacing: 2
+
+            Behavior on color {
+                ColorAnimation { duration: Theme.movFast }
+            }
         }
 
         Text {

@@ -123,6 +123,10 @@ Item {
                 radius: 2
                 scale: cell.today ? 1.08 : cellArea.containsMouse ? 1.04 : 1.0
 
+                Behavior on color {
+                    ColorAnimation { duration: Theme.movFast }
+                }
+
                 Behavior on scale {
                     NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
                 }

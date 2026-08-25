@@ -253,6 +253,10 @@ PanelWindow {
                             font.pixelSize: Theme.fsMicro
                             font.weight: tabSeg.isActive ? Font.Bold : Font.Normal
                             font.letterSpacing: 1.5
+
+                            Behavior on color {
+                                ColorAnimation { duration: Theme.movFast }
+                            }
                         }
 
                         MouseArea {
@@ -278,6 +282,13 @@ PanelWindow {
                     color: Theme.acid
 
                     Behavior on x {
+                        NumberAnimation {
+                            duration: Theme.movFast
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Behavior on width {
                         NumberAnimation {
                             duration: Theme.movFast
                             easing.type: Easing.OutCubic
@@ -517,6 +528,14 @@ PanelWindow {
                             border.width: 1
                             border.color: qtt.tileOn ? Theme.acid : (qttArea.containsMouse ? Theme.lineStrong : Theme.hairline)
 
+                            Behavior on color {
+                                ColorAnimation { duration: Theme.movFast }
+                            }
+
+                            Behavior on border.color {
+                                ColorAnimation { duration: Theme.movFast }
+                            }
+
                             Row {
                                 anchors.fill: parent
                                 anchors.margins: Theme.sp2
@@ -537,6 +556,10 @@ PanelWindow {
                                         font.pixelSize: Theme.fsLabel
                                         font.weight: Font.Bold
                                         font.letterSpacing: 1
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
                                     }
 
                                     Text {
@@ -974,6 +997,10 @@ PanelWindow {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsBody
                     font.weight: Font.Bold
+
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.movFast }
+                    }
                 }
 
                 YSpark {
@@ -1011,6 +1038,10 @@ PanelWindow {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsBody
                     font.weight: Font.Bold
+
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.movFast }
+                    }
                 }
 
                 YSpark {
@@ -1048,6 +1079,10 @@ PanelWindow {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsBody
                     font.weight: Font.Bold
+
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.movFast }
+                    }
                 }
 
                 YSpark {

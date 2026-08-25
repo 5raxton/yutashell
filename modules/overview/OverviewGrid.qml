@@ -141,6 +141,11 @@ PanelWindow {
                             color: area.containsMouse ? Theme.surface : Theme.bgAlt
                             border.width: 1
                             border.color: focused ? Theme.acid : (area.containsMouse ? Theme.lineStrong : Theme.hairline)
+
+                            Behavior on color {
+                                ColorAnimation { duration: Theme.movFast }
+                            }
+
                             opacity: entered ? 1 : 0
                             y: entered ? 0 : 16
                             scale: entered ? 1 : 0.85
@@ -211,6 +216,10 @@ PanelWindow {
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fsTitle
                                         font.weight: Font.DemiBold
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
                                     }
 
                                     Text {

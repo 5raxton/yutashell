@@ -22,7 +22,18 @@ Item {
     readonly property string ampm: now.getHours() < 12 ? "AM" : "PM"
 
     // click honors the segment action (default → calendar)
+    Rectangle {
+        anchors.fill: parent
+        color: clockArea.containsMouse ? Theme.surface : "transparent"
+        radius: Theme.sp1
+
+        Behavior on color {
+            ColorAnimation { duration: Theme.movFast }
+        }
+    }
+
     MouseArea {
+        id: clockArea
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor

@@ -45,23 +45,14 @@ PanelWindow {
         interval: Theme.lingerMs
     }
 
-    // linger mapped after close so YSurface's exit ceremony renders
-    Connections {
-        target: ShellState
-
-        function onBtOpenChanged() {
-            if (!ShellState.btOpen)
-                hideDelay.restart();
-        }
-    }
-
-    // scan while open, rest when closed
     Connections {
         target: ShellState
 
         function onBtOpenChanged() {
             if (root.adapter)
                 root.adapter.discovering = ShellState.btOpen;
+            if (!ShellState.btOpen)
+                hideDelay.restart();
         }
     }
 

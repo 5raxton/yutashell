@@ -249,7 +249,6 @@ PanelWindow {
             if (i >= 0) {
                 root.setPage(i);
                 ShellState.openPanel();
-                console.log("[ipc] settings.page hit:", name);
             }
         }
 
@@ -258,23 +257,15 @@ PanelWindow {
         }
     }
 
-    // linger mapped after close so YSurface's exit ceremony renders
     Connections {
         target: ShellState
 
         function onPanelOpenChanged() {
-            if (!ShellState.panelOpen)
-                hideDelay.restart();
-        }
-    }
-
-    // remember where the user left off across opens
-    Connections {
-        target: ShellState
-
-        function onPanelOpenChanged() {
-            if (ShellState.panelOpen)
+            if (ShellState.panelOpen) {
                 root.tabIndex = Math.max(0, Math.min(ShellState.panelLastPage, root.pages.length - 1));
+            } else {
+                hideDelay.restart();
+            }
         }
     }
 
@@ -537,6 +528,10 @@ PanelWindow {
                                                 }
                                             }
 
+                                            Behavior on color {
+                                                ColorAnimation { duration: Theme.movFast }
+                                            }
+
                                         Rectangle {
                                             anchors.left: parent.left
                                             anchors.top: parent.top
@@ -545,6 +540,10 @@ PanelWindow {
                                             color: railRow.active ? Theme.acid : "transparent"
                                             scale: railRow.active ? 1 : 0.4
                                             transformOrigin: Item.TopLeft
+
+                                            Behavior on color {
+                                                ColorAnimation { duration: Theme.movFast }
+                                            }
 
                                             Behavior on scale {
                                                 NumberAnimation {
@@ -568,6 +567,10 @@ PanelWindow {
                                             font.pixelSize: Theme.fsLabel
                                             font.weight: railRow.active ? Font.Bold : Font.Normal
                                             font.letterSpacing: 1
+
+                                            Behavior on color {
+                                                ColorAnimation { duration: Theme.movFast }
+                                            }
                                         }
 
                                         MouseArea {
@@ -1045,6 +1048,16 @@ PanelWindow {
                                 color: modelData.length > 0 ? modelData : "transparent"
                                 border.width: 1
                                 border.color: active ? Theme.ink : swatchArea.containsMouse ? Theme.muted : Theme.hairline
+
+                                Behavior on border.color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
+
+                                Behavior on scale {
+                                    NumberAnimation { duration: Theme.movSnap; easing.type: Easing.OutBack; easing.overshoot: 0.3 }
+                                }
+
+                                scale: active ? 1.15 : swatchArea.containsMouse ? 1.08 : 1.0
 
                                 Text {
                                     anchors.centerIn: parent
@@ -1622,6 +1635,10 @@ PanelWindow {
                             Rectangle {
                                 anchors.fill: parent
                                 color: spawnArea.containsMouse ? Theme.surface : "transparent"
+
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
                             }
 
                             Text {
@@ -2610,6 +2627,10 @@ PanelWindow {
                                         radius: Theme.sp1
                                         color: zoneDrop.containsDrag ? Theme.acid + "11" : Theme.surface
 
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
+
                                         Text {
                                             anchors.left: parent.left
                                             anchors.leftMargin: Theme.sp2
@@ -2646,6 +2667,14 @@ PanelWindow {
                                         color: "transparent"
                                         border.width: zoneDrop.containsDrag ? 2 : 1
                                         border.color: zoneDrop.containsDrag ? Theme.acid : Theme.lineStrong
+
+                                        Behavior on border.color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
+
+                                        Behavior on border.width {
+                                            NumberAnimation { duration: Theme.movSnap }
+                                        }
 
                                         Text {
                                             anchors.centerIn: parent
@@ -2735,6 +2764,18 @@ PanelWindow {
                                         border.width: 1
                                         border.color: availCard.Drag.active ? Theme.acid : (availDragArea.containsMouse ? Theme.lineStrong : Theme.hairline)
                                         opacity: availCard.Drag.active ? 0.5 : 1
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
+
+                                        Behavior on border.color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
+
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 150 }
+                                        }
                                     }
 
                                     Column {
@@ -2878,6 +2919,14 @@ PanelWindow {
                                 Behavior on opacity {
                                     NumberAnimation { duration: 150 }
                                 }
+
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
+
+                                Behavior on border.color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
                             }
 
                             MouseArea {
@@ -2923,10 +2972,15 @@ PanelWindow {
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
 
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.movFast }
+                                    }
+
                                     MouseArea {
                                         id: reorderUpArea
                                         anchors.fill: parent
                                         anchors.margins: -4
+                                        hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: BarSegments.move(segCard.segId, -1)
                                     }
@@ -2938,10 +2992,15 @@ PanelWindow {
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
 
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.movFast }
+                                    }
+
                                     MouseArea {
                                         id: reorderDownArea
                                         anchors.fill: parent
                                         anchors.margins: -4
+                                        hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: BarSegments.move(segCard.segId, 1)
                                     }
@@ -2993,6 +3052,14 @@ PanelWindow {
                                 border.width: 1
                                 border.color: hasPref ? (actArea.containsMouse && segCard.isOn ? Theme.acid : Theme.acidDeep) : Theme.lineStrong
 
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
+
+                                Behavior on border.color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
+
                                 Text {
                                     id: actText
 
@@ -3003,12 +3070,17 @@ PanelWindow {
                                     font.pixelSize: Theme.fsMicro
                                     font.weight: Font.Bold
                                     font.letterSpacing: 0.5
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.movFast }
+                                    }
                                 }
 
                                 MouseArea {
                                     id: actArea
 
                                     anchors.fill: parent
+                                    hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: actChip.bump()
                                 }
@@ -3049,6 +3121,7 @@ PanelWindow {
 
                                         MouseArea {
                                             anchors.fill: parent
+                                            hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: BarSegments.setZone(segCard.segId, modelData)
                                         }
@@ -3068,6 +3141,10 @@ PanelWindow {
                                 color: removeBtnArea.containsMouse ? Theme.warn : Theme.muted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsBody
+
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.movFast }
+                                }
 
                                 MouseArea {
                                     id: removeBtnArea

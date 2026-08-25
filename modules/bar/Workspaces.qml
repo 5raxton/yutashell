@@ -308,9 +308,11 @@ Item {
             }
         }
 
-        // ghost trail that follows the underline on workspace switches
+        // ghost trail: stays at the OLD position while underline slides to new
         Rectangle {
             id: underlineTrail
+
+            property real _prevX: 0
 
             y: root.slotH + 4
             height: 2
@@ -319,7 +321,12 @@ Item {
             color: Theme.acid
             opacity: 0
             visible: !root.pillOnly && root.ids.includes(root.focusedId)
-            x: underline.x
+
+            NumberAnimation on x {
+                id: trailFadeX
+                duration: 520
+                easing.type: Easing.OutCubic
+            }
 
             SequentialAnimation {
                 id: trailAnim
@@ -350,8 +357,11 @@ Item {
                 target: underline
 
                 function onXChanged() {
-                    if (!trailAnim.running)
-                        trailAnim.start();
+                    underlineTrail._prevX = underlineTrail.x;
+                    trailAnim.start();
+                    trailFadeX.from = underlineTrail._prevX;
+                    trailFadeX.to = underline.x;
+                    trailFadeX.start();
                 }
             }
         }

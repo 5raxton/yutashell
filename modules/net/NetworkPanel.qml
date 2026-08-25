@@ -78,17 +78,6 @@ PanelWindow {
         interval: Theme.lingerMs
     }
 
-    // linger mapped after close so YSurface's exit ceremony renders
-    Connections {
-        target: ShellState
-
-        function onNetOpenChanged() {
-            if (!ShellState.netOpen)
-                hideDelay.restart();
-        }
-    }
-
-    // scan while open, rest when closed
     Connections {
         target: ShellState
 
@@ -100,6 +89,7 @@ PanelWindow {
             } else {
                 if (root.wifiDev)
                     root.wifiDev.scannerEnabled = false;
+                hideDelay.restart();
             }
         }
     }
@@ -373,6 +363,15 @@ PanelWindow {
                             color: harea.containsMouse ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.04) : "transparent"
                             border.width: 1
                             border.color: pending ? Theme.acid : "transparent"
+
+                            Behavior on color {
+                                ColorAnimation { duration: Theme.movFast }
+                            }
+
+                            Behavior on border.color {
+                                ColorAnimation { duration: Theme.movFast }
+                            }
+
                             Behavior on height {
                                 NumberAnimation {
                                     duration: Theme.movFast
@@ -435,6 +434,10 @@ PanelWindow {
                                         font.weight: netRow.joined ? Font.DemiBold : Font.Normal
                                         elide: Text.ElideRight
                                         width: Math.min(360, root.contentW - 160)
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.movFast }
+                                        }
                                     }
 
                                     Text {

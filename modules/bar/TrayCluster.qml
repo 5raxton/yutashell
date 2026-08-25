@@ -34,6 +34,14 @@ Item {
                     color: area.containsMouse ? Theme.surface : "transparent"
                     border.width: area.containsMouse ? 1 : 0
                     border.color: Theme.lineStrong
+
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.movFast }
+                    }
+
+                    Behavior on border.width {
+                        NumberAnimation { duration: Theme.movSnap }
+                    }
                 }
 
                 // icon fallback: acid square + initial, same language as the taskbar
@@ -62,6 +70,10 @@ Item {
                     opacity: area.containsMouse ? 1 : 0.85
                     scale: area.containsMouse ? 1.12 : 1.0
                     visible: source.length > 0 && status !== Image.Error && status !== Image.Null
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: Theme.movFast }
+                    }
 
                     Behavior on scale {
                         NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.1 }

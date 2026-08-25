@@ -138,17 +138,14 @@ ShellRoot {
         target: "panel"
 
         function toggle(): void {
-            console.log("[ipc] panel.toggle hit");
             ShellState.togglePanel();
         }
 
         function open(): void {
-            console.log("[ipc] panel.open hit");
             ShellState.openPanel();
         }
 
         function close(): void {
-            console.log("[ipc] panel.close hit");
             ShellState.closePanel();
         }
     }

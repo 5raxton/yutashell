@@ -134,6 +134,15 @@ Item {
         }
     }
 
+    Rectangle {
+        anchors.fill: parent
+        color: area.containsMouse ? Theme.surface : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: Theme.movFast }
+        }
+    }
+
     Column {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 3
