@@ -178,6 +178,16 @@ PanelWindow {
             color: Theme.bgAlt
             border.width: 1
             border.color: Theme.lineStrong
+            opacity: root.menuApp !== "" ? 1 : 0
+            scale: root.menuApp !== "" ? 1 : 0.92
+            transformOrigin: Item.Bottom
+
+            Behavior on opacity {
+                NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+                NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutBack; easing.overshoot: 0.25 }
+            }
 
             property real menuAnchorX: 0
 
@@ -306,6 +316,11 @@ PanelWindow {
             source: item.iconUrl
             asynchronous: true
             visible: item.iconUrl !== "" && icon.status !== Image.Error && icon.status !== Image.Null
+            opacity: hover.containsMouse ? 1 : 0.88
+
+            Behavior on opacity {
+                NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutCubic }
+            }
         }
 
         // hover title card
@@ -368,7 +383,7 @@ PanelWindow {
                     Dock.newInstance(item.appId);
                 else if (mouse.button === Qt.RightButton) {
                     root.menuApp = item.appId;
-                    root.menu.menuAnchorX = item.x + item.width / 2;
+                    root.menu.menuAnchorX = item.x + row.x + item.width / 2;
                 }
             }
 

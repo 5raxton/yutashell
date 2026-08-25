@@ -33,8 +33,12 @@ Item {
         }
         const s = new Set(live);
         let i = 1;
-        while (s.size < 6)
+        while (s.size < 6) {
+            const prev = s.size;
             s.add(i++);
+            if (s.size === prev)
+                i = s.size + 1;
+        }
         return Array.from(s).sort((a, b) => a - b);
     }
 
@@ -160,6 +164,10 @@ Item {
                     border.color: isUrgent ? Theme.alert : Theme.lineStrong
                     scale: isActive ? 1.08 : (area.containsMouse ? 1.04 : 1)
 
+                    Behavior on border.color {
+                        ColorAnimation { duration: Theme.movFast }
+                    }
+
                     Behavior on color {
                         ColorAnimation {
                             duration: Theme.movFast
@@ -217,6 +225,14 @@ Item {
                         }
                         border.width: btn.isOccupied && !btn.isActive ? 1 : 0
                         border.color: btn.isUrgent && root.blinkOn ? Theme.alert : Theme.muted
+
+                        Behavior on border.color {
+                            ColorAnimation { duration: Theme.movFast }
+                        }
+
+                        Behavior on color {
+                            ColorAnimation { duration: Theme.movFast }
+                        }
 
                         Behavior on width {
                             NumberAnimation {

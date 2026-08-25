@@ -259,6 +259,20 @@ Rectangle {
                 easing.type: Easing.OutCubic
             }
         }
+        NumberAnimation {
+            target: familyTick
+            property: "height"
+            to: 0
+            duration: 140
+            easing.type: Easing.InCubic
+        }
+        NumberAnimation {
+            target: powerLine
+            property: "width"
+            to: 0
+            duration: 180
+            easing.type: Easing.InCubic
+        }
     }
 
     function reveal(item) {
@@ -356,8 +370,6 @@ Rectangle {
             landTimer.stop();
             root._landed = false;
             outro.restart();
-            familyTick.height = 0;
-            powerLine.width = 0;
         }
     }
 
@@ -416,20 +428,30 @@ Rectangle {
         id: flareR
 
         visible: root._flaresOn && root._seamTop && root.open
+        opacity: root.open ? 1 : 0
         x: root.width
         y: 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutCubic }
+        }
     }
 
     FlareShape {
         id: flareL
 
         visible: root._flaresOn && root._seamTop && root.open
+        opacity: root.open ? 1 : 0
         x: -root.flareS
         y: 0
         transform: Scale {
             xScale: -1
             origin.x: root.flareS / 2
             origin.y: root.flareS / 2
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutCubic }
         }
     }
 

@@ -129,7 +129,40 @@ PanelWindow {
                         Repeater {
                             model: Session.tiles
 
-                            PowerTile {}
+                            PowerTile {
+                                opacity: 0
+                                scale: 0.85
+
+                                Component.onCompleted: {
+                                    tileEntrance.delay = index * 30;
+                                    tileEntrance.start();
+                                }
+
+                                SequentialAnimation {
+                                    id: tileEntrance
+                                    property int delay: 0
+
+                                    PauseAnimation { duration: tileEntrance.delay }
+
+                                    ParallelAnimation {
+                                        NumberAnimation {
+                                            target: tile
+                                            property: "opacity"
+                                            from: 0; to: 1
+                                            duration: Theme.movSlow
+                                            easing.type: Easing.OutCubic
+                                        }
+                                        NumberAnimation {
+                                            target: tile
+                                            property: "scale"
+                                            from: 0.85; to: 1
+                                            duration: Theme.movSlow
+                                            easing.type: Easing.OutBack
+                                            easing.overshoot: 0.2
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

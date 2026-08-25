@@ -264,6 +264,10 @@ Rectangle {
         height: 2
         width: parent.width * root.frac
         color: root.critical ? Theme.alert : Theme.acid
+
+        Behavior on width {
+            NumberAnimation { duration: 100; easing.type: Easing.Linear }
+        }
     }
 
     // glow under the progress bar — breathes while the toast is alive
@@ -314,9 +318,13 @@ Rectangle {
         anchors.margins: Theme.sp2
         visible: area.containsMouse
         text: "×"
-        color: Theme.faint
+        color: area.containsMouse ? Theme.ink : Theme.faint
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fsTitle
+
+        Behavior on color {
+            ColorAnimation { duration: Theme.movFast }
+        }
 
         MouseArea {
             anchors.fill: parent

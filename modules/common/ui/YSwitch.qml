@@ -50,7 +50,7 @@ Rectangle {
         width: 10
         height: 10
         color: root.checked ? Theme.acid : area.containsMouse ? Theme.ink : Theme.faint
-        scale: root.checked ? 1.15 : 1
+        scale: root.checked ? 1.15 : (area.pressed ? 0.88 : 1)
 
         Behavior on x {
             NumberAnimation {

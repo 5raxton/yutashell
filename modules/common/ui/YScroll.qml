@@ -38,16 +38,27 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         x: 0
-        width: 1
+        width: root._awake ? 1.5 : 1
         height: parent.height
-        color: Theme.hairline
-        opacity: root._awake ? 1 : 0
+        color: root._awake ? Theme.acid : Theme.hairline
+        opacity: root._awake ? 0.35 : 0
 
         Behavior on opacity {
             NumberAnimation {
                 duration: Theme.movSlow
                 easing.type: Easing.OutCubic
             }
+        }
+
+        Behavior on width {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on color {
+            ColorAnimation { duration: Theme.movFast }
         }
     }
 

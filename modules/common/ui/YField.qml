@@ -34,6 +34,10 @@ Rectangle {
     border.width: 1
     border.color: root.focused ? Theme.lineStrong : Theme.hairline
 
+    Behavior on border.color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
     // focus underline draws in — the field is live
     Rectangle {
         anchors.bottom: parent.bottom
@@ -138,6 +142,10 @@ Rectangle {
         anchors.bottom: parent.bottom
         width: 2
         color: root.focused ? Theme.acid : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: Theme.movFast }
+        }
     }
 
     // Focus/caret helper while unfocused. Once the field has focus this must

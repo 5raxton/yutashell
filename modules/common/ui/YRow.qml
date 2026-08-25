@@ -106,6 +106,11 @@ Item {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsBody
             font.weight: Font.DemiBold
+            x: root.interactive && hovered ? 2 : 0
+
+            Behavior on x {
+                NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutCubic }
+            }
 
             Behavior on color {
                 ColorAnimation {

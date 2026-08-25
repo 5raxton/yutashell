@@ -21,6 +21,15 @@ Rectangle {
     color: area.containsMouse || activeFocus ? liveLine : "transparent"
     border.width: 1
     border.color: activeFocus ? Theme.acid : area.containsMouse ? liveLine : Qt.rgba(liveLine.r, liveLine.g, liveLine.b, 0.55)
+
+    Behavior on color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
+    Behavior on border.color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
     scale: area.containsMouse ? 1.03 : 1
 
     Behavior on scale {

@@ -18,6 +18,14 @@ Rectangle {
     border.width: 1
     border.color: root.isAcid ? Theme.acid : root.isAlert ? Theme.alert : Theme.lineStrong
 
+    Behavior on border.color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
+    Behavior on color {
+        ColorAnimation { duration: Theme.movFast }
+    }
+
     Component.onCompleted: entrancePop.start()
     onLabelChanged: tickAnim.restart()
 

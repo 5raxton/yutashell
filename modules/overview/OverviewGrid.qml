@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
 import QtQuick

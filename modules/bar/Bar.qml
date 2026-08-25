@@ -215,11 +215,22 @@ PanelWindow {
                 // Prevent Loader from stretching the loaded item
                 width: segLoader.item ? segLoader.item.implicitWidth : 0
                 height: segLoader.item ? segLoader.item.implicitHeight : Theme.barHeight
+                opacity: 0
                 onLoaded: {
                     if (item) {
                         item.width = undefined;
                         item.height = undefined;
                     }
+                    segFadeIn.start();
+                }
+
+                NumberAnimation {
+                    id: segFadeIn
+                    target: segLoader
+                    property: "opacity"
+                    from: 0; to: 1
+                    duration: Theme.movMed
+                    easing.type: Easing.OutCubic
                 }
             }
         }

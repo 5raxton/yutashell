@@ -141,11 +141,36 @@ Item {
             }
 
             Text {
+                id: playPauseIcon
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.playing ? "\uF04C" : "\uF04B"
                 color: root.playing ? Theme.acid : Theme.faint
                 font.family: Theme.fontFamily
                 font.pixelSize: 9
+
+                SequentialAnimation {
+                    id: ppBounce
+                    running: false
+
+                    NumberAnimation {
+                        target: playPauseIcon
+                        property: "scale"
+                        to: 1.35; duration: Theme.movSnap
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 0.5
+                    }
+                    NumberAnimation {
+                        target: playPauseIcon
+                        property: "scale"
+                        to: 1.0; duration: Theme.movMed
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Connections {
+                    target: root
+                    function onPlayingChanged() { ppBounce.restart(); }
+                }
             }
 
             Text {

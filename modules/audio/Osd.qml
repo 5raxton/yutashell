@@ -154,12 +154,38 @@ PanelWindow {
                 spacing: Theme.sp1
 
                 Text {
+                    id: pctText
+
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: root.statusText.length > 0 ? root.statusText : root.pctText
                     color: root.hot ? Theme.alert : root.statusText.length > 0 ? Theme.muted : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 20
                     font.weight: Font.Bold
+
+                    SequentialAnimation {
+                        id: pctPop
+                        running: false
+
+                        NumberAnimation {
+                            target: pctText
+                            property: "scale"
+                            to: 1.08; duration: Theme.movSnap
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 0.4
+                        }
+                        NumberAnimation {
+                            target: pctText
+                            property: "scale"
+                            to: 1.0; duration: Theme.movMed
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    Connections {
+                        target: root
+                        function onFracChanged() { pctPop.restart(); }
+                    }
                 }
 
                 Text {
@@ -195,7 +221,8 @@ PanelWindow {
                     Behavior on width {
                         NumberAnimation {
                             duration: Theme.movSnap
-                            easing.type: Easing.OutCubic
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 0.15
                         }
                     }
 
