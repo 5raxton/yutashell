@@ -45,6 +45,9 @@ Singleton {
     // created daemon objects, id → item
     property var daemons: ({})
 
+    // instantiated panel windows for bar-type plugins, id → PanelWindow
+    property var panels: ({})
+
     function isEnabled(id) {
         try {
             const m = JSON.parse(ShellState.pluginData);
@@ -70,10 +73,13 @@ Singleton {
         root._enableRev++;
         if (!on) {
             _unload(id);
+            _unloadPanel(id);
         } else {
             const mf = root.manifests.find(x => x.id === id);
             if (mf && (mf.type === "daemon" || mf.type === "bar"))
                 _instantiate(mf);
+            if (mf && mf.type === "bar" && mf.panelComponent)
+                _instantiatePanel(mf);
             // first enabled widget flips the bar segment on so it actually shows
             // (direct ShellState write — importing BarSegments here would be a
             // singleton import cycle)
@@ -187,6 +193,24 @@ Singleton {
         } else {
             FocusMonitor.latch();
             root.pluginOpenId = id;
+            // close all core panels directly (not via _exclusive which
+            // would re-close the plugin panel we just opened)
+            ShellState.panelOpen = false;
+            ShellState.pickerOpen = false;
+            ShellState.launcherOpen = false;
+            ShellState.netOpen = false;
+            ShellState.btOpen = false;
+            ShellState.notifyCenterOpen = false;
+            ShellState.audioOpen = false;
+            ShellState.mediaOpen = false;
+            ShellState.sessionOpen = false;
+            ShellState.overviewOpen = false;
+            ShellState.altTabOpen = false;
+            ShellState.calendarOpen = false;
+            ShellState.clipboardOpen = false;
+            ShellState.weatherOpen = false;
+            ShellState.emojiOpen = false;
+            ShellState.ccOpen = false;
         }
     }
 
@@ -294,12 +318,20 @@ Singleton {
         for (const mf of root.manifests) {
             if ((mf.type === "daemon" || mf.type === "bar") && root.isEnabled(mf.id) && !(mf.id in root.daemons))
                 _instantiate(mf);
+            if (mf.type === "bar" && mf.panelComponent && root.isEnabled(mf.id) && !(mf.id in root.panels))
+                _instantiatePanel(mf);
         }
         // unload daemons whose manifest vanished or was disabled
         for (const id in root.daemons) {
             const mf = root.manifests.find(x => x.id === id);
             if (!mf || (mf.type !== "daemon" && mf.type !== "bar") || !root.isEnabled(id))
                 _unload(id);
+        }
+        // unload panels whose manifest vanished or was disabled
+        for (const id in root.panels) {
+            const mf = root.manifests.find(x => x.id === id);
+            if (!mf || mf.type !== "bar" || !mf.panelComponent || !root.isEnabled(id))
+                _unloadPanel(id);
         }
     }
 
@@ -330,6 +362,35 @@ Singleton {
             obj.destroy();
             delete root.daemons[id];
             console.warn("plugin daemon down:", id);
+        }
+    }
+
+    function _instantiatePanel(mf) {
+        if (mf.id in root.panels)
+            return;
+        try {
+            const url = root.panelComponentUrl(mf);
+            const comp = Qt.createComponent(url);
+            if (comp.status === Component.Error) {
+                console.warn("plugin panel", mf.id, "failed:", comp.errorString());
+                return;
+            }
+            const obj = comp.createObject(root, {});
+            if (obj) {
+                root.panels[mf.id] = obj;
+                console.warn("plugin panel up:", mf.id);
+            }
+        } catch (e) {
+            console.warn("plugin panel instantiate failed:", mf.id, e);
+        }
+    }
+
+    function _unloadPanel(id) {
+        const obj = root.panels[id];
+        if (obj) {
+            obj.destroy();
+            delete root.panels[id];
+            console.warn("plugin panel down:", id);
         }
     }
 
