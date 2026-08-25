@@ -3,10 +3,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// PluginService (PH.05) — discovers and runs external QML plugins living in
+// PluginService — discovers and runs external QML plugins living in
 // `<configroot>/plugins/<PluginName>/`. Each plugin carries a `plugin.json`
 // manifest; type "daemon" instantiates invisibly at boot/scan, type "widget"
-// is offered to the bar's pluginwidgets segment. Per-plugin state lives under
+// is offered to the bar's pluginwidgets segment, type "bar" registers its own
+// bar segment with an optional floating panel. Per-plugin state lives under
 // ShellState.pluginData as { "<id>": { enabled, data } } — namespaced from all
 // core prefs. Loading external QML executes code: only drop trusted plugins
 // here (the manifest `permissions` field is declared + surfaced, enforcement
@@ -71,7 +72,7 @@ Singleton {
             _unload(id);
         } else {
             const mf = root.manifests.find(x => x.id === id);
-            if (mf && mf.type === "daemon")
+            if (mf && (mf.type === "daemon" || mf.type === "bar"))
                 _instantiate(mf);
             // first enabled widget flips the bar segment on so it actually shows
             // (direct ShellState write — importing BarSegments here would be a
@@ -88,6 +89,27 @@ Singleton {
                     list.push({
                         id: "pluginwidgets",
                         zone: "right",
+                        enabled: true
+                    });
+                else
+                    seg.enabled = true;
+                ShellState.set("barSegments", JSON.stringify(list));
+                ShellState.flushNow();
+            }
+            // bar-type plugin: register its custom segment in the bar model
+            if (mf && mf.type === "bar" && mf.barSegment && mf.barSegment.id) {
+                let list = [];
+                try {
+                    list = JSON.parse(ShellState.barSegments);
+                } catch (e) {}
+                if (!Array.isArray(list) || list.length === 0)
+                    list = [];
+                const segId = mf.barSegment.id;
+                const seg = list.find(s => s.id === segId);
+                if (!seg)
+                    list.push({
+                        id: segId,
+                        zone: mf.barSegment.zone || "right",
                         enabled: true
                     });
                 else
@@ -137,8 +159,56 @@ Singleton {
         return _mf.filter(m => m.type === "widget" && root.isEnabled(m.id));
     }
 
+    // bar-type plugins that are enabled → each owns its own bar segment
+    readonly property var enabledBarPlugins: {
+        const _rev = root._enableRev;
+        const _mf = root.manifests;
+        return _mf.filter(m => m.type === "bar" && root.isEnabled(m.id) && m.barSegment);
+    }
+
+    // segment-id → manifest lookup for bar plugins
+    readonly property var _barPluginMap: {
+        const _ = root.enabledBarPlugins;
+        const map = {};
+        for (let i = 0; i < _.length; i++) {
+            const mf = _[i];
+            if (mf.barSegment && mf.barSegment.id)
+                map[mf.barSegment.id] = mf;
+        }
+        return map;
+    }
+
+    // ---- plugin panel state ----
+    property string pluginOpenId: ""
+
+    function togglePluginPanel(id) {
+        if (root.pluginOpenId === id) {
+            root.pluginOpenId = "";
+        } else {
+            FocusMonitor.latch();
+            root.pluginOpenId = id;
+        }
+    }
+
+    function closePluginPanel() {
+        root.pluginOpenId = "";
+    }
+
+    function isPluginPanelOpen(id) {
+        return root.pluginOpenId === id;
+    }
+
+    // ---- URL helpers ----
     function componentUrl(mf) {
         return "file://" + root.pluginsRoot + "/" + (mf.dir || "") + "/" + (mf.component || "main.qml");
+    }
+
+    function barComponentUrl(mf) {
+        return "file://" + root.pluginsRoot + "/" + (mf.dir || "") + "/" + (mf.barComponent || "BarWidget.qml");
+    }
+
+    function panelComponentUrl(mf) {
+        return "file://" + root.pluginsRoot + "/" + (mf.dir || "") + "/" + (mf.panelComponent || "UpdatePanel.qml");
     }
 
     // ---- scanning -----------------------------------------------------------
@@ -199,6 +269,19 @@ Singleton {
                 permissions: Array.isArray(mf.permissions) ? mf.permissions : []
             };
             out.dir = dir;
+            // bar-type plugin fields
+            if (mf.barSegment && typeof mf.barSegment === "object") {
+                out.barSegment = {
+                    id: String(mf.barSegment.id || ""),
+                    label: String(mf.barSegment.label || mf.name || mf.id),
+                    jp: String(mf.barSegment.jp || ""),
+                    zone: String(mf.barSegment.zone || "right")
+                };
+            }
+            if (mf.barComponent)
+                out.barComponent = String(mf.barComponent);
+            if (mf.panelComponent)
+                out.panelComponent = String(mf.panelComponent);
             found.push(out);
         }
         root.manifests = found.sort((a, b) => a.id < b.id ? -1 : 1);
@@ -209,13 +292,13 @@ Singleton {
     // ---- lifecycle -----------------------------------------------------------
     function _syncDaemons() {
         for (const mf of root.manifests) {
-            if (mf.type === "daemon" && root.isEnabled(mf.id) && !(mf.id in root.daemons))
+            if ((mf.type === "daemon" || mf.type === "bar") && root.isEnabled(mf.id) && !(mf.id in root.daemons))
                 _instantiate(mf);
         }
         // unload daemons whose manifest vanished or was disabled
         for (const id in root.daemons) {
             const mf = root.manifests.find(x => x.id === id);
-            if (!mf || mf.type !== "daemon" || !root.isEnabled(id))
+            if (!mf || (mf.type !== "daemon" && mf.type !== "bar") || !root.isEnabled(id))
                 _unload(id);
         }
     }

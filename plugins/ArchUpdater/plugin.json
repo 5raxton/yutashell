@@ -1,0 +1,23 @@
+{
+    "id": "arch-updater",
+    "name": "Arch Updater",
+    "description": "bar plugin: scans for pacman, AUR, and Flatpak updates; opens an update panel on click",
+    "version": "1.0.0",
+    "author": "yuta",
+    "icon": "system-software-update",
+    "type": "bar",
+    "component": "main.qml",
+    "barSegment": {
+        "id": "archupdates",
+        "label": "Updates",
+        "jp": "更",
+        "zone": "right"
+    },
+    "barComponent": "BarWidget.qml",
+    "panelComponent": "UpdatePanel.qml",
+    "settings": [
+        { "key": "interval", "label": "Check interval (minutes)", "type": "int", "default": 60 },
+        { "key": "autoCheck", "label": "Auto-check for updates", "type": "bool", "default": true }
+    ],
+    "permissions": ["state", "process"]
+}

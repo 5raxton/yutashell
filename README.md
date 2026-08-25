@@ -100,7 +100,7 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 |---|---|
 | [docs/ipc.md](docs/ipc.md) | complete IPC target/function reference, keybind examples |
 | [docs/configuration.md](docs/configuration.md) | state files, theming contract, per-panel spawn origins |
-| [docs/plugins.md](docs/plugins.md) | writing widgets & daemon plugins |
+| [docs/plugins.md](docs/plugins.md) | writing widgets, daemons & bar plugins |
 | [docs/architecture.md](docs/architecture.md) | repo layout, development workflow |
 
 Day-to-day configuration lives in the settings panel (`qs ipc call panel toggle`) — nothing needs hand-editing.

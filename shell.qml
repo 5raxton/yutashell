@@ -333,6 +333,10 @@ ShellRoot {
         function disable(id: string): void {
             PluginService.setEnabled(String(id), false);
         }
+
+        function panel(id: string): void {
+            PluginService.togglePluginPanel(String(id));
+        }
     }
 
     IpcHandler {

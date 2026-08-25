@@ -279,6 +279,9 @@ PanelWindow {
         case "spacer":
             return spacerComp;
         }
+        // fallback: bar plugin segments
+        if (PluginService._barPluginMap[id])
+            return pluginBarComp;
         return null;
     }
 
@@ -644,6 +647,32 @@ PanelWindow {
                         asynchronous: true
                     }
                 }
+            }
+        }
+    }
+
+    Component {
+        id: pluginBarComp
+
+        Item {
+            id: plugBar
+
+            required property var modelData
+
+            property string segId: modelData.id
+
+            implicitWidth: barLoader.item ? barLoader.item.implicitWidth : 0
+            implicitHeight: Theme.barHeight
+
+            Loader {
+                id: barLoader
+
+                anchors.fill: parent
+                source: {
+                    const mf = PluginService._barPluginMap[plugBar.segId];
+                    return mf ? PluginService.barComponentUrl(mf) : "";
+                }
+                asynchronous: true
             }
         }
     }

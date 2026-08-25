@@ -20,6 +20,10 @@ Singleton {
             root._dispatchIpc(a.slice(4));
             return true;
         }
+        if (a.startsWith("plugin:")) {
+            PluginService.togglePluginPanel(a.slice(7));
+            return true;
+        }
         switch (a) {
         case "calendar":
             ShellState.toggleCalendar();

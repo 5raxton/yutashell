@@ -18,7 +18,8 @@ import "../widgets"
 Singleton {
     id: root
 
-    readonly property var meta: ({
+    readonly property var meta: {
+        const base = {
             "identity": { label: "Identity", jp: "識別" },
             "workspaces": { label: "Workspaces", jp: "作業場" },
             "taskbar": { label: "Taskbar", jp: "任務" },
@@ -41,7 +42,19 @@ Singleton {
             "pluginwidgets": { label: "Plugin widgets", jp: "拡" },
             "clock": { label: "Clock", jp: "時" },
             "spacer": { label: "Spacer", jp: "余" }
-        })
+        };
+        // merge bar plugin segments
+        const bps = PluginService.enabledBarPlugins;
+        for (let i = 0; i < bps.length; i++) {
+            const mf = bps[i];
+            if (mf.barSegment && mf.barSegment.id)
+                base[mf.barSegment.id] = {
+                    label: mf.barSegment.label || mf.name,
+                    jp: mf.barSegment.jp || ""
+                };
+        }
+        return base;
+    }
 
     // persisted model, parsed with fallback to the default order; legacy
     // monolithic "stats" segments are expanded into cpu/mem/bat in place
@@ -120,6 +133,9 @@ Singleton {
     function present(id) {
         if (!root.enabled(id))
             return false;
+        // bar plugin segments are always present when enabled
+        if (PluginService._barPluginMap[id])
+            return true;
         switch (id) {
         case "media":
             return (Mpris.players.values ?? []).length > 0;

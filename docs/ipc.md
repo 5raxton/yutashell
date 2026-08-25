@@ -20,7 +20,7 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `wallpaper` | `set <path>` / `next` / `random` / `list` | set/cycle wallpapers (runs the whole theming pipeline) |
 | `theme` | `dark on\|off\|toggle` / `accent <#hex\|none>` / `generate <image>` | light-dark mode; accent override; apply wallpaper image |
 | `templates` | `list` / `on <id>` / `off <id>` / `add <id> <input> <output>` / `remove <id>` | 89 matugen template registry |
-| `plugins` | `list` / `rescan` / `enable <id>` / `disable <id>` | plugin lifecycle |
+| `plugins` | `list` / `rescan` / `enable <id>` / `disable <id>` / `panel <id>` | plugin lifecycle; `panel` toggles bar-type plugin panels |
 | `audio` | `toggle` / `open` / `close` / `volup` / `voldown` / `mute` / `micmute` / `status` | PipeWire audio with OSD |
 | `display` | `bright <pct>` | set brightness (0–100) |
 | `brightness` | `up` / `down` / `set <pct>` / `status` | display brightness (internal + DDC/CI) + OSD |

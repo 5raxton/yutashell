@@ -5,7 +5,8 @@ import "../common/ui"
 
 // PLUGINS page (PH.05) — scan results, enable/disable, per-plugin state.
 // Widget-type plugins surface in the bar's "Plugin widgets" segment; daemon
-// plugins instantiate invisibly once enabled.
+// plugins instantiate invisibly once enabled; bar-type plugins own their own
+// bar segment with an optional floating panel.
 Column {
     id: root
 
@@ -76,7 +77,7 @@ Column {
                 width: parent.width
                 title: modelData.name
                 sub: modelData.id + " · v" + modelData.version + (modelData.author.length > 0 ? " · " + modelData.author : "")
-                note: modelData.description + (modelData.permissions.length > 0 ? "  [" + modelData.permissions.join(",") + "]" : "")
+                note: modelData.description + (modelData.barSegment ? "  [segment: " + modelData.barSegment.id + "]" : "") + (modelData.permissions.length > 0 ? "  [" + modelData.permissions.join(",") + "]" : "")
                 on_: prow.plOn
                 trailingW: 68
 
@@ -97,6 +98,15 @@ Column {
                     label: "LIVE"
                     tone: "acid"
                 }
+
+                YChip {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: psw.left
+                    anchors.rightMargin: Theme.sp2
+                    visible: prow.modelData.type === "bar" && prow.plOn && prow.modelData.barSegment
+                    label: prow.modelData.barSegment ? prow.modelData.barSegment.id.toUpperCase() : ""
+                    tone: "accent"
+                }
             }
         }
     }
@@ -109,7 +119,7 @@ Column {
 
     Text {
         width: parent.width
-        text: "widget plugins render in the bar's PLUGIN WIDGETS segment (BAR tab). daemon plugins run at boot. loading a plugin executes its code — only install ones you trust."
+        text: "widget plugins render in the bar's PLUGIN WIDGETS segment (BAR tab). bar plugins own their own segment + optional panel. daemon plugins run at boot. loading a plugin executes its code — only install ones you trust."
         color: Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fsLabel
