@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Networking
 import Quickshell.Bluetooth
@@ -83,65 +84,59 @@ PanelWindow {
             group: "LOOK",
             keywords: "scheme palette wallpaper accent light dark font scale animation templates matugen"
         }, {
+            id: "bar",
+            label: "BAR",
+            jp: "棒",
+            group: "LOOK",
+            keywords: "bar segment taskbar scale position click action tray stats clock"
+        }, {
             id: "dock",
             label: "DOCK",
             jp: "埠",
             group: "LOOK",
             keywords: "dock taskbar pin hide mode"
         }, {
+            id: "osd",
+            label: "OSD",
+            jp: "表",
+            group: "LOOK",
+            keywords: "osd volume brightness mic corner width fade"
+        }, {
             id: "panels",
             label: "PANELS",
             jp: "面",
-            group: "LOOK",
-            keywords: "settings picker notification osd width placement corner"
+            group: "PANELS",
+            keywords: "spawn origin window popup slide float dock edge placement width panel"
         }, {
             id: "launcher",
             label: "LAUNCHER",
             jp: "発",
-            group: "LOOK",
-            keywords: "launcher anchor grid list icon pins recents"
+            group: "PANELS",
+            keywords: "launcher anchor grid list icon pins recents placement"
         }, {
             id: "controlcenter",
             label: "CONTROL CENTER",
             jp: "中枢",
-            group: "LOOK",
-            keywords: "control center cc anchor tabs"
+            group: "PANELS",
+            keywords: "control center cc anchor tabs placement"
         }, {
             id: "notifications",
             label: "NOTIFY",
             jp: "通知",
-            group: "BEHAVIOR",
-            keywords: "notification dnd timeout corner fields per-app"
+            group: "PANELS",
+            keywords: "notification toast dnd timeout corner fields per-app stack"
         }, {
-            id: "osd",
-            label: "OSD",
-            jp: "表",
-            group: "BEHAVIOR",
-            keywords: "osd volume brightness mic corner width fade"
-        }, {
-            id: "bar",
-            label: "BAR",
-            jp: "棒",
-            group: "BEHAVIOR",
-            keywords: "bar segment taskbar scale position click action tray stats clock"
-        }, {
-            id: "shell",
-            label: "SHELL",
-            jp: "殻",
+            id: "power",
+            label: "POWER",
+            jp: "電",
             group: "SYSTEM",
-            keywords: "avatar timezone clock 24h imperial metric weather clipboard screenshot"
+            keywords: "power plan session menu hold idle battery ppd profile"
         }, {
             id: "security",
             label: "SECURITY",
             jp: "安",
             group: "SYSTEM",
-            keywords: "offline airplane lock idle pam"
-        }, {
-            id: "system",
-            label: "SYSTEM",
-            jp: "系",
-            group: "SYSTEM",
-            keywords: "monitor stats poll threshold"
+            keywords: "offline airplane lock screen pam avatar monitors inhibit"
         }, {
             id: "services",
             label: "SERVICES",
@@ -149,11 +144,17 @@ PanelWindow {
             group: "SYSTEM",
             keywords: "autostart calendar audio overdrive brightness night light"
         }, {
-            id: "power",
-            label: "POWER",
-            jp: "電",
+            id: "system",
+            label: "MONITOR",
+            jp: "系",
             group: "SYSTEM",
-            keywords: "power plan session menu hold idle lock battery"
+            keywords: "monitor stats sensors temperature poll threshold uptime gpu"
+        }, {
+            id: "shell",
+            label: "MISC",
+            jp: "他",
+            group: "SYSTEM",
+            keywords: "avatar timezone clock 24h imperial metric weather clipboard screenshot"
         }, {
             id: "plugins",
             label: "PLUGINS",
@@ -170,7 +171,7 @@ PanelWindow {
 
     readonly property var groups: [
         { id: "LOOK", label: "LOOK" },
-        { id: "BEHAVIOR", label: "BEHAVIOR" },
+        { id: "PANELS", label: "PANELS" },
         { id: "SYSTEM", label: "SYSTEM" }
     ]
 
@@ -196,6 +197,23 @@ PanelWindow {
         id: hideDelay
 
         interval: Theme.lingerMs
+    }
+
+    IpcHandler {
+        target: "settings"
+
+        function page(name: string): void {
+            const i = root.pages.findIndex(p => p.id === name);
+            if (i >= 0) {
+                root.setPage(i);
+                ShellState.openPanel();
+                console.log("[ipc] settings.page hit:", name);
+            }
+        }
+
+        function list(): string {
+            return root.pages.map(p => p.id).join(" ");
+        }
     }
 
     // linger mapped after close so YSurface's exit ceremony renders
@@ -996,127 +1014,10 @@ PanelWindow {
                         wrapMode: Text.WordWrap
                     }
 
+
                     YSection {
                         width: parent.width
                         index: "04"
-                        label: "Control core"
-                        chip: root.anchorX + " · " + Math.max(640, Math.min(1200, ShellState.panelW)) + "px"
-                    }
-
-                    // placement — where the card rests below the bar
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "PLACEMENT"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp1
-
-                            YButton {
-                                width: 96
-                                tone: root.anchorX === "center" ? "acid" : "default"
-                                label: "center"
-                                onClicked: ShellState.set("panelAnchor", "center")
-                            }
-
-                            YButton {
-                                width: 96
-                                tone: root.anchorX === "left" ? "acid" : "default"
-                                label: "left"
-                                onClicked: ShellState.set("panelAnchor", "left")
-                            }
-
-                            YButton {
-                                width: 96
-                                tone: root.anchorX === "right" ? "acid" : "default"
-                                label: "right"
-                                onClicked: ShellState.set("panelAnchor", "right")
-                            }
-                        }
-                    }
-
-                    // width stepper
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "PANEL WIDTH"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp2
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: ShellState.set("panelW", Math.max(640, ShellState.panelW - 32))
-                            }
-
-                            Item {
-                                width: 72
-                                height: Theme.ctlH
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.bg
-                                    border.width: 1
-                                    border.color: Theme.hairline
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: Math.max(640, Math.min(1200, ShellState.panelW)) + " px"
-                                    color: Theme.ink
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsBody
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: ShellState.set("panelW", Math.min(1200, ShellState.panelW + 32))
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "640 – 1200"
-                                color: Theme.faint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fsLabel
-                            }
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "the picker is its own panel — bind it to a key with qs ipc call picker toggle."
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        wrapMode: Text.WordWrap
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "05"
                         label: "Matugen templates"
                         chip: Wallpaper.tplOnCount + " on"
                     }
@@ -1143,6 +1044,45 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "01"
+                        label: "Toast stack"
+                        chip: ShellState.notifyCorner.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "tr",
+                                    label: "TOP-R"
+                                }, {
+                                    id: "tl",
+                                    label: "TOP-L"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.notifyCorner === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: Notify.setCorner(modelData.id)
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "screen corner the toast stack grows from · per-panel spawn origins live in PANELS"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
                         label: "Behavior"
                     }
 
@@ -1174,50 +1114,9 @@ PanelWindow {
                         }
                     }
 
-                    // corner picker
-                    Item {
-                        width: root.contentW
-                        height: Theme.rowH
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Toast corner"
-                            color: Theme.ink
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsBody
-                        }
-
-                        Row {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.sp1
-
-                            Repeater {
-                                model: [{
-                                        id: "tr",
-                                        label: "TOP-R"
-                                    }, {
-                                        id: "tl",
-                                        label: "TOP-L"
-                                    }]
-
-                                delegate: YButton {
-                                    required property var modelData
-
-                                    readonly property bool activeCorner: ShellState.notifyCorner === modelData.id
-
-                                    label: modelData.label
-                                    tone: activeCorner ? "acid" : "default"
-                                    onClicked: Notify.setCorner(modelData.id)
-                                }
-                            }
-                        }
-                    }
-
                     YSection {
                         width: parent.width
-                        index: "02"
+                        index: "03"
                         label: "Timeouts"
                     }
 
@@ -1269,7 +1168,7 @@ PanelWindow {
 
                     YSection {
                         width: parent.width
-                        index: "03"
+                        index: "04"
                         label: "Card fields"
                     }
 
@@ -1316,7 +1215,7 @@ PanelWindow {
 
                     YSection {
                         width: parent.width
-                        index: "04"
+                        index: "05"
                         label: "Per-app overrides"
                         chip: Notify.overrides.length > 0 ? Notify.overrides.length + "" : ""
                     }
@@ -1573,247 +1472,6 @@ PanelWindow {
                         wrapMode: Text.WordWrap
                     }
 
-                    YSection {
-                        width: parent.width
-                        index: "03"
-                        label: "Power plan"
-                        chip: Session.ppdAvailable ? Session.profileName.toUpperCase() : "NO PPD"
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Power profile"
-                        sub: Session.ppdAvailable ? "cycles saver → balanced → performance" : "install power-profiles-daemon to enable"
-                        note: "PWR"
-                        interactive: false
-
-                        YButton {
-                            anchors.verticalCenter: parent.verticalCenter
-                            label: Session.ppdAvailable ? Session.profileName.toUpperCase() : "N/A"
-                            tone: Session.ppdAvailable ? "acid" : "default"
-                            enabled: Session.ppdAvailable
-                            onClicked: Session.cycleProfile()
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "04"
-                        label: "Idle"
-                        chip: ShellState.idleAction === "none" ? "off" : ShellState.idleAction + " · " + ShellState.idleSecs + "s"
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: Theme.sp1
-
-                        Repeater {
-                            model: [{
-                                    id: "none",
-                                    label: "OFF"
-                                }, {
-                                    id: "lock",
-                                    label: "LOCK"
-                                }, {
-                                    id: "suspend",
-                                    label: "SUSPEND"
-                                }, {
-                                    id: "shutdown",
-                                    label: "SHUTDOWN"
-                                }]
-
-                            delegate: YButton {
-                                required property var modelData
-
-                                tone: ShellState.idleAction === modelData.id ? "acid" : "default"
-                                label: modelData.label
-                                onClicked: ShellState.set("idleAction", modelData.id)
-                            }
-                        }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-                        visible: ShellState.idleAction !== "none"
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "IDLE TIMEOUT"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp2
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: ShellState.set("idleSecs", Math.max(30, ShellState.idleSecs - 60))
-                            }
-
-                            Item {
-                                width: 88
-                                height: Theme.ctlH
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.bg
-                                    border.width: 1
-                                    border.color: Theme.hairline
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: ShellState.idleSecs + " s"
-                                    color: Theme.ink
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsBody
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: ShellState.set("idleSecs", Math.min(7200, ShellState.idleSecs + 60))
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "05"
-                        label: "Power menu"
-                        chip: ShellState.holdMs > 0 ? "hold " + ShellState.holdMs + "ms" : "no hold"
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Hold to confirm"
-                        sub: ShellState.holdMs > 0 ? "destructive tiles need a press-and-hold" : "destructive tiles fire immediately"
-                        note: "HOLD"
-                        on_: ShellState.holdMs > 0
-
-                        YSwitch {
-                            checked: ShellState.holdMs > 0
-                            anchors.verticalCenter: parent.verticalCenter
-                            onToggled: ShellState.set("holdMs", ShellState.holdMs > 0 ? 0 : 1100)
-                        }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: Theme.ctlH + Theme.fsMicro * 2
-                        visible: ShellState.holdMs > 0
-
-                        Text {
-                            anchors.top: parent.top
-                            text: "HOLD DURATION"
-                            color: Theme.faint
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fsMicro
-                            font.letterSpacing: 2
-                        }
-
-                        Row {
-                            anchors.bottom: parent.bottom
-                            spacing: Theme.sp2
-
-                            YButton {
-                                width: 32
-                                label: "−"
-                                onClicked: ShellState.set("holdMs", Math.max(300, ShellState.holdMs - 200))
-                            }
-
-                            Item {
-                                width: 88
-                                height: Theme.ctlH
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.bg
-                                    border.width: 1
-                                    border.color: Theme.hairline
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: ShellState.holdMs + " ms"
-                                    color: Theme.ink
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fsBody
-                                    font.weight: Font.Bold
-                                }
-                            }
-
-                            YButton {
-                                width: 32
-                                label: "+"
-                                onClicked: ShellState.set("holdMs", Math.min(3000, ShellState.holdMs + 200))
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "06"
-                        label: "Lock screen"
-                        chip: "PAM " + ShellState.pamService
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Lock on all monitors"
-                        sub: ShellState.lockMonitors === "all" ? "every screen renders the auth card" : "primary screen only"
-                        note: "MON"
-                        on_: ShellState.lockMonitors === "all"
-
-                        YSwitch {
-                            checked: ShellState.lockMonitors === "all"
-                            anchors.verticalCenter: parent.verticalCenter
-                            onToggled: ShellState.set("lockMonitors", ShellState.lockMonitors === "all" ? "primary" : "all")
-                        }
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Bar inhibit indicator"
-                        sub: "a chip shows when an app holds the idle/sleep lock"
-                        note: "INH"
-                        on_: ShellState.barSession
-
-                        YSwitch {
-                            checked: ShellState.barSession
-                            anchors.verticalCenter: parent.verticalCenter
-                            onToggled: ShellState.set("barSession", !ShellState.barSession)
-                        }
-                    }
-
-                    YField {
-                        id: avatarField
-
-                        width: root.contentW
-                        placeholder: "lock avatar path — blank uses ~/.face"
-
-                        onAccepted: {
-                            ShellState.set("lockAvatar", text.trim());
-                            text = "";
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "avatar falls back to an initial when the file is missing · lock via IPC: qs ipc call session lock."
-                        color: Theme.faint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
-                        wrapMode: Text.WordWrap
-                    }
 
                     Item {
                         width: 1
@@ -1829,106 +1487,10 @@ PanelWindow {
                     width: root.contentW
                     spacing: Theme.sp3
 
-                    YSection {
-                        width: parent.width
-                        index: "01"
-                        label: "Settings panel"
-                        chip: root.anchorX + " · " + Math.max(640, Math.min(1200, ShellState.panelW)) + "px"
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: Theme.sp1
-
-                        Repeater {
-                            model: [{
-                                    id: "center",
-                                    label: "CENTER"
-                                }, {
-                                    id: "left",
-                                    label: "LEFT"
-                                }, {
-                                    id: "right",
-                                    label: "RIGHT"
-                                }]
-
-                            delegate: YButton {
-                                required property var modelData
-
-                                tone: ShellState.panelAnchor === modelData.id ? "acid" : "default"
-                                label: modelData.label
-                                onClicked: ShellState.set("panelAnchor", modelData.id)
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "02"
-                        label: "Notification stack"
-                        chip: ShellState.notifyCorner.toUpperCase()
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: Theme.sp1
-
-                        Repeater {
-                            model: [{
-                                    id: "tr",
-                                    label: "TOP-R"
-                                }, {
-                                    id: "tl",
-                                    label: "TOP-L"
-                                }]
-
-                            delegate: YButton {
-                                required property var modelData
-
-                                tone: ShellState.notifyCorner === modelData.id ? "acid" : "default"
-                                label: modelData.label
-                                onClicked: Notify.setCorner(modelData.id)
-                            }
-                        }
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "03"
-                        label: "Control center"
-                        chip: ShellState.ccAnchor.toUpperCase()
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: Theme.sp1
-
-                        Repeater {
-                            model: [{
-                                    id: "center",
-                                    label: "CENTER"
-                                }, {
-                                    id: "left",
-                                    label: "LEFT"
-                                }, {
-                                    id: "right",
-                                    label: "RIGHT"
-                                }]
-
-                            delegate: YButton {
-                                required property var modelData
-
-                                tone: ShellState.ccAnchor === modelData.id ? "acid" : "default"
-                                label: modelData.label
-                                onClicked: ShellState.set("ccAnchor", modelData.id)
-                            }
-                        }
-                    }
-
                     // ---- spawn origins --------------------------------
                     YSection {
                         width: parent.width
-                        index: "04"
+                        index: "01"
                         label: "Spawn origins"
                         chip: PanelSpawn.defaultMode().toUpperCase()
                     }
@@ -1962,7 +1524,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "BAR dock flush under/over the bar · TOP slides from the top edge · BOTTOM rises from the bottom edge · FLOAT fades in dead-center"
+                        text: "BAR dock flush under/over the bar · TOP hangs flush from the top edge · BOTTOM lands flush on the bottom edge · FLOAT fades in dead-center"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
@@ -2037,11 +1599,119 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "per-panel overrides replace the default — set a panel back to the default mode to drop its override"
+                        text: "per-panel overrides replace the default — set a panel back to the default mode to drop its override · horizontal placement for individual panels lives on their own pages (launcher, control center…)"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
                         wrapMode: Text.WordWrap
+                    }
+
+                    // ---- this window ----------------------------------
+                    YSection {
+                        width: parent.width
+                        index: "02"
+                        label: "This window"
+                        chip: root.anchorX + " · " + Math.max(640, Math.min(1200, ShellState.panelW)) + "px"
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "PLACEMENT"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp1
+
+                            YButton {
+                                width: 96
+                                tone: root.anchorX === "center" ? "acid" : "default"
+                                label: "center"
+                                onClicked: ShellState.set("panelAnchor", "center")
+                            }
+
+                            YButton {
+                                width: 96
+                                tone: root.anchorX === "left" ? "acid" : "default"
+                                label: "left"
+                                onClicked: ShellState.set("panelAnchor", "left")
+                            }
+
+                            YButton {
+                                width: 96
+                                tone: root.anchorX === "right" ? "acid" : "default"
+                                label: "right"
+                                onClicked: ShellState.set("panelAnchor", "right")
+                            }
+                        }
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: Theme.ctlH + Theme.fsMicro * 2
+
+                        Text {
+                            anchors.top: parent.top
+                            text: "PANEL WIDTH"
+                            color: Theme.faint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                            font.letterSpacing: 2
+                        }
+
+                        Row {
+                            anchors.bottom: parent.bottom
+                            spacing: Theme.sp2
+
+                            YButton {
+                                width: 32
+                                label: "−"
+                                onClicked: ShellState.set("panelW", Math.max(640, ShellState.panelW - 32))
+                            }
+
+                            Item {
+                                width: 72
+                                height: Theme.ctlH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Theme.bg
+                                    border.width: 1
+                                    border.color: Theme.hairline
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: Math.max(640, Math.min(1200, ShellState.panelW)) + " px"
+                                    color: Theme.ink
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    font.weight: Font.Bold
+                                }
+                            }
+
+                            YButton {
+                                width: 32
+                                label: "+"
+                                onClicked: ShellState.set("panelW", Math.min(1200, ShellState.panelW + 32))
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "640 – 1200"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                            }
+                        }
                     }
 
                     Item {
@@ -2184,6 +1854,48 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "01"
+                        label: "Placement"
+                        chip: ShellState.ccAnchor.toUpperCase()
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp1
+
+                        Repeater {
+                            model: [{
+                                    id: "center",
+                                    label: "CENTER"
+                                }, {
+                                    id: "left",
+                                    label: "LEFT"
+                                }, {
+                                    id: "right",
+                                    label: "RIGHT"
+                                }]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                tone: ShellState.ccAnchor === modelData.id ? "acid" : "default"
+                                label: modelData.label
+                                onClicked: ShellState.set("ccAnchor", modelData.id)
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "horizontal dock position · the spawn origin (bar / edges / float) lives in PANELS"
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "02"
                         label: "Tabs"
                         chip: _safeLen(ShellState.ccTabs) + " visible"
                     }
@@ -3031,6 +2743,27 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             onToggled: ShellState.set("barSession", !ShellState.barSession)
                         }
+                    }
+
+                    YField {
+                        id: avatarField
+
+                        width: root.contentW
+                        placeholder: "lock avatar path — blank uses ~/.face"
+
+                        onAccepted: {
+                            ShellState.set("lockAvatar", text.trim());
+                            text = "";
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "avatar falls back to an initial when the file is missing · lock via IPC: qs ipc call session lock."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsLabel
+                        wrapMode: Text.WordWrap
                     }
 
                     Item {

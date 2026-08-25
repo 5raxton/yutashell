@@ -7,9 +7,11 @@ import qs.modules.common
 // entrance AND exit. Spawn origins are configurable per panel via PanelSpawn:
 //   bar    — drops from behind the bar and rests flush in its socket (the
 //            classic; mirrors automatically when the bar sits on the bottom)
-//   top    — slides down from the top edge, floating free of the bar
-//   bottom — rises from the bottom edge
-//   float  — fades/scales in dead-center, no edge attachment
+//   top    — slides down from behind the TOP SCREEN EDGE and hangs flush
+//            from it, curve shoulders sweeping along the edge
+//   bottom — rises from behind the BOTTOM SCREEN EDGE and lands flush on
+//            it, curve shoulders sweeping along the edge
+//   float  — fades/scales in dead-center, detached from every edge
 //
 // The classic "bar" card rests FLUSH against the bar bottom, concave "flare"
 // shoulders sweep outward from the top corners into the bar line, and a 2px
@@ -38,9 +40,9 @@ Rectangle {
     property int cardH: 560
     // extra gap between bar and card at rest (0 = flush socket)
     property int restGap: 0
-    // draw the concave outward shoulders that blend the card into the bar
-    // (only meaningful when docked to the bar line)
-    property bool flareTop: true
+    // draw the concave outward shoulders that blend the card into whatever
+    // edge it docks to (the bar line or the screen edge)
+    property bool flares: true
     // Item whose direct children stagger-rise when the surface opens
     // (pass your main content Column). Runs once per open, never at boot.
     property Item cascade: null
@@ -50,18 +52,20 @@ Rectangle {
     // ---- resolved spawn origin -------------------------------------------
     readonly property string _mode: PanelSpawn.modeFor(spawnId)
     readonly property bool _floatMode: _mode === "float"
-    readonly property bool _dockedBar: _mode === "bar"
+    readonly property bool _docked: !_floatMode
     readonly property bool _barAtBottom: ShellState.barPosition === "bottom"
-    readonly property bool _risesFromBottom: _mode === "bottom" || (_dockedBar && _barAtBottom)
-    readonly property bool _flares: flareTop && _dockedBar
+    // the docking seam is the line the card hangs FROM (top-edge seams) or
+    // rises ONTO (bottom-edge seams); flares always sweep along that line
+    readonly property bool _seamTop: _mode === "top" || (_mode === "bar" && !_barAtBottom)
+    readonly property bool _flaresOn: flares && _docked
 
     readonly property real restY: {
         if (_floatMode)
             return Math.round((parent.height - height) / 2);
         if (_mode === "top")
-            return Theme.outerPad * 2;
+            return 0;
         if (_mode === "bottom")
-            return parent.height - height - Theme.outerPad * 2;
+            return parent.height - height;
         // docked to the bar (whichever edge it lives on)
         return _barAtBottom ? parent.height - Theme.barHeight - height - restGap : Theme.barHeight + restGap;
     }
@@ -69,8 +73,8 @@ Rectangle {
     readonly property real hiddenY: {
         if (_floatMode)
             return restY;
-        const pad = height + 12 + (_flares ? flareS : 0);
-        return _risesFromBottom ? parent.height + 12 : -pad;
+        const pad = height + 12 + (_flaresOn && _seamTop ? flareS : 0);
+        return _seamTop ? -pad : parent.height + 12;
     }
 
     // intro state — driven once per open
@@ -406,10 +410,12 @@ Rectangle {
         }
     }
 
+    // top-seam shoulders — card hangs from the seam (bar on the top edge,
+    // or a screen-top spawn); fillets sweep along the card's top corners
     FlareShape {
         id: flareR
 
-        visible: root._flares && !root._barAtBottom && root.open
+        visible: root._flaresOn && root._seamTop && root.open
         x: root.width
         y: 0
     }
@@ -417,7 +423,7 @@ Rectangle {
     FlareShape {
         id: flareL
 
-        visible: root._flares && !root._barAtBottom && root.open
+        visible: root._flaresOn && root._seamTop && root.open
         x: -root.flareS
         y: 0
         transform: Scale {
@@ -427,14 +433,14 @@ Rectangle {
         }
     }
 
-    // bottom-bar socket — same fillet mirrored below the card so it can
-    // blend into a bar that lives on the bottom edge
+    // bottom-seam shoulders — same fillets mirrored above the card's bottom
+    // corners so it blends into a bar or screen edge that lives below it
     FlareShape {
         id: bflareR
 
-        visible: root._flares && root._barAtBottom && root.open
+        visible: root._flaresOn && !root._seamTop && root.open
         x: root.width
-        y: root.height + root.flareS
+        y: root.height
         transform: Scale {
             yScale: -1
         }
@@ -443,9 +449,9 @@ Rectangle {
     FlareShape {
         id: bflareL
 
-        visible: root._flares && root._barAtBottom && root.open
+        visible: root._flaresOn && !root._seamTop && root.open
         x: -root.flareS
-        y: root.height + root.flareS
+        y: root.height
         transform: [
             Scale {
                 xScale: -1

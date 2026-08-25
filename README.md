@@ -6,10 +6,12 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure an
 
 | | | |
 |---|---|---|
-| ![desktop](images/showcase/desktop.png) | ![launcher](images/showcase/app-launcher.png) | ![settings](images/showcase/appearance-settings-tab.png) |
-| *desktop* | *launcher* | *settings* |
-| ![notifications](images/showcase/notification-center.png) | ![wallpaper picker](images/showcase/wallpaper-selector.png) | |
-| *notification center* | *wallpaper archive* | |
+| ![desktop](images/showcase/desktop.png) | ![launcher](images/showcase/appselector.png) | ![control center](images/showcase/controlcenter.png) |
+| *desktop* | *app launcher* | *control center* |
+| ![settings](images/showcase/settings.png) | ![notifications](images/showcase/notificationspanel.png) | ![wallpaper picker](images/showcase/wallpaperselector.png) |
+| *settings* | *notification center* | *wallpaper archive* |
+| ![toasts](images/showcase/toastnotifications.png) | | |
+| *toast notifications* | | |
 
 ## Features
 

@@ -100,7 +100,7 @@ PanelWindow {
             cardW: root.cardW
             cardH: 118
             restGap: Theme.sp3
-            flareTop: false
+            flares: false
 
             Column {
                 id: bodyCol

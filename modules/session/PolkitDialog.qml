@@ -77,7 +77,7 @@ PanelWindow {
             cardW: root.cardW
             cardH: bodyCol.implicitHeight + Theme.sp4 * 2
             restGap: Theme.sp4
-            flareTop: false
+            flares: false
 
             Column {
                 id: bodyCol
