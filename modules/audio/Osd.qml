@@ -55,7 +55,8 @@ PanelWindow {
         right: rightSide || centeredX
     }
 
-    margins.top: topSide ? Theme.barHeight + pad : pad + 4
+    margins.top: topSide ? Theme.barHeight + pad : 0
+    margins.bottom: topSide ? 0 : Theme.sp5
     margins.left: centeredX ? 0 : pad
     margins.right: centeredX ? 0 : pad
 
@@ -69,7 +70,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
 
     implicitWidth: 140
-    implicitHeight: 60
+    implicitHeight: 64
 
     Timer {
         id: fadeTimer
@@ -154,9 +155,9 @@ PanelWindow {
 
         Rectangle {
             anchors.fill: parent
-            color: Theme.bgAlt
+            color: Theme.surface
             border.width: 1
-            border.color: root.hot ? Qt.rgba(Theme.alert.r, Theme.alert.g, Theme.alert.b, 0.3) : Theme.hairline
+            border.color: root.hot ? Theme.alert : Theme.lineStrong
             radius: Theme.sp1
 
             Behavior on border.color {
@@ -183,14 +184,14 @@ PanelWindow {
             Column {
                 anchors.centerIn: parent
                 anchors.leftMargin: Theme.sp3
-                spacing: 1
+                spacing: Theme.sp1
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: root.statusText.length > 0 ? root.statusText : root.pctText
                     color: root.hot ? Theme.alert : root.statusText.length > 0 ? Theme.muted : Theme.ink
                     font.family: Theme.fontFamily
-                    font.pixelSize: 18
+                    font.pixelSize: 20
                     font.weight: Font.Bold
                 }
 
@@ -209,10 +210,10 @@ PanelWindow {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: Theme.sp2
-                height: 3
+                anchors.margins: Theme.sp3
+                height: 4
                 color: Theme.hairline
-                radius: 1
+                radius: 2
 
                 Rectangle {
                     anchors.top: parent.top
@@ -220,7 +221,7 @@ PanelWindow {
                     anchors.left: parent.left
                     width: root.barFill * parent.width
                     color: root.hot ? Theme.alert : Theme.acid
-                    radius: 1
+                    radius: 2
 
                     Behavior on width {
                         NumberAnimation {
