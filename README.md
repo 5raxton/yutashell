@@ -26,7 +26,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 | dependency | why |
 |---|---|
-| [Hyprland](https://hyprland.pl) ≥ 0.56 **with the Helmsman Lua dispatcher** | compositor |
+| `wayland compositor` | cause |
 | `quickshell` ≥ 0.3.1 | shell runtime |
 | `matugen` ≥ 4.x | theming pipeline |
 | `awww` | wallpaper painting |
@@ -34,8 +34,6 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 | `noto-fonts-cjk` *(optional)* | Japanese labels (romaji fallback otherwise) |
 
 Optional backends (`grim`, `cliphist`, `cava`, `hyprsunset`, `brightnessctl`, `ddcutil`, `curl`, `power-profiles-daemon`, …) are probed at startup — missing ones hide their feature cleanly instead of breaking.
-
-> Runs against Helmsman's `hl.dsp.*` Lua API rather than raw Hyprland dispatches. On stock Hyprland, compositor-facing features won't function but panels, widgets and theming are unaffected — see [docs/architecture.md](docs/architecture.md) for porting notes.
 
 ## Installation
 
@@ -69,7 +67,7 @@ qs ipc call wallpaper next       # cycle wallpaper + retheming pipeline
 qs ipc call spawn set cc bottom  # control center docks to the bottom edge
 ```
 
-Example Helmsman keybinds:
+Example hyprland keybinds:
 
 ```lua
 _G.yuta = "qs -c yuta-qs ipc call"
@@ -89,7 +87,7 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 | [docs/ipc.md](docs/ipc.md) | complete IPC target/function reference, keybind examples |
 | [docs/configuration.md](docs/configuration.md) | state files, theming contract, per-panel spawn origins |
 | [docs/plugins.md](docs/plugins.md) | writing widgets & daemon plugins |
-| [docs/architecture.md](docs/architecture.md) | repo layout, development workflow, Helmsman notes |
+| [docs/architecture.md](docs/architecture.md) | repo layout, development workflow |
 
 Day-to-day configuration lives in the settings panel (`qs ipc call panel toggle`) — nothing needs hand-editing.
 

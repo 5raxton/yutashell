@@ -35,16 +35,16 @@ yuta-qs/
 - **Graceful degradation** — optional backends are probed at startup; missing features report through a `Health` singleton shown as a `!` chip in the bar instead of failing silently
 - **Single action path** — keybinds, CLI and panel buttons all route through the same IPC handlers
 
-## Hyprland / Helmsman
+## Hyprland
 
-The shell drives Hyprland through the Helmsman Lua dispatcher's `hl.dsp.*` API rather than raw dispatch strings — window/workspace actions go through small wrapper functions in:
+The shell drives Hyprland through the Lua dispatcher's `hl.dsp.*` API rather than raw dispatch strings — window/workspace actions go through small wrapper functions in:
 
 - `modules/bar/Workspaces.qml`
 - `modules/dock/Dock.qml`
 - `modules/overview/Overview.qml`
 - `modules/common/FocusMonitor.qml`, `modules/common/Compositor.qml`
 
-On a stock Hyprland install without Helmsman those features won't function; panels, widgets and theming are unaffected. Porting the handful of wrappers to raw dispatches is straightforward.
+Porting the handful of wrappers to raw dispatches is straightforward.
 
 Runtime compositor config uses `hyprctl eval '<lua>'` with nested Lua tables mirroring option paths. The `compositor` IPC target reports capability and offers a warm-client passthrough (`qs ipc call compositor dsp '<lua>'`) — cold one-shot evals can't run `hl.dsp.*` forms.
 

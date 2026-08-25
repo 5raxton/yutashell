@@ -63,7 +63,7 @@ spawn list                   # effective mode for every panel
 
 ## Keybind examples
 
-Helmsman Lua form:
+Hyprland Lua form:
 
 ```lua
 _G.yuta = "qs -c yuta-qs ipc call"
