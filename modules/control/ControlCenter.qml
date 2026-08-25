@@ -302,6 +302,7 @@ PanelWindow {
                 width: root.contentW
                 height: surface.height - y - Theme.sp3
                 active: ShellState.ccOpen
+                opacity: 1
                 sourceComponent: {
                     switch (root.activePageId) {
                     case "media":
@@ -329,9 +330,19 @@ PanelWindow {
                     }
                 }
 
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.movFast
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
                 onItemChanged: {
-                    if (ShellState.ccOpen && surface.cascade)
+                    if (ShellState.ccOpen && surface.cascade) {
+                        pageLoader.opacity = 0;
                         surface.reveal(item);
+                        pageLoader.opacity = 1;
+                    }
                 }
             }
         }

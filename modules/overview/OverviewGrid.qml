@@ -144,6 +144,7 @@ PanelWindow {
                             border.color: focused ? Theme.acid : (area.containsMouse ? Theme.lineStrong : Theme.hairline)
                             opacity: entered ? 1 : 0
                             y: entered ? 0 : 16
+                            scale: entered ? 1 : 0.85
 
                             Behavior on opacity {
                                 enabled: entered
@@ -158,6 +159,15 @@ PanelWindow {
                                 NumberAnimation {
                                     duration: Theme.movSlow
                                     easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            Behavior on scale {
+                                enabled: entered
+                                NumberAnimation {
+                                    duration: Theme.movSlow
+                                    easing.type: Easing.OutBack
+                                    easing.overshoot: 0.2
                                 }
                             }
 

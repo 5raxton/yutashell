@@ -43,12 +43,28 @@ Item {
         }
     }
 
+    // left accent bar slides in on hover — acid edge acknowledging presence
     Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: 2
         color: root.on_ ? Theme.acid : "transparent"
+        scale: root.interactive && hovered ? 1 : 0.35
+        transformOrigin: Item.TopLeft
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Theme.movFast
+            }
+        }
 
         // interrogation tick: grows to full height under the cursor
         Rectangle {

@@ -702,6 +702,34 @@ PanelWindow {
                             readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
                             readonly property string label: isAction ? modelData.action.name : modelData.entry.name
 
+                            opacity: 1
+                            scale: tileRoot.sel ? 1.04 : (area.containsMouse ? 1.02 : 1)
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: Theme.movSnap
+                                    easing.type: Easing.OutBack
+                                    easing.overshoot: 0.2
+                                }
+                            }
+
+                            // selection glow — acid aura behind selected tile
+                            Rectangle {
+                                anchors.centerIn: tileBox
+                                width: tileBox.width + 8
+                                height: tileBox.height + 8
+                                radius: 3
+                                color: Theme.acid
+                                opacity: tileRoot.sel ? 0.1 : 0
+                                visible: tileRoot.sel
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: Theme.movMed
+                                    }
+                                }
+                            }
+
                             Rectangle {
                                 id: tileBox
                                 x: 4; y: 4

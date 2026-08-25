@@ -87,6 +87,46 @@ Item {
         }
     }
 
+    // glowing head at the leading edge during reveal — a brighter wider blob
+    // that fades behind the advancing rule
+    Rectangle {
+        id: ruleGlow
+
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: rule.left
+        height: 3
+        width: 16
+        radius: 1.5
+        color: Theme.acid
+        opacity: 0
+        visible: ruleScale.xScale < 0.99
+        x: rule.x + rule.width * ruleScale.xScale - width / 2
+
+        SequentialAnimation {
+            id: glowSweep
+
+            running: false
+
+            NumberAnimation {
+                target: ruleGlow
+                property: "opacity"
+                from: 0.5
+                to: 0
+                duration: Theme.movSlow
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Connections {
+            target: revealAnim
+
+            function onRunningChanged() {
+                if (revealAnim.running)
+                    glowSweep.restart();
+            }
+        }
+    }
+
     Text {
         id: chipText
 

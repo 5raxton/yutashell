@@ -121,6 +121,14 @@ Rectangle {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fsBody
             font.letterSpacing: 0.5
+            opacity: 0.7
+            x: Theme.sp2 + 2
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.movFast
+                }
+            }
         }
     }
 

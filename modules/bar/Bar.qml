@@ -57,6 +57,17 @@ PanelWindow {
             color: Theme.hairline
         }
 
+        // acid glow along the bar edge — subtle ambient depth
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: root.topBar ? parent.bottom : undefined
+            anchors.top: root.topBar ? undefined : parent.top
+            height: 4
+            color: Theme.acid
+            opacity: 0.04
+        }
+
         // the living strip — pulses at the bar's leading edge
         YPulse {
             x: Theme.outerPad

@@ -18,7 +18,31 @@ Rectangle {
     border.width: 1
     border.color: root.isAcid ? Theme.acid : root.isAlert ? Theme.alert : Theme.lineStrong
 
+    Component.onCompleted: entrancePop.start()
     onLabelChanged: tickAnim.restart()
+
+    SequentialAnimation {
+        id: entrancePop
+
+        NumberAnimation {
+            target: root
+            property: "scale"
+            from: 0
+            to: 1.12
+            duration: Theme.movFast
+            easing.type: Easing.OutBack
+            easing.overshoot: 0.5
+        }
+        NumberAnimation {
+            target: root
+            property: "scale"
+            from: 1.12
+            to: 1.0
+            duration: Theme.movSnap
+            easing.type: Easing.OutBack
+            easing.overshoot: 0.4
+        }
+    }
 
     SequentialAnimation {
         id: tickAnim

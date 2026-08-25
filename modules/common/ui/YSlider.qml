@@ -46,10 +46,19 @@ Item {
         width: area.pressed ? 10 : 6
         height: width
         color: root.shown >= root.hot || area.pressed ? Theme.acid : Theme.faint
+        scale: area.containsMouse || area.pressed ? 1.2 : 1
 
         Behavior on width {
             NumberAnimation {
                 duration: Theme.movSnap
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.movSnap
+                easing.type: Easing.OutBack
+                easing.overshoot: 0.3
             }
         }
 

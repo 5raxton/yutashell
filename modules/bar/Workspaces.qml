@@ -158,10 +158,19 @@ Item {
                         return (isOccupied || area.containsMouse) ? 1 : 0;
                     }
                     border.color: isUrgent ? Theme.alert : Theme.lineStrong
+                    scale: isActive ? 1.08 : (area.containsMouse ? 1.04 : 1)
 
                     Behavior on color {
                         ColorAnimation {
                             duration: Theme.movFast
+                        }
+                    }
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Theme.movSnap
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 0.3
                         }
                     }
 
@@ -251,6 +260,34 @@ Item {
                 NumberAnimation {
                     duration: 140
                     easing.type: Easing.OutCubic
+                }
+            }
+        }
+
+        // acid glow aura behind the active workspace underline
+        Rectangle {
+            id: underlineGlow
+
+            y: root.slotH + 2
+            height: 6
+            width: root.slotW + 12
+            radius: 3
+            color: Theme.acid
+            opacity: 0.15
+            visible: !root.pillOnly && root.ids.includes(root.focusedId)
+            x: underline.x - 6
+
+            Behavior on x {
+                NumberAnimation {
+                    duration: 140
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.movMed
+                    easing.type: Easing.InOutSine
                 }
             }
         }

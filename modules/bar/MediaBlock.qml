@@ -174,15 +174,30 @@ Item {
                     onWidthChanged: root.syncAnim()
                 }
 
-                // edge fade hint that the line continues (static mask strip)
+                // gradient fade at edges — smoother than a hard clip
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 14
+                    visible: root.overflowing
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: Theme.bg }
+                        GradientStop { position: 1; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0) }
+                    }
+                }
                 Rectangle {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    width: 10
+                    width: 14
                     visible: root.overflowing
-                    color: Theme.bg
-                    opacity: 0.75
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0) }
+                        GradientStop { position: 1; color: Theme.bg }
+                    }
                 }
             }
         }

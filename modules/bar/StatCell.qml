@@ -167,10 +167,19 @@ Item {
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fsLabel
                 font.weight: Font.DemiBold
+                scale: root.hot ? 1.06 : 1
 
                 Behavior on color {
                     ColorAnimation {
                         duration: Theme.movFast
+                    }
+                }
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: Theme.movSnap
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 0.3
                     }
                 }
             }

@@ -131,6 +131,37 @@ Rectangle {
                 height: 22
                 color: "transparent"
                 visible: Notify.fields.icon
+                scale: 1
+
+                onVisibleChanged: {
+                    if (visible)
+                        iconBounce.restart();
+                }
+
+                SequentialAnimation {
+                    id: iconBounce
+
+                    running: false
+
+                    NumberAnimation {
+                        target: appIcon.parent
+                        property: "scale"
+                        from: 0.3
+                        to: 1.15
+                        duration: Theme.movFast
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 0.5
+                    }
+                    NumberAnimation {
+                        target: appIcon.parent
+                        property: "scale"
+                        from: 1.15
+                        to: 1.0
+                        duration: Theme.movSnap
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 0.3
+                    }
+                }
 
                 IconImage {
                     id: appIcon

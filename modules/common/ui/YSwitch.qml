@@ -43,17 +43,28 @@ Rectangle {
     }
 
     Rectangle {
+        id: knob
+
         x: root.checked ? parent.width - width - 2 : 2
         anchors.verticalCenter: parent.verticalCenter
         width: 10
         height: 10
         color: root.checked ? Theme.acid : area.containsMouse ? Theme.ink : Theme.faint
+        scale: root.checked ? 1.15 : 1
 
         Behavior on x {
             NumberAnimation {
                 duration: Theme.movMed
                 easing.type: Easing.OutBack
                 easing.overshoot: 0.45
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.movSnap
+                easing.type: Easing.OutBack
+                easing.overshoot: 0.6
             }
         }
 

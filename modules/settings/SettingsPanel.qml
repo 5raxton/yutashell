@@ -525,12 +525,22 @@ PanelWindow {
                                                 }
                                             }
 
-                                            Rectangle {
-                                                anchors.left: parent.left
-                                                anchors.top: parent.top
-                                                anchors.bottom: parent.bottom
-                                                width: 2
-                                                color: railRow.active ? Theme.acid : "transparent"
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.top: parent.top
+                                            anchors.bottom: parent.bottom
+                                            width: 2
+                                            color: railRow.active ? Theme.acid : "transparent"
+                                            scale: railRow.active ? 1 : 0.4
+                                            transformOrigin: Item.TopLeft
+
+                                            Behavior on scale {
+                                                NumberAnimation {
+                                                    duration: Theme.movSnap
+                                                    easing.type: Easing.OutBack
+                                                    easing.overshoot: 0.3
+                                                }
+                                            }
                                             }
                                         }
 

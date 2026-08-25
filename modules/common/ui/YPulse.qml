@@ -15,22 +15,42 @@ Rectangle {
 
         loops: Animation.Infinite
 
-        NumberAnimation {
-            target: root
-            property: "opacity"
-            from: 1.0
-            to: root.lo
-            duration: Theme.movDrift
-            easing.type: Easing.InOutSine
+        ParallelAnimation {
+            NumberAnimation {
+                target: root
+                property: "opacity"
+                from: 1.0
+                to: root.lo
+                duration: Theme.movDrift
+                easing.type: Easing.InOutSine
+            }
+            NumberAnimation {
+                target: root
+                property: "scale"
+                from: 1.0
+                to: 0.92
+                duration: Theme.movDrift
+                easing.type: Easing.InOutSine
+            }
         }
 
-        NumberAnimation {
-            target: root
-            property: "opacity"
-            from: root.lo
-            to: 1.0
-            duration: Theme.movDrift
-            easing.type: Easing.InOutSine
+        ParallelAnimation {
+            NumberAnimation {
+                target: root
+                property: "opacity"
+                from: root.lo
+                to: 1.0
+                duration: Theme.movDrift
+                easing.type: Easing.InOutSine
+            }
+            NumberAnimation {
+                target: root
+                property: "scale"
+                from: 0.92
+                to: 1.0
+                duration: Theme.movDrift
+                easing.type: Easing.InOutSine
+            }
         }
     }
 }

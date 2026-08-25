@@ -140,29 +140,30 @@ PanelWindow {
 
                             width: 74
                             height: 72
-                            scale: cardArea.containsMouse ? 1.06 : (cardWrapper.sel ? 1.02 : 1)
+                            scale: cardArea.containsMouse ? 1.06 : (cardWrapper.sel ? 1.04 : 1)
 
                             Behavior on scale {
                                 NumberAnimation {
                                     duration: Theme.movSnap
                                     easing.type: Easing.OutBack
-                                    easing.overshoot: 0.3
+                                    easing.overshoot: 0.4
                                 }
                             }
 
                             // selection glow — acid aura behind the selected card
                             Rectangle {
                                 anchors.centerIn: card
-                                width: card.width + 8
-                                height: card.height + 8
-                                radius: 4
+                                width: card.width + 12
+                                height: card.height + 12
+                                radius: 6
                                 color: Theme.acid
-                                opacity: cardWrapper.sel ? 0.12 : 0
+                                opacity: cardWrapper.sel ? 0.14 : 0
                                 visible: cardWrapper.sel
 
                                 Behavior on opacity {
                                     NumberAnimation {
                                         duration: Theme.movMed
+                                        easing.type: Easing.OutCubic
                                     }
                                 }
                             }

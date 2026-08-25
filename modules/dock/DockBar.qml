@@ -142,6 +142,16 @@ PanelWindow {
             opacity: 0.85
         }
 
+        // acid glow along dock bottom edge — breathing ambient
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 8
+            color: Theme.acid
+            opacity: 0.06
+        }
+
         Row {
             id: row
 
@@ -252,11 +262,20 @@ PanelWindow {
             width: item.active ? 22 : 4
             height: 2
             color: item.active ? Theme.acid : (item.running ? Theme.muted : "transparent")
+            scale: item.running ? 1.1 : 1
 
             Behavior on width {
                 NumberAnimation {
                     duration: Theme.movFast
                     easing.type: Easing.OutCubic
+                }
+            }
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.movFast
+                    easing.type: Easing.OutBack
+                    easing.overshoot: 0.3
                 }
             }
         }
@@ -291,6 +310,8 @@ PanelWindow {
 
         // hover title card
         Rectangle {
+            id: hoverCard
+
             anchors.bottom: parent.top
             anchors.bottomMargin: Theme.sp2
             anchors.horizontalCenter: parent.horizontalCenter
@@ -300,6 +321,23 @@ PanelWindow {
             color: Theme.bgAlt
             border.width: 1
             border.color: Theme.lineStrong
+            opacity: hover.containsMouse ? 1 : 0
+            scale: hover.containsMouse ? 1 : 0.92
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.movFast
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.movSnap
+                    easing.type: Easing.OutBack
+                    easing.overshoot: 0.3
+                }
+            }
 
             Text {
                 id: titleText
@@ -323,9 +361,10 @@ PanelWindow {
             cursorShape: Qt.PointingHandCursor
 
             onClicked: mouse => {
-                if (mouse.button === Qt.LeftButton)
+                if (mouse.button === Qt.LeftButton) {
+                    launchBounce.start();
                     Dock.click(item.appId);
-                else if (mouse.button === Qt.MiddleButton)
+                } else if (mouse.button === Qt.MiddleButton)
                     Dock.newInstance(item.appId);
                 else if (mouse.button === Qt.RightButton) {
                     root.menuApp = item.appId;
@@ -334,6 +373,27 @@ PanelWindow {
             }
 
             onWheel: wheel => Dock.cycle(item.appId, wheel.angleDelta.y)
+        }
+
+        SequentialAnimation {
+            id: launchBounce
+            running: false
+
+            NumberAnimation {
+                target: item
+                property: "scale"
+                to: 1.25
+                duration: Theme.movSnap
+                easing.type: Easing.OutBack
+                easing.overshoot: 0.5
+            }
+            NumberAnimation {
+                target: item
+                property: "scale"
+                to: 1.0
+                duration: Theme.movFast
+                easing.type: Easing.OutCubic
+            }
         }
     }
 }
