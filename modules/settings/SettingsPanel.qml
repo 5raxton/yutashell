@@ -199,8 +199,28 @@ PanelWindow {
         root._visiblePagesCache = root.pages.filter(p => root.matchesQuery(p));
     }
 
+    // ---- scheme preview data for swatches ----
+    property var presetData: []
+
+    // curated override candidates (data, not chrome — the live acid token
+    // still decides selection/active visuals)
+    property var accentChoices: ["", "#c8ff3d", "#3dffc0", "#35d0ff", "#3da9ff", "#b96bff", "#ff5cd0", "#ff3b52", "#ffd23d", "#eae8e0"]
+
     Component.onCompleted: {
         root._visiblePagesCache = root.pages.filter(p => root.matchesQuery(p));
+        const out = [];
+        for (const p of Theme.presets) {
+            const m = Theme.previewOf(p.id) ?? {};
+            out.push({
+                id: p.id,
+                label: p.label,
+                bg: m.bg ?? "#111111",
+                ink: m.ink ?? "#eeeeee",
+                acid: m.acid ?? "#00ff00",
+                alert: m.alert ?? "#ff0000"
+            });
+        }
+        root.presetData = out;
     }
 
     Timer {
@@ -257,30 +277,6 @@ PanelWindow {
     }
 
     property bool blinkOn: true
-
-    // TEMP AUDIT — remove before commit
-    function _auditWalk(it) {
-        if (!it)
-            return;
-        const kids = it.children;
-        for (let i = 0; i < kids.length; i++) {
-            const c = kids[i];
-            if (c instanceof Text && c.elide === Text.ElideNone && c.width > 0
-                && c.implicitWidth > c.width + 2 && c.wrapMode === Text.NoWrap)
-                console.warn("[audit] CUT:", JSON.stringify(String(c.text).slice(0, 48)), Math.round(c.implicitWidth) + ">" + Math.round(c.width));
-            root._auditWalk(c);
-        }
-    }
-
-    Timer {
-        interval: 300
-        running: Quickshell.env("YUTA_AUDIT") === "1" && Quickshell.env("YUTA_DEBUG_CYCLE") === "1"
-        repeat: true
-        onTriggered: {
-            root._auditWalk(pageLoader.item);
-            root._auditWalk(railFlick);
-        }
-    }
 
     // YUTA_DEBUG_CYCLE=1 walks every tab on a timer — validates all lazy pages
     // build cleanly without manual clicking
@@ -3164,28 +3160,5 @@ PanelWindow {
                 }
             }
         }
-    }
-
-    // ---- scheme preview data for swatches ----
-    property var presetData: []
-
-    // curated override candidates (data, not chrome — the live acid token
-    // still decides selection/active visuals)
-    property var accentChoices: ["", "#c8ff3d", "#3dffc0", "#35d0ff", "#3da9ff", "#b96bff", "#ff5cd0", "#ff3b52", "#ffd23d", "#eae8e0"]
-
-    Component.onCompleted: {
-        const out = [];
-        for (const p of Theme.presets) {
-            const m = Theme.previewOf(p.id) ?? {};
-            out.push({
-                id: p.id,
-                label: p.label,
-                bg: m.bg ?? "#111111",
-                ink: m.ink ?? "#eeeeee",
-                acid: m.acid ?? "#00ff00",
-                alert: m.alert ?? "#ff0000"
-            });
-        }
-        root.presetData = out;
     }
 }
