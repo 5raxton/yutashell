@@ -9,3 +9,4 @@ MediaBlock 1.0 MediaBlock.qml
 TrayCluster 1.0 TrayCluster.qml
 Taskbar 1.0 Taskbar.qml
 StatCell 1.0 StatCell.qml
+MixerBar 1.0 MixerBar.qml

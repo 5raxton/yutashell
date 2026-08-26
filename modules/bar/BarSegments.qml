@@ -149,7 +149,7 @@ Singleton {
         case "nightlight":
             return NightLight.active;
         case "session":
-            return Session.inhibitCount > 0;
+            return Session.inhibitCount > 0 || IdleInhibitor.inhibited;
         case "recording":
             return Recording.active;
         case "mixer":

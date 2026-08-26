@@ -630,8 +630,14 @@ ShellRoot {
             return a + " after " + ShellState.idleSecs + "s";
         }
 
+        function idleToggle(): string {
+            IdleInhibitor.toggle();
+            return IdleInhibitor.manualInhibit ? "caffeine ON" : "caffeine OFF";
+        }
+
         function status(): string {
-            return (Session.locked ? "LOCKED" : "unlocked") + " · inhibitors " + Session.inhibitCount + " · profile " + (Session.ppdAvailable ? Session.profileName : "n/a") + " · idle " + ShellState.idleAction + "/" + ShellState.idleSecs + "s";
+            const inh = IdleInhibitor.manualInhibit ? "caffeine" : Session.inhibitCount > 0 ? String(Session.inhibitCount) + " inhibitors" : "none";
+            return (Session.locked ? "LOCKED" : "unlocked") + " · " + inh + " · profile " + (Session.ppdAvailable ? Session.profileName : "n/a") + " · idle " + ShellState.idleAction + "/" + ShellState.idleSecs + "s";
         }
     }
 

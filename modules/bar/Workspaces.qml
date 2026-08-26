@@ -1,4 +1,6 @@
+import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Widgets
 import QtQuick
 import qs.theme
 import qs.modules.common

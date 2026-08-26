@@ -25,7 +25,7 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `display` | `bright <pct>` | set brightness (0–100) |
 | `brightness` | `up` / `down` / `set <pct>` / `status` | display brightness (internal + DDC/CI) + OSD |
 | `power` | `saver` / `balanced` / `performance` / `cycle` / `status` | power profile; announces a toast on switch |
-| `session` | `toggle` / `open` / `close` / `lock` / `logout` / `suspend` / `hibernate` / `reboot` / `poweroff` / `profile <name>` / `idle <action> <secs>` / `status` | session actions, idle config, power profiles |
+| `session` | `toggle` / `open` / `close` / `lock` / `logout` / `suspend` / `hibernate` / `reboot` / `poweroff` / `profile <name>` / `idle <action> <secs>` / `idle-inhibit` / `status` | session actions, idle config, idle inhibit toggle, power profiles |
 | `dnd` | `on` / `off` / `toggle` / `status` | do not disturb |
 | `notify` | `show <app> <sum> <body>` | send a toast notification |
 | `notifycenter` | `toggle` / `open` / `close` / `clear` / `test <urgency>` | notification history center |

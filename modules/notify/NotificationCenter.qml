@@ -196,11 +196,22 @@ PanelWindow {
                 }
 
                 // PH.03.3: snooze chip
-                YChip {
+                Item {
                     visible: Notify.snoozed
-                    label: "Zzz " + Notify.snoozeRemaining + "m"
-                    tone: "outline"
-                    onClicked: Notify.clearSnooze()
+                    width: snoozeChip.implicitWidth
+                    height: snoozeChip.height
+
+                    YChip {
+                        id: snoozeChip
+                        label: "Zzz " + Notify.snoozeRemaining + "m"
+                        tone: "outline"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Notify.clearSnooze()
+                    }
                 }
             }
 
@@ -247,10 +258,21 @@ PanelWindow {
                 y: searchRow.y + searchRow.height + Theme.sp1
                 spacing: Theme.sp2
 
-                YChip {
-                    label: ShellState.notifyGrouped ? "GROUPED" : "FLAT"
-                    tone: ShellState.notifyGrouped ? "acid" : "outline"
-                    onClicked: ShellState.set("notifyGrouped", !ShellState.notifyGrouped)
+                Item {
+                    width: groupChip.implicitWidth
+                    height: groupChip.height
+
+                    YChip {
+                        id: groupChip
+                        label: ShellState.notifyGrouped ? "GROUPED" : "FLAT"
+                        tone: ShellState.notifyGrouped ? "acid" : "outline"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: ShellState.set("notifyGrouped", !ShellState.notifyGrouped)
+                    }
                 }
 
                 Text {

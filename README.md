@@ -18,9 +18,9 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
 - **Surfaces** — settings panel (15 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, scratchpad manager, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview (search + move windows), AltTab, power menu, lock screen, color picker, recording widget, updates checker; each spawns from the bar, a screen edge, or float, per panel
 - **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, inline reply, DND + snooze, per-app rules, smart grouping & dedup, persisted history with search & replay
-- **Connectivity & audio** — NetworkManager + BlueZ panels, PipeWire console with perceptual volume taper, per-app audio mixer (MixerPanel), OSDs, night light, brightness (internal + DDC/CI)
+- **Connectivity & audio** — NetworkManager + BlueZ panels (pairing UX with pulsing border + cancel), PipeWire console with perceptual volume taper, per-app audio mixer (MixerPanel), OSDs, night light, brightness (internal + DDC/CI)
 - **Workspace intelligence** — 5 workspace render modes (thumbnails/active/pills/numbers/default), scratchpad manager, window pin-to-all-workspaces, overview with search + move-between-workspaces, alt-tab, quick-tile
-- **Session** — hold-to-confirm power menu, PAM lock screen, inhibitor-aware idle actions, power profiles, polkit dialog
+- **Session** — Wayland session lock (`WlSessionLock` + PAM auth, multi-monitor), hold-to-confirm power menu, caffeine idle-inhibit toggle, inhibitor-aware idle actions, power profiles, polkit dialog
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
 - **IPC** — 31 targets, 135+ functions; keybinds, CLI and settings panel share one implementation
 
@@ -82,6 +82,7 @@ _G.yuta = "qs -c yuta-qs ipc call"
 hl.bind(mainMod .. " + SPACE",       hl.dsp.exec_cmd(yuta .. " launcher toggle"))
 hl.bind(mainMod .. " + PERIOD",      hl.dsp.exec_cmd(yuta .. " cc toggle"))
 hl.bind(mainMod .. " + L",           hl.dsp.exec_cmd(yuta .. " session lock"))
+hl.bind("CTRL + SHIFT + I",         hl.dsp.exec_cmd(yuta .. " session idle-inhibit"))
 hl.bind("ALT + Tab",                 hl.dsp.exec_cmd(yuta .. " overview alttab"))
 ```
 

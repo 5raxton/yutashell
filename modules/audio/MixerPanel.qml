@@ -1,11 +1,12 @@
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Services.Pipewire
+import Quickshell.Widgets
 import QtQuick
 import qs.theme
 import qs.modules.common
 import "../common/ui"
 import "."
-import ".."
 
 // MixerPanel (PH.02.2) — per-app audio mixer. Stream cards with app icon,
 // name, volume slider, and mute toggle. Output device selector at top;

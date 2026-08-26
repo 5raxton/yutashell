@@ -64,6 +64,9 @@ Singleton {
         case "mixer":
             ShellState.toggleMixer();
             break;
+        case "scratchpad":
+            ShellState.toggleOverview();
+            break;
         default:
             return false;
         }

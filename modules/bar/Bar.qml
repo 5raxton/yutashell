@@ -1,6 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Wayland._IdleInhibitor
+import Quickshell.Wayland._IdleInhibitor as IdleMod
 import QtQuick
 import qs.theme
 import qs.modules.common
@@ -10,7 +10,6 @@ import "../audio"
 import "../session"
 import "../widgets"
 import "../common/ui"
-import "../overview"
 import "."
 
 // Bar v2 (PH.14) — a data-driven organism. The layout (which segments, in
@@ -438,8 +437,8 @@ PanelWindow {
     Component {
         id: sessComp
 
-        // ASCII-safe rendering — the nerd-font glyph this chip used is missing
-        // from common installs and rendered as a dead box
+        // Caffeine / inhibit chip — click toggles manual idle inhibit;
+        // shows logind inhibitor count when present.
         Item {
             implicitWidth: sessRow.width
             implicitHeight: Theme.scaledBarHeight
@@ -452,8 +451,8 @@ PanelWindow {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "INHIBIT"
-                    color: Theme.muted
+                    text: IdleInhibitor.manualInhibit ? "CAFFEINE" : "INHIBIT"
+                    color: IdleInhibitor.manualInhibit ? Theme.acid : Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.barFsMicro
                     font.weight: Font.Bold
@@ -462,6 +461,7 @@ PanelWindow {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
+                    visible: Session.inhibitCount > 0
                     text: String(Session.inhibitCount)
                     color: Theme.ink
                     font.family: Theme.fontFamily
@@ -474,7 +474,7 @@ PanelWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: BarActions.dispatch(BarSegments.clickFor("session"))
+                onClicked: IdleInhibitor.toggle()
             }
         }
     }
@@ -547,11 +547,43 @@ PanelWindow {
     Component {
         id: scratchpadComp
 
-        YChip {
-            visible: Overview.scratchWindows.length > 0
-            label: "⊞ " + Overview.scratchWindows.length
-            tone: "outline"
-            onClicked: ShellState.toggleScratchpad()
+        Item {
+            implicitWidth: scratchChip.implicitWidth
+            implicitHeight: Theme.scaledBarHeight
+
+            YChip {
+                id: scratchChip
+                anchors.verticalCenter: parent.verticalCenter
+                visible: {
+                    let count = 0;
+                    const vals = Hyprland.toplevels.values;
+                    for (let i = 0; i < vals.length; i++) {
+                        const wsId = vals[i].workspace ? vals[i].workspace.id : 0;
+                        const wsName = vals[i].workspace ? String(vals[i].workspace.name) : "";
+                        if (wsId < 0 || wsName === "magic")
+                            count++;
+                    }
+                    return count > 0;
+                }
+                label: {
+                    let count = 0;
+                    const vals = Hyprland.toplevels.values;
+                    for (let i = 0; i < vals.length; i++) {
+                        const wsId = vals[i].workspace ? vals[i].workspace.id : 0;
+                        const wsName = vals[i].workspace ? String(vals[i].workspace.name) : "";
+                        if (wsId < 0 || wsName === "magic")
+                            count++;
+                    }
+                    return "⊞ " + count;
+                }
+                tone: "outline"
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleScratchpad()
+            }
         }
     }
 
@@ -653,7 +685,7 @@ PanelWindow {
     // PH.01.2: Wayland idle-inhibit surface attached to the bar window.
     // When IdleInhibitor.inhibited is true, the compositor suppresses
     // idle timeout (screen blank, lock) for as long as this surface exists.
-    IdleInhibitor {
+    IdleMod.IdleInhibitor {
         enabled: IdleInhibitor.inhibited
         window: root
     }

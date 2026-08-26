@@ -4,7 +4,6 @@ import qs.theme
 import qs.modules.bar
 import qs.modules.common
 import qs.modules.audio
-import ".."
 
 Item {
     id: root

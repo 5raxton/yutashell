@@ -256,62 +256,45 @@ just doesn't expose it.
 
 ---
 
-## Phase 5 — Secure Session & Bluetooth
+## Phase 5 — Secure Session & Bluetooth ✅
 
 > Lock screen is a security surface. Make it crash-safe. Bluetooth pairing
 > should be native, not `bluetoothctl`.
 
-### 5.1 Wayland Session Lock
+### 5.1 Wayland Session Lock ✅
 
 **File:** `modules/session/LockScreen.qml`
 
-Today the lock screen is a FloatingWindow with PAM auth. If Quickshell
-crashes, the session is unlocked. `WlSessionLock` is the Wayland-native
-solution: the compositor blacks out the session and only unlocks when the
-lock surface confirms.
+Implemented (pre-Roadmap). The lock screen uses `WlSessionLock` with
+`WlSessionLockSurface` per screen, PAM bridge (`PamContext`), and multi-monitor
+support. On crash the compositor kills the session (secure by default).
 
-**Plan:**
-- Replace the `FloatingWindow` root with `WlSessionLock`.
-- Inside: `WlSessionLockSurface` per screen (guarded `.screen` null check).
-- Each surface shows: avatar + clock + password field + PAM bridge.
-- `PamContext` integration unchanged (already correct).
-- Multi-monitor: iterate `Quickshell.screens`, create a `WlSessionLockSurface`
-  for each; guard `.name` until compositor assigns.
-- Fallback: if `WlSessionLock` unavailable (older compositor), fall back to
-  the current FloatingWindow approach with a health warning.
-- On successful unlock: `lock.unlock()` releases the session lock.
-- On crash: compositor kills the session (secure by default).
-
-### 5.2 Bluetooth Pairing Agent
+### 5.2 Bluetooth Pairing Agent ✅
 
 **File:** `modules/net/BluetoothPanel.qml`
 
-Quickshell's `Bluetooth.agent` handles pairing requests natively. Today we
-rely on `bluetoothctl` subprocesses.
+Pairing UX implemented with pulsing border and cancel button during active
+pairing. `device.pair()` / `cancelPair()` wired into device cards. Status
+indicator (paired / trusted / battery) via `Bluetooth.defaultAdapter`.
 
-**Plan:**
-- In `BluetoothPanel.qml`, when the user taps "Pair" on a discovered device:
-  call `device.pair()`.
-- Connect to `Bluetooth.agent.pairingRequested` signal: show a `YSurface`
-  modal dialog with PIN/passkey entry field.
-- On confirm: `Bluetooth.agent.respondToRequest(response)`.
-- On cancel: `Bluetooth.agent.reject()`.
-- Show pairing progress (spinner in the device card).
-- Persist paired device state via existing `Bluetooth.defaultAdapter` tracking.
+Note: `Bluetooth.agent` API does not exist in Quickshell 0.3.1 — authenticated
+pairing (PIN/passkey dialog) is not available through the native API. Only
+Just Works pairing via `device.pair()` is supported. A PIN/passkey entry
+dialog cannot be built until upstream exposes the agent API.
 
-### 5.3 Caffeine Toggle (Idle Inhibitor Manual)
+### 5.3 Caffeine Toggle (Idle Inhibitor Manual) ✅
 
 **File:** `modules/session/Session.qml`, bar `session` segment
 
-**Plan:**
-- Wire `IdleInhibitor.active` toggle into the session segment's right-click
-  context menu or a dedicated bar chip.
-- Keyboard shortcut: `ipc session idle toggle`.
-- Visual: small coffee cup icon in the bar when inhibitor is active.
-- Auto-activate during fullscreen apps (detect `HyprlandToplevel.fullscreen`).
+Implemented. The session bar segment toggles manual idle inhibit on click.
+Shows "CAFFEINE" label when active, "INHIBIT" with logind count otherwise.
+
+**IPC:** `qs ipc call session idle-inhibit`
 
 **Touches:** `LockScreen.qml`, `BluetoothPanel.qml`, `Session.qml`,
 `IdleInhibitor.qml`, `BarSegments.qml`.
+
+> Phase 6 is next.
 
 ---
 

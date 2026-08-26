@@ -242,10 +242,26 @@ PanelWindow {
                             required property var modelData
 
                             readonly property bool hovered: harea.containsMouse
+                            readonly property bool isPairing: devRow.modelData?.pairing ?? false
 
                             width: root.contentW
                             height: 48
                             color: hovered ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.04) : "transparent"
+
+                            // pulsing border during pairing
+                            Rectangle {
+                                anchors.fill: parent
+                                color: "transparent"
+                                border.width: 1
+                                border.color: Theme.acid
+                                visible: devRow.isPairing
+                                SequentialAnimation on opacity {
+                                    running: devRow.isPairing
+                                    loops: Animation.Infinite
+                                    NumberAnimation { from: 0.2; to: 0.8; duration: 800; easing.type: Easing.InOutSine }
+                                    NumberAnimation { from: 0.8; to: 0.2; duration: 800; easing.type: Easing.InOutSine }
+                                }
+                            }
 
                             IconImage {
                                 id: devIcon
@@ -298,10 +314,11 @@ PanelWindow {
                                 }
 
                                 Text {
-                                    text: devRow.modelData?.state === BluetoothDeviceState.Connected ? "connected" : devRow.modelData?.state === BluetoothDeviceState.Connecting ? "connecting…" : devRow.modelData?.state === BluetoothDeviceState.Disconnecting ? "disconnecting…" : (devRow.modelData?.paired ?? false) ? "paired · idle" : (devRow.modelData?.pairing ?? false) ? "pairing…" : "unpaired"
-                                    color: devRow.modelData?.state === BluetoothDeviceState.Connecting || (devRow.modelData?.pairing ?? false) ? Theme.muted : Theme.faint
+                                    text: devRow.modelData?.state === BluetoothDeviceState.Connected ? "connected" : devRow.modelData?.state === BluetoothDeviceState.Connecting ? "connecting…" : devRow.modelData?.state === BluetoothDeviceState.Disconnecting ? "disconnecting…" : (devRow.modelData?.paired ?? false) ? "paired · idle" : devRow.isPairing ? "pairing…" : "unpaired"
+                                    color: devRow.modelData?.state === BluetoothDeviceState.Connecting || devRow.isPairing ? Theme.acid : Theme.faint
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsMicro
+                                    font.weight: devRow.isPairing ? Font.DemiBold : Font.Normal
                                 }
                             }
 
@@ -312,10 +329,17 @@ PanelWindow {
                                 anchors.rightMargin: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: Theme.sp1
-                                visible: devRow.hovered
+                                visible: devRow.hovered || devRow.isPairing
 
                                 YButton {
-                                    visible: !(devRow.modelData?.paired ?? false) && !(devRow.modelData?.pairing ?? false)
+                                    visible: devRow.isPairing
+                                    label: "CANCEL"
+                                    tone: "danger"
+                                    onClicked: devRow.modelData.cancelPair()
+                                }
+
+                                YButton {
+                                    visible: !devRow.isPairing && !(devRow.modelData?.paired ?? false)
                                     label: "PAIR"
                                     onClicked: devRow.modelData.pair()
                                 }
