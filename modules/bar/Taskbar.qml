@@ -52,6 +52,14 @@ Item {
                 readonly property bool active: Dock.isActive(appId)
                 readonly property bool running: modelData.running
                 readonly property string iconUrl: (modelData.iconSrc && modelData.iconSrc.length > 0) ? Quickshell.iconPath(modelData.iconSrc) : ""
+                readonly property bool hasPinnedWindow: {
+                    const wins = Dock.windowsOf(appId);
+                    for (let i = 0; i < wins.length; i++) {
+                        if (Dock.isWindowPinned(wins[i].address))
+                            return true;
+                    }
+                    return false;
+                }
 
                 width: 30
                 height: 30
@@ -75,6 +83,18 @@ Item {
                             easing.type: Easing.OutCubic
                         }
                     }
+                }
+
+                // PH.04.3: pin indicator
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: 1
+                    width: 6
+                    height: 6
+                    radius: 3
+                    color: Theme.acid
+                    visible: item.hasPinnedWindow
                 }
 
                 // acid square + initial fallback

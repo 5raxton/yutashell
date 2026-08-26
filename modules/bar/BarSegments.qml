@@ -40,6 +40,7 @@ Singleton {
             "session": { label: "Inhibit chip", jp: "阻" },
             "recording": { label: "Recording chip", jp: "録" },
             "mixer": { label: "Mixer", jp: "混" },
+            "scratchpad": { label: "Scratchpad", jp: "隠" },
             "pluginwidgets": { label: "Plugin widgets", jp: "拡" },
             "clock": { label: "Clock", jp: "時" },
             "spacer": { label: "Spacer", jp: "余" }
@@ -153,6 +154,8 @@ Singleton {
             return Recording.active;
         case "mixer":
             return MixerService.ready;
+        case "scratchpad":
+            return Overview.scratchWindows.length > 0;
         case "pluginwidgets":
             return PluginService.enabledWidgets.length > 0;
         default:
@@ -186,6 +189,7 @@ Singleton {
             "nightlight": "nightlight",
             "session": "power",
             "mixer": "mixer",
+            "scratchpad": "scratchpad",
             "tray": "",
             "workspaces": "",
             "taskbar": ""

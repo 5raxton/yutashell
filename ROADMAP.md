@@ -196,11 +196,11 @@ just doesn't expose it.
 
 ---
 
-## Phase 4 — Workspace Intelligence
+## Phase 4 — Workspace Intelligence ✅
 
 > Make workspaces visual, not just numbered. Users think in spatial terms.
 
-### 4.1 Workspace Thumbnail Strip
+### 4.1 Workspace Thumbnail Strip ✅
 
 **File:** `modules/bar/Workspaces.qml`
 
@@ -214,7 +214,7 @@ just doesn't expose it.
   1 fps for non-focused; instant for focused.
 - Persist `ShellState.wsMode` extended with `"thumbnails"`.
 
-### 4.2 Scratchpad Manager
+### 4.2 Scratchpad Manager ✅
 
 **File:** New `modules/overview/Scratchpad.qml`
 
@@ -228,7 +228,7 @@ just doesn't expose it.
   keybind.
 - Visual: `YSurface` popup with a compact list, same style as AltTab.
 
-### 4.3 Window Pin to All Workspaces
+### 4.3 Window Pin to All Workspaces ✅
 
 **File:** `modules/dock/Dock.qml`, `modules/bar/Taskbar.qml`
 
@@ -240,7 +240,7 @@ just doesn't expose it.
 - Pinned windows show a small pin icon overlay in the taskbar.
 - Persist pinned window app IDs in `ShellState.pinnedApps`.
 
-### 4.4 Overview Improvements
+### 4.4 Overview Improvements ✅
 
 **File:** `modules/overview/OverviewGrid.qml`
 

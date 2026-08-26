@@ -3,24 +3,26 @@ import QtQuick
 import qs.theme
 import qs.modules.common
 
-// Workspace segment. Four persisted render modes (ShellState.wsMode):
+// Workspace segment. Five persisted render modes (ShellState.wsMode):
 //   default — numbered pills with occupied borders + moving underline
 //   numbers — bare digits, focus carries the accent
 //   pills   — boxes without digits, state read from fill/border alone
 //   active  — default look, but ONLY workspaces that actually exist
+//   thumbnails — mini workspace cards showing window count + app icons
 Item {
     id: root
 
     readonly property string mode: {
         const m = String(ShellState.wsMode ?? "");
-        return m === "numbers" || m === "pills" || m === "active" ? m : "default";
+        return m === "numbers" || m === "pills" || m === "active" || m === "thumbnails" ? m : "default";
     }
     readonly property bool bare: mode === "numbers"
     readonly property bool pillOnly: mode === "pills"
+    readonly property bool thumbMode: mode === "thumbnails"
 
-    readonly property int slotW: mode === "numbers" ? 21 : pillOnly ? 18 : 30
-    readonly property int slotH: pillOnly ? 18 : 24
-    readonly property int gap: pillOnly ? 7 : 5
+    readonly property int slotW: thumbMode ? 52 : mode === "numbers" ? 21 : pillOnly ? 18 : 30
+    readonly property int slotH: thumbMode ? 34 : pillOnly ? 18 : 24
+    readonly property int gap: thumbMode ? 5 : pillOnly ? 7 : 5
 
     readonly property var ids: {
         const live = new Set();
@@ -182,10 +184,10 @@ Item {
                         }
                     }
 
-                    // digits — hidden in pills mode entirely
+                    // digits — hidden in pills and thumbnails mode
                     Text {
                         anchors.centerIn: parent
-                        visible: !root.pillOnly
+                        visible: !root.pillOnly && !root.thumbMode
                         text: String(btn.modelData).padStart(2, "0")
                         font.family: Theme.fontFamily
                         font.pixelSize: Math.round(10 * Theme.barScale)
@@ -242,6 +244,95 @@ Item {
                         }
                     }
 
+                    // PH.04.1: thumbnails mode — mini card with window count + app icons
+                    Column {
+                        anchors.centerIn: parent
+                        visible: root.thumbMode
+                        spacing: 1
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: String(btn.modelData).padStart(2, "0")
+                            color: btn.isActive ? Theme.bg : (btn.isOccupied ? Theme.ink : Theme.faint)
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Math.round(9 * Theme.barScale)
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: 1
+                        }
+
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: 2
+                            visible: btn.isOccupied
+
+                            Repeater {
+                                model: {
+                                    const wsWins = [];
+                                    const tlVals = Hyprland.toplevels.values;
+                                    for (let i = 0; i < tlVals.length; i++) {
+                                        if (tlVals[i].workspace && tlVals[i].workspace.id === btn.modelData)
+                                            wsWins.push(tlVals[i]);
+                                    }
+                                    // show up to 3 app icons
+                                    const icons = [];
+                                    const seen = {};
+                                    for (let i = 0; i < wsWins.length && icons.length < 3; i++) {
+                                        const appId = wsWins[i].wayland?.appId || wsWins[i].lastIpcObject?.class || "";
+                                        if (appId && !seen[appId]) {
+                                            seen[appId] = true;
+                                            const e = DesktopEntries.byId(appId) || DesktopEntries.heuristicLookup(appId);
+                                            icons.push(e ? (e.icon || "") : "");
+                                        }
+                                    }
+                                    return icons;
+                                }
+
+                                Rectangle {
+                                    required property var modelData
+                                    required property int index
+                                    width: 8
+                                    height: 8
+                                    radius: 1
+                                    color: "transparent"
+
+                                    IconImage {
+                                        anchors.fill: parent
+                                        implicitSize: 8
+                                        visible: modelData.length > 0 && status !== Image.Error
+                                        source: modelData.length > 0 ? Quickshell.iconPath(modelData) : ""
+                                    }
+
+                                    // fallback dot
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        width: 4
+                                        height: 4
+                                        radius: 2
+                                        visible: modelData.length === 0 || parent.children[0].status === Image.Error
+                                        color: Theme.acid
+                                    }
+                                }
+                            }
+
+                            // +N overflow indicator
+                            Text {
+                                visible: {
+                                    let count = 0;
+                                    const tlVals = Hyprland.toplevels.values;
+                                    for (let i = 0; i < tlVals.length; i++) {
+                                        if (tlVals[i].workspace && tlVals[i].workspace.id === btn.modelData)
+                                            count++;
+                                    }
+                                    return count > 3;
+                                }
+                                text: "+"
+                                color: Theme.faint
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 7
+                            }
+                        }
+                    }
+
                     MouseArea {
                         id: area
                         anchors.fill: parent
@@ -269,7 +360,7 @@ Item {
             width: root.slotW
             radius: root.pillOnly ? 1 : 0
             color: Theme.acid
-            visible: !root.pillOnly && root.ids.includes(root.focusedId)
+            visible: !root.pillOnly && !root.thumbMode && root.ids.includes(root.focusedId)
             x: Math.max(0, root.ids.indexOf(root.focusedId)) * (root.slotW + root.gap)
 
             Behavior on x {
@@ -290,7 +381,7 @@ Item {
             radius: 3
             color: Theme.acid
             opacity: 0.15
-            visible: !root.pillOnly && root.ids.includes(root.focusedId)
+            visible: !root.pillOnly && !root.thumbMode && root.ids.includes(root.focusedId)
             x: underline.x - 6
 
             Behavior on x {
@@ -320,7 +411,7 @@ Item {
             radius: root.pillOnly ? 1 : 0
             color: Theme.acid
             opacity: 0
-            visible: !root.pillOnly && root.ids.includes(root.focusedId)
+            visible: !root.pillOnly && !root.thumbMode && root.ids.includes(root.focusedId)
 
             NumberAnimation on x {
                 id: trailFadeX

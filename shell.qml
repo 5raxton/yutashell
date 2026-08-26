@@ -505,6 +505,10 @@ ShellRoot {
             Overview.sendToScratchpad();
         }
 
+        function scratchlist(): void {
+            ShellState.toggleScratchpad();
+        }
+
         function tile(preset: string): void {
             Overview.tile(String(preset));
         }

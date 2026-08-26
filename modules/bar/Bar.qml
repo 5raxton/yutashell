@@ -10,6 +10,7 @@ import "../audio"
 import "../session"
 import "../widgets"
 import "../common/ui"
+import "../overview"
 import "."
 
 // Bar v2 (PH.14) — a data-driven organism. The layout (which segments, in
@@ -277,6 +278,8 @@ PanelWindow {
             return recComp;
         case "mixer":
             return mixerComp;
+        case "scratchpad":
+            return scratchpadComp;
         case "pluginwidgets":
             return pluginWidgetsComp;
         case "clock":
@@ -538,6 +541,17 @@ PanelWindow {
 
         MixerBar {
             tip: root.tip
+        }
+    }
+
+    Component {
+        id: scratchpadComp
+
+        YChip {
+            visible: Overview.scratchWindows.length > 0
+            label: "⊞ " + Overview.scratchWindows.length
+            tone: "outline"
+            onClicked: ShellState.toggleScratchpad()
         }
     }
 

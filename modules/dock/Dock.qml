@@ -48,6 +48,39 @@ Singleton {
         return tl.wayland?.appId || tl.lastIpcObject?.class || "";
     }
 
+    // PH.04.3: pinned windows (visible on all workspaces)
+    readonly property var pinnedWindows: {
+        try {
+            const arr = JSON.parse(ShellState.pinnedWindows);
+            if (Array.isArray(arr))
+                return arr.map(String);
+        } catch (e) {}
+        return [];
+    }
+
+    function pinWindow(addr) {
+        const a = String(addr);
+        if (root.pinnedWindows.indexOf(a) >= 0)
+            return;
+        ShellState.set("pinnedWindows", JSON.stringify(root.pinnedWindows.concat([a])));
+    }
+
+    function unpinWindow(addr) {
+        const a = String(addr);
+        ShellState.set("pinnedWindows", JSON.stringify(root.pinnedWindows.filter(x => x !== a)));
+    }
+
+    function isWindowPinned(addr) {
+        return root.pinnedWindows.indexOf(String(addr)) >= 0;
+    }
+
+    function toggleWindowPin(addr) {
+        if (root.isWindowPinned(addr))
+            root.unpinWindow(addr);
+        else
+            root.pinWindow(addr);
+    }
+
     // active app id = the class/appId of the focused toplevel (activeToplevel
     // never populates on this build — use per-toplevel `activated`)
     function activeAppId() {

@@ -209,6 +209,22 @@ PanelWindow {
                     }
                 }
 
+                // PH.04.3: pin window to all workspaces
+                YButton {
+                    label: "PIN ALL"
+                    visible: Dock.isRunning(root.menuApp)
+                    onClicked: {
+                        const wins = Dock.windowsOf(root.menuApp);
+                        if (wins.length > 0) {
+                            if (Dock.isWindowPinned(wins[0].address))
+                                Dock.unpinWindow(wins[0].address);
+                            else
+                                Dock.pinWindow(wins[0].address);
+                        }
+                        root.menuApp = "";
+                    }
+                }
+
                 YButton {
                     label: "LAUNCH"
                     visible: Dock.isRunning(root.menuApp)
@@ -244,6 +260,14 @@ PanelWindow {
         readonly property bool active: Dock.isActive(appId)
         readonly property bool running: modelData.running
         readonly property bool pinned: modelData.pinned
+        readonly property bool hasPinnedWindow: {
+            const wins = Dock.windowsOf(appId);
+            for (let i = 0; i < wins.length; i++) {
+                if (Dock.isWindowPinned(wins[i].address))
+                    return true;
+            }
+            return false;
+        }
 
         width: 52
         height: 46
@@ -320,6 +344,27 @@ PanelWindow {
 
             Behavior on opacity {
                 NumberAnimation { duration: Theme.movFast; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // PH.04.3: pin indicator (window pinned to all workspaces)
+        Rectangle {
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 2
+            width: 8
+            height: 8
+            radius: 4
+            color: Theme.acid
+            visible: item.hasPinnedWindow
+
+            Text {
+                anchors.centerIn: parent
+                text: "⊕"
+                color: Theme.bg
+                font.family: Theme.fontFamily
+                font.pixelSize: 6
+                font.weight: Font.Bold
             }
         }
 

@@ -27,6 +27,12 @@ Singleton {
     // mixer (PH.02)
     property bool mixerOpen: false
 
+    // scratchpad manager (PH.04)
+    property bool scratchpadOpen: false
+
+    // PH.04.3: pinned windows (addresses visible on all workspaces)
+    readonly property alias pinnedWindows: adapter.pinnedWindows
+
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
         // freeze popup placement at the moment something opens (PH.06) — a
@@ -52,6 +58,7 @@ Singleton {
         root.emojiOpen = name === "emoji";
         root.ccOpen = name === "cc";
         root.mixerOpen = name === "mixer";
+        root.scratchpadOpen = name === "scratchpad";
     }
 
     function togglePanel() {
@@ -224,6 +231,18 @@ Singleton {
 
     function closeMixer() {
         root.mixerOpen = false;
+    }
+
+    function toggleScratchpad() {
+        root._exclusive(root.scratchpadOpen ? "" : "scratchpad");
+    }
+
+    function openScratchpad() {
+        root._exclusive("scratchpad");
+    }
+
+    function closeScratchpad() {
+        root.scratchpadOpen = false;
     }
 
     // ---- persisted prefs (auto-written on change) ----
@@ -436,6 +455,7 @@ Singleton {
     property string dockHide: "never"
     property string dockMonitors: "all"
     property string dockPins: "[]"
+    property string pinnedWindows: "[]"
 
     // system / widgets: clock in 24h (true) or 12h (false); screenshot save
     // dir + strftime-style filename template; weather location (open-meteo)
