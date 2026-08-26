@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Wayland
 import QtQuick
-import QtQuick.Effects
 import Quickshell.Widgets
 import qs.theme
 import qs.modules.common

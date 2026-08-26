@@ -130,13 +130,13 @@ PanelWindow {
                         }
                     }
                     const sorted = Object.keys(map).sort((a, b) => map[b] - map[a]);
-                    return sorted.slice(0, 8);
+                    return { names: sorted.slice(0, 8), counts: map };
                 }
 
                 readonly property var categoryLabels: {
                     const out = [{label: "ALL", count: allApps.length}];
-                    for (let i = 0; i < categories.length; i++) {
-                        out.push({label: categories[i].toUpperCase(), count: categories[categories[i]]});
+                    for (let i = 0; i < categories.names.length; i++) {
+                        out.push({label: categories.names[i].toUpperCase(), count: categories.counts[categories.names[i]] || 0});
                     }
                     return out;
                 }

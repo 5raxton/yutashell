@@ -72,7 +72,7 @@ Singleton {
         // one chained shell op — reusing a single Process per-display drops
         // every display after the first (running edge fires once); the follow-up
         // read runs from onExited so a failed link can't strand the readout
-        setProc.command = ["sh", "-c", ops.join(" && ")];
+        setProc.command = ["sh", "-c", ops.join(" ; ")];
         setProc.running = true;
     }
 

@@ -49,7 +49,6 @@ Singleton {
             return;
         }
         active = true;
-        restartProc();
     }
 
     function stop() {

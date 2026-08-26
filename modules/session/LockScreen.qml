@@ -20,7 +20,7 @@ Item {
     id: root
 
     readonly property string userName: Quickshell.env("USER") || "user"
-    readonly property string avatarUrl: ShellState.lockAvatar.length > 0 ? "file://" + ShellState.lockAvatar : "file://" + Quickshell.env("HOME") + "/.face"
+    readonly property string avatarUrl: ShellState.lockAvatar.length > 0 ? "file://" + ShellState.lockAvatar : "file://" + (Quickshell.env("HOME") ?? "") + "/.face"
     readonly property string hostName: SystemStats.hostname.length > 0 ? SystemStats.hostname.toUpperCase() : (Quickshell.env("HOSTNAME") || "").toUpperCase()
 
     WlSessionLock {

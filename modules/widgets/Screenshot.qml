@@ -23,13 +23,11 @@ Singleton {
 
     property string lastPath: ""
 
-    readonly property string dir: String(ShellState.shotDir).replace(/^~/, Quickshell.env("HOME"))
+    readonly property string dir: String(ShellState.shotDir).replace(/^~/, Quickshell.env("HOME") ?? "")
 
     function _hex(c) {
-        const r = Math.round(c.r * 255).toString(16).padStart(2, "0");
-        const g = Math.round(c.g * 255).toString(16).padStart(2, "0");
-        const b = Math.round(c.b * 255).toString(16).padStart(2, "0");
-        return "#" + r + g + b;
+        function _p2(v) { const s = Math.round(v * 255).toString(16); return s.length < 2 ? "0" + s : s; }
+        return "#" + _p2(c.r) + _p2(c.g) + _p2(c.b);
     }
 
     // strftime subset (the default template needs only these)

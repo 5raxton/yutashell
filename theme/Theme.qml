@@ -248,7 +248,7 @@ Singleton {
             if (!root.dark)
                 c = _fitOnLight(c, 3.0);
             root.acid = c;
-            root.acidDeep = Qt.hsla(_h(c.hslHue), c.hslSaturation, Math.max(0.10, c.hslLightness * (root.dark ? 0.72 : 0.80)), 1);
+            root.acidDeep = Qt.hsla(c.hslHue, c.hslSaturation, Math.max(0.10, c.hslLightness * (root.dark ? 0.72 : 0.80)), 1);
         } catch (e) {
             console.warn("[theme] accent override unreadable:", o);
         }
@@ -390,12 +390,11 @@ Singleton {
 
     FileView {
         id: wallThemeFile
-        path: Quickshell.env("HOME") + "/.local/state/yutashell/theme.json"
+        path: (Quickshell.env("HOME") ?? "") + "/.local/state/yutashell/theme.json"
         watchChanges: true
         printErrors: false
         preload: true
         property var _lastSize: 0
-        property var _debounceTimer: null
         onLoaded: {
             if (!root.followWallpaper)
                 return;
@@ -404,13 +403,17 @@ Singleton {
                 root.applyWallpaperTokens();
             } else {
                 _lastSize = sz;
-                if (_debounceTimer)
-                    _debounceTimer.stop();
-                _debounceTimer = Qt.callLater(() => {
-                    if (wallThemeFile.text().length === _lastSize)
-                        root.applyWallpaperTokens();
-                });
+                _debounce.restart();
             }
+        }
+    }
+
+    Timer {
+        id: _debounce
+        interval: 200
+        onTriggered: {
+            if (wallThemeFile.text().length === wallThemeFile._lastSize)
+                root.applyWallpaperTokens();
         }
     }
 

@@ -111,7 +111,7 @@ Item {
         return "";
     }
 
-    implicitWidth: valueText.width + 2
+    implicitWidth: valueText.width + 2 + (root.kind === "bat" && SystemStats.batCharging ? chargeIcon.implicitWidth + 4 : 0)
     implicitHeight: Theme.scaledBarHeight
 
     MouseArea {
@@ -160,6 +160,7 @@ Item {
             spacing: 4
 
             Text {
+                id: chargeIcon
                 visible: root.kind === "bat" && SystemStats.batCharging
                 anchors.verticalCenter: parent.verticalCenter
                 text: "\uF0E7"

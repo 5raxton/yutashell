@@ -140,11 +140,20 @@ PanelWindow {
     Process {
         id: followup
 
-        onExited: {
+        property int _lastExit: 0
+
+        onExited: code => {
+            _lastExit = code;
             if (_dnsStep2) {
-                const next = _dnsStep2;
-                _dnsStep2 = null;
-                runNm(next);
+                // only proceed to step 2 (reconnect) if step 1 (DNS set) succeeded
+                if (code === 0) {
+                    const next = _dnsStep2;
+                    _dnsStep2 = null;
+                    runNm(next);
+                } else {
+                    _dnsStep2 = null;
+                    Connectivity.refresh();
+                }
                 return;
             }
             Connectivity.refresh();

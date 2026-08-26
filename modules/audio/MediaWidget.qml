@@ -86,7 +86,8 @@ PanelWindow {
 
     function fmt(s) {
         s = Math.max(0, Math.floor(s));
-        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+        const rem = s % 60;
+        return Math.floor(s / 60) + ":" + (rem < 10 ? "0" : "") + rem;
     }
 
     Item {
@@ -131,8 +132,8 @@ PanelWindow {
                         id: artImg
 
                         anchors.fill: parent
-                        visible: root.player && root.player.trackArtUrl.length > 0 && status === Image.Ready
-                        source: root.player && root.player.trackArtUrl.length > 0 ? root.player.trackArtUrl : ""
+                        visible: root.player && (root.player.trackArtUrl ?? "").length > 0 && status === Image.Ready
+                        source: root.player && (root.player.trackArtUrl ?? "").length > 0 ? root.player.trackArtUrl : ""
                         sourceSize.width: 256
                         sourceSize.height: 256
                         fillMode: Image.PreserveAspectCrop

@@ -77,10 +77,10 @@ Singleton {
     function copy(e) {
         if (!root.available || !e)
             return;
-        const id = String(e.id);
-        // announce from the exit code — a missing wl-copy must not claim success
+        const id = String(e.id).replace(/[^0-9]/g, "");
+        if (id.length === 0) return;
         _copyBinary = e.binary === true;
-        copyProc.command = ["sh", "-c", "cliphist decode '" + id + "' | wl-copy"];
+        copyProc.command = ["sh", "-c", "cliphist decode " + id + " | wl-copy"];
         copyProc.running = true;
     }
 

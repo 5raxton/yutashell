@@ -27,7 +27,7 @@ Singleton {
         const cd = String(Quickshell.configDir ?? "");
         if (cd.length > 0)
             return cd.replace(/^file:\/\//, "").replace(/\/$/, "");
-        const cfg = Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config";
+        const cfg = Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") ?? "") + "/.config";
         for (let i = 0; i < args.length - 1; i++) {
             if (args[i] === "-c" || args[i] === "--config")
                 return cfg + "/quickshell/" + args[i + 1];

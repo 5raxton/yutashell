@@ -13,7 +13,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         width: 1
-        height: 14
+        height: Math.round(14 * Theme.barScale)
         color: Theme.lineStrong
     }
 }

@@ -324,7 +324,7 @@ Singleton {
 
     FileView {
         id: stateFile
-        path: Quickshell.env("HOME") + "/.local/state/yutashell/state.json"
+        path: (Quickshell.env("HOME") ?? "") + "/.local/state/yutashell/state.json"
         printErrors: false
         preload: true
         property bool _loaded: false

@@ -116,7 +116,7 @@ PanelWindow {
                     id: gridWrap
 
                     width: parent.width
-                    height: Math.ceil(tiles.count / 3) * (root.tileH + Theme.sp2) - Theme.sp2
+                    height: Math.ceil(tiles.children.length / 3) * (root.tileH + Theme.sp2) - Theme.sp2
 
                     Grid {
                         id: tiles

@@ -94,7 +94,7 @@ Singleton {
 
     // LockScreen drives these through its PamContext
     function lockSubmit(password) {
-        if (!root.locked || root.authBusy)
+        if (!root.locked || root.authBusy || !authBridge)
             return;
         root.authBusy = true;
         authBridge.submit(String(password));

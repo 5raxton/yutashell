@@ -36,7 +36,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
 
     implicitWidth: 404
-    implicitHeight: contentCol.height + Theme.barHeight + pad * 2
+    implicitHeight: Math.min(contentCol.height + Theme.barHeight + pad * 2, Screen.height * 0.6)
 
     // mask hugs the actual card column — empty space beside/below the stack
     // passes clicks through to apps underneath

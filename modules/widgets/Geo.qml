@@ -151,7 +151,7 @@ Singleton {
     FileView {
         id: cacheFile
 
-        path: Quickshell.env("HOME") + "/.local/state/yutashell/geo.json"
+        path: (Quickshell.env("HOME") ?? "") + "/.local/state/yutashell/geo.json"
         printErrors: false
         blockLoading: true
     }

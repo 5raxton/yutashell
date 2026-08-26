@@ -21,7 +21,6 @@ end
 -- Main entrypoint on matugen reloads
 local function auxiliary_function()
   -- Load the matugen style file to get all the new colors
-  local matugen_path = os.getenv("HOME") .. "/.config/nvim/generated.lua"
   source_matugen()
 
   -- Because reloading base16 overwrites lualine configuration, just source lualine here

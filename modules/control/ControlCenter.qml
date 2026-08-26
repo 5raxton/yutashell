@@ -64,8 +64,8 @@ PanelWindow {
         { id: "notifications", label: "NOTIF", jp: "知" }
     ]
 
-    readonly property var activePage: visiblePages[Math.max(0, Math.min(tabIndex, visiblePages.length - 1))]
-    readonly property string activePageId: activePage.id
+    readonly property var activePage: visiblePages.length > 0 ? visiblePages[Math.max(0, Math.min(tabIndex, visiblePages.length - 1))] : root.pages[0]
+    readonly property string activePageId: activePage ? activePage.id : "home"
 
     // visible tabs, in the persisted order (PH.16 CC tab edits this)
     readonly property var _visiblePagesCache: {
@@ -655,8 +655,8 @@ PanelWindow {
 
                     Image {
                         anchors.fill: parent
-                        visible: root.player && root.player.trackArtUrl.length > 0 && status === Image.Ready
-                        source: root.player && root.player.trackArtUrl.length > 0 ? root.player.trackArtUrl : ""
+                        visible: root.player && (root.player.trackArtUrl ?? "").length > 0 && status === Image.Ready
+                        source: root.player && (root.player.trackArtUrl ?? "").length > 0 ? root.player.trackArtUrl : ""
                         sourceSize.width: 192
                         sourceSize.height: 192
                         fillMode: Image.PreserveAspectCrop
@@ -664,7 +664,7 @@ PanelWindow {
 
                     Text {
                         anchors.centerIn: parent
-                        visible: !(root.player && root.player.trackArtUrl.length > 0)
+                        visible: !(root.player && (root.player.trackArtUrl ?? "").length > 0)
                         text: "♪"
                         color: Theme.bg
                         font.family: Theme.fontFamily
@@ -1431,7 +1431,7 @@ PanelWindow {
                         width: parent.width
                         interactive: false
                         trailingW: 56
-                        title: modelData.deviceName.length > 0 ? modelData.deviceName : modelData.name
+                        title: (modelData.deviceName ?? "").length > 0 ? modelData.deviceName : modelData.name
                         sub: drow.conn ? "connected" : (modelData.paired ? "paired" : "unpaired")
                         note: modelData.batteryAvailable ? Math.round(modelData.battery * 100) + "%" : ""
                         on_: drow.conn

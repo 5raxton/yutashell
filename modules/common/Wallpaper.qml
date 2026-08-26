@@ -9,7 +9,7 @@ Singleton {
     id: root
 
     // ======== WALLPAPER INDEX ========
-    readonly property string wallDir: Quickshell.env("HOME") + "/Pictures/Wallpapers"
+    readonly property string wallDir: (Quickshell.env("HOME") ?? "") + "/Pictures/Wallpapers"
     property var entries: []
     property bool scanning: false
     property string current: ShellState.wallpaperPath
@@ -85,10 +85,10 @@ Singleton {
     // Built-in catalog entries live in TemplateCatalog (all OFF by default);
     // ShellState.tplEnabled holds the enabled ids, ShellState.customTpl holds
     // user-added entries shaped like catalog ones.
-    readonly property string genConfigPath: Quickshell.env("HOME") + "/.local/state/yutashell/matugen.toml"
+    readonly property string genConfigPath: (Quickshell.env("HOME") ?? "") + "/.local/state/yutashell/matugen.toml"
 
     function _expand(p) {
-        return String(p ?? "").replace("@CATALOG@", TemplateCatalog.catalogDir).replace(/^~(?=\/|$)/, Quickshell.env("HOME"));
+        return String(p ?? "").replace("@CATALOG@", TemplateCatalog.catalogDir).replace(/^~(?=\/|$)/, Quickshell.env("HOME") ?? "");
     }
 
     // multi-line literal string ('''…'''): no escape processing, tolerates
@@ -367,7 +367,7 @@ Singleton {
     function _snipStep() {
         const job = _snipQueue[0];
         const r = root.snippetRules[job.id];
-        const p = String(r.file).replace(/^~/, Quickshell.env("HOME"));
+        const p = String(r.file).replace(/^~/, Quickshell.env("HOME") ?? "");
         snipReader.command = ["sh", "-c", "mkdir -p '" + p.slice(0, p.lastIndexOf("/")) + "' && cat '" + p + "' 2>/dev/null || true"];
         snipReader.running = true;
     }
@@ -375,7 +375,7 @@ Singleton {
     function _snipApply(raw) {
         const job = _snipQueue.shift();
         const r = root.snippetRules[job.id];
-        _snipTarget = String(r.file).replace(/^~/, Quickshell.env("HOME"));
+        _snipTarget = String(r.file).replace(/^~/, Quickshell.env("HOME") ?? "");
         const BEGIN = "# >>> yutashell-matugen";
         const END = "# <<< yutashell-matugen";
         // strip any managed block(s), then re-add only when enabling
@@ -432,7 +432,7 @@ Singleton {
     FileView {
         id: snipStage
 
-        path: Quickshell.env("HOME") + "/.local/state/yutashell/snippet.stage"
+        path: (Quickshell.env("HOME") ?? "") + "/.local/state/yutashell/snippet.stage"
         printErrors: false
         atomicWrites: true
         blockWrites: true
@@ -559,7 +559,7 @@ Singleton {
             let s = "[config]\n";
             s += "\n[templates.yutashell]\n";
             s += "input_path = " + root._toml(shellTpl) + "\n";
-            s += "output_path = " + root._toml("~/.local/state/yutashell/theme.json".replace(/^~/, Quickshell.env("HOME"))) + "\n";
+            s += "output_path = " + root._toml("~/.local/state/yutashell/theme.json".replace(/^~/, Quickshell.env("HOME") ?? "")) + "\n";
 
             const on = root.enabledIds();
             for (const id of on) {
@@ -590,6 +590,10 @@ Singleton {
             }
         }
         stderr: StdioCollector {}
+        onExited: {
+            if (root.scanning)
+                root.scanning = false;
+        }
     }
 
     Process {
