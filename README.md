@@ -17,7 +17,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Theme engine** — 12 preset schemes, wallpaper-derived palettes via matugen, runtime light mode, any-hex accent override; the whole shell repaints live
 - **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
 - **Surfaces** — settings panel (15 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview, AltTab, power menu, lock screen, color picker, recording widget, updates checker; each spawns from the bar, a screen edge, or float, per panel
-- **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, DND, per-app rules, persisted history with replay
+- **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, inline reply, DND + snooze, per-app rules, smart grouping & dedup, persisted history with search & replay
 - **Connectivity & audio** — NetworkManager + BlueZ panels, PipeWire console with perceptual volume taper, per-app audio mixer (MixerPanel), OSDs, night light, brightness (internal + DDC/CI)
 - **Session** — hold-to-confirm power menu, PAM lock screen, inhibitor-aware idle actions, power profiles, polkit dialog
 - **Plugins** — drop-in QML widgets for the bar and headless daemons

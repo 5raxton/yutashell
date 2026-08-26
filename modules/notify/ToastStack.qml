@@ -118,5 +118,15 @@ function _syncAdd(vm) {
         function onToastRemoved(vm) {
             root._syncRemove(vm);
         }
+
+        function onToastUpdated(vmId, count) {
+            // PH.03.1: bump the count on the matching card
+            for (let i = 0; i < root._items.length; i++) {
+                if (root._items[i].id === vmId) {
+                    root._items[i].count = count;
+                    break;
+                }
+            }
+        }
     }
 }

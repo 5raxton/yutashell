@@ -244,6 +244,7 @@ Singleton {
     readonly property alias notifyPerApp: adapter.notifyPerApp
     readonly property alias notifyHistory: adapter.notifyHistory
     readonly property alias notifyCorner: adapter.notifyCorner
+    readonly property alias notifyGrouped: adapter.notifyGrouped
 
     // control-core presentation
     readonly property alias panelW: adapter.panelW
@@ -375,6 +376,7 @@ Singleton {
             property string notifyPerApp: "[]"
             property string notifyHistory: "[]"
             property string notifyCorner: "tr"
+            property bool notifyGrouped: false
 
             // control-core presentation: card width (px, clamped by consumer),
             // horizontal placement (center|left|right) and last visited page

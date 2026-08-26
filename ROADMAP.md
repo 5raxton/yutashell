@@ -139,12 +139,12 @@ even when IPC is flooded.
 
 ---
 
-## Phase 3 — Notification Intelligence
+## Phase 3 — Notification Intelligence ✅
 
 > Notifications are the most interactive surface. Today they're flat history
 > with replay. Make them smart.
 
-### 3.1 Smart Stacking & Grouping
+### 3.1 Smart Stacking & Grouping ✅
 
 **File:** `modules/notify/Notify.qml`, `modules/notify/NotificationCenter.qml`
 
@@ -156,7 +156,7 @@ even when IPC is flooded.
   than spawning a second card. This is how COSMIC and GNOME handle chat floods.
 - Persist `ShellState.notifyGrouped` (default true).
 
-### 3.2 Inline Reply
+### 3.2 Inline Reply ✅
 
 **File:** `modules/notify/Notify.qml`, `modules/notify/ui/ToastCard.qml`
 
@@ -171,7 +171,7 @@ just doesn't expose it.
   message land).
 - Gate on `ShellState.notifyActions` (existing toggle).
 
-### 3.3 Notification Snooze
+### 3.3 Notification Snooze ✅
 
 **File:** `modules/notify/Notify.qml`
 
@@ -182,7 +182,7 @@ just doesn't expose it.
   Timer fires at expiry.
 - Bar chip shows "Zzz" icon when snoozed, with remaining time on hover.
 
-### 3.4 Notification History Search
+### 3.4 Notification History Search ✅
 
 **File:** `modules/notify/NotificationCenter.qml`
 

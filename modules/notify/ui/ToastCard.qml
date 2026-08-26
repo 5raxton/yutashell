@@ -196,6 +196,26 @@ Rectangle {
                 font.letterSpacing: 1
             }
 
+            // PH.03.1: dedup count badge
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.entry.count > 1
+                width: countLabel.implicitWidth + Theme.sp2
+                height: 16
+                radius: 8
+                color: Theme.acid
+
+                Text {
+                    id: countLabel
+                    anchors.centerIn: parent
+                    text: "×" + root.entry.count
+                    color: Theme.bgAlt
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                    font.weight: Font.DemiBold
+                }
+            }
+
             Item {
                 width: 6
                 height: 1
@@ -252,6 +272,46 @@ Rectangle {
                     width: Math.min(implicitWidth, 120)
                     label: modelData.text.toUpperCase()
                     onClicked: Notify.invokeAction(root.entry.id, modelData.id)
+                }
+            }
+        }
+
+        // PH.03.2: inline reply
+        Row {
+            spacing: Theme.sp2
+            visible: ShellState.notifyActions && root.entry.hasInlineReply
+
+            Rectangle {
+                width: root.width - sendBtn.width - Theme.sp3 * 2 - Theme.sp2
+                height: replyField.implicitHeight + Theme.sp2
+                radius: Theme.r2
+                color: Theme.bg
+                border.width: 1
+                border.color: replyField.activeFocus ? Theme.acid : Theme.hairline
+
+                YField {
+                    id: replyField
+                    anchors.fill: parent
+                    anchors.margins: Theme.sp1
+                    placeholder: root.entry.inlineReplyPlaceholder || "Reply..."
+                    onAccepted: sendBtn.clicked()
+                }
+            }
+
+            YButton {
+                id: sendBtn
+                label: "→"
+                onClicked: {
+                    const txt = replyField.text.trim();
+                    if (txt.length === 0 || !root.entry.hasInlineReply)
+                        return;
+                    root.entry.n.sendInlineReply(txt);
+                    replyField.text = "";
+                    // 2s delay before auto-dismiss after reply
+                    Qt.callLater(() => {
+                        if (root.entry && root.entry.durMs > 0)
+                            root.entry.remainMs = Math.min(root.entry.remainMs, 2000);
+                    });
                 }
             }
         }

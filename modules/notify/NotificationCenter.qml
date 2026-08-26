@@ -34,6 +34,34 @@ PanelWindow {
     readonly property int cardH: Math.min(540, contentRoot.height - Theme.barHeight - Theme.outerPad * 2)
     readonly property int padX: Theme.sp4
 
+    // PH.03.4: filtered history by search query
+    property string _searchQuery: ""
+    readonly property var _filteredHistory: {
+        const q = _searchQuery.trim().toLowerCase();
+        if (q.length === 0) return Notify.history.map((e, i) => Object.assign({}, e, { _idx: i }));
+        return Notify.history.map((e, i) => Object.assign({}, e, { _idx: i })).filter(e => {
+            const hay = ((e.app || "") + " " + (e.sum || "") + " " + (e.body || "")).toLowerCase();
+            return hay.indexOf(q) >= 0;
+        });
+    }
+
+    // PH.03.1: grouped by appName
+    readonly property var _groupedHistory: {
+        const groups = {};
+        const src = _filteredHistory;
+        for (let i = 0; i < src.length; i++) {
+            const e = src[i];
+            const k = e.app || "unknown";
+            if (!groups[k]) groups[k] = [];
+            groups[k].push(Object.assign({}, e, { _idx: i }));
+        }
+        // sort groups by most recent entry descending
+        const keys = Object.keys(groups).sort((a, b) => {
+            return (groups[b][0].t || 0) - (groups[a][0].t || 0);
+        });
+        return keys.map(k => ({ app: k, entries: groups[k] }));
+    }
+
     Timer {
         id: hideDelay
 
@@ -166,6 +194,74 @@ PanelWindow {
                     label: String(Notify.suppressedCount)
                     tone: "acid"
                 }
+
+                // PH.03.3: snooze chip
+                YChip {
+                    visible: Notify.snoozed
+                    label: "Zzz " + Notify.snoozeRemaining + "m"
+                    tone: "outline"
+                    onClicked: Notify.clearSnooze()
+                }
+            }
+
+            // PH.03.4: search field
+            Rectangle {
+                id: searchRow
+
+                x: root.padX
+                y: dndRow.y + dndRow.height + Theme.sp2
+                width: surface.width - root.padX * 2 - 1
+                height: searchField.height + Theme.sp2 * 2
+                color: "transparent"
+
+                YField {
+                    id: searchField
+                    anchors.fill: parent
+                    anchors.margins: Theme.sp1
+                    placeholder: "Search notifications..."
+                    onTextChanged: root._searchQuery = text
+                }
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.sp2
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: searchField.text.length > 0
+                    text: "×"
+                    color: Theme.faint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsBody
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: searchField.text = ""
+                    }
+                }
+            }
+
+            // PH.03.1: grouping toggle
+            Row {
+                x: root.padX
+                y: searchRow.y + searchRow.height + Theme.sp1
+                spacing: Theme.sp2
+
+                YChip {
+                    label: ShellState.notifyGrouped ? "GROUPED" : "FLAT"
+                    tone: ShellState.notifyGrouped ? "acid" : "outline"
+                    onClicked: ShellState.set("notifyGrouped", !ShellState.notifyGrouped)
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: searchField.text.length > 0
+                    text: root._filteredHistory.length + " FOUND"
+                    color: Theme.faint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                    font.letterSpacing: 1
+                }
             }
 
             // ---- history list ----
@@ -173,9 +269,9 @@ PanelWindow {
                 id: listFlick
 
                 x: root.padX
-                y: dndRow.y + dndRow.height + Theme.sp2
+                y: dndRow.y + dndRow.height + Theme.sp2 + searchRow.height + Theme.sp2 + 36
                 width: surface.width - root.padX * 2 - 1
-                height: surface.height - (dndRow.y + dndRow.height) - Theme.footH - Theme.sp3
+                height: surface.height - (dndRow.y + dndRow.height) - searchRow.height - 60 - Theme.footH - Theme.sp3
                 clip: true
                 contentWidth: width
                 contentHeight: listCol.height
@@ -189,8 +285,178 @@ PanelWindow {
                     width: parent.width
                     spacing: 0
 
+                    // PH.03.1: grouped view
                     Repeater {
-                        model: root._everOpened ? Notify.history : 0
+                        model: (root._everOpened && ShellState.notifyGrouped) ? root._groupedHistory : []
+
+                        delegate: Item {
+                            id: groupRoot
+
+                            required property var modelData
+                            required property int index
+
+                            width: listFlick.width
+                            height: groupCol.height
+
+                            property bool expanded: Notify.isGroupExpanded(modelData.app)
+
+                            Column {
+                                id: groupCol
+
+                                width: parent.width
+                                spacing: 0
+
+                                // group header
+                                Rectangle {
+                                    width: listFlick.width
+                                    height: 36
+                                    color: groupHeaderArea.containsMouse ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.04) : "transparent"
+
+                                    Rectangle {
+                                        anchors.top: parent.top
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        height: 1
+                                        color: Theme.hairline
+                                    }
+
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: Theme.sp1
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: groupRoot.modelData.app.toUpperCase()
+                                        color: Theme.muted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                        font.letterSpacing: 1
+                                    }
+
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 80
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "×" + groupRoot.modelData.entries.length
+                                        color: Theme.faint
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                    }
+
+                                    Text {
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: Theme.sp2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: groupRoot.expanded ? "▼" : "▶"
+                                        color: Theme.faint
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsMicro
+                                    }
+
+                                    MouseArea {
+                                        id: groupHeaderArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        acceptedButtons: Qt.NoButton
+                                        onEntered: {} // just for hover color
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: Notify.toggleGroup(groupRoot.modelData.app)
+                                    }
+                                }
+
+                                // expanded entries
+                                Repeater {
+                                    model: groupRoot.expanded ? groupRoot.modelData.entries : []
+
+                                    delegate: Item {
+                                        id: groupEntry
+
+                                        required property var modelData
+                                        required property int index
+
+                                        width: listFlick.width
+                                        height: 40
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: groupEntryHover.containsMouse ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.04) : "transparent"
+                                        }
+
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: 3
+                                            height: 12
+                                            color: groupEntry.modelData.urg === 2 ? Theme.alert : groupEntry.modelData.sup ? Theme.muted : Theme.acid
+                                        }
+
+                                        Column {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: Theme.sp3
+                                            anchors.right: groupEntryActions.left
+                                            anchors.rightMargin: Theme.sp2
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 1
+
+                                            Text {
+                                                width: parent.width
+                                                text: (groupEntry.modelData.sum.length > 0 ? groupEntry.modelData.sum : groupEntry.modelData.body || "").replace(/\n/g, " ").replace(/<[^>]*>/g, "")
+                                                color: Theme.ink
+                                                font.family: Theme.fontFamily
+                                                font.pixelSize: Theme.fsLabel
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                visible: groupEntry.modelData.body.length > 0
+                                                width: parent.width
+                                                text: groupEntry.modelData.body.replace(/\n/g, " ").replace(/<[^>]*>/g, "")
+                                                color: Theme.muted
+                                                font.family: Theme.fontFamily
+                                                font.pixelSize: Theme.fsMicro
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        Row {
+                                            id: groupEntryActions
+
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: Theme.sp1
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: Theme.sp1
+                                            visible: groupEntryHover.containsMouse
+
+                                            YButton {
+                                                label: "REPLAY"
+                                                onClicked: Notify.replay(groupEntry.modelData)
+                                            }
+
+                                            YButton {
+                                                label: "×"
+                                                tone: "danger"
+                                                onClicked: Notify.removeHistory(groupEntry.modelData._idx)
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: groupEntryHover
+                                            anchors.fill: parent
+                                            anchors.rightMargin: groupEntryActions.visible ? groupEntryActions.width + Theme.sp1 : 0
+                                            hoverEnabled: true
+                                            acceptedButtons: Qt.NoButton
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // flat view (original)
+                    Repeater {
+                        model: (root._everOpened && !ShellState.notifyGrouped) ? root._filteredHistory : 0
 
                         delegate: Item {
                             id: rowRoot
@@ -310,7 +576,7 @@ PanelWindow {
                                 YButton {
                                     label: "×"
                                     tone: "danger"
-                                    onClicked: Notify.removeHistory(rowRoot.index)
+                                    onClicked: Notify.removeHistory(rowRoot.modelData._idx)
                                 }
                             }
 
@@ -343,12 +609,12 @@ PanelWindow {
             // empty state
             Column {
                 anchors.centerIn: parent
-                visible: Notify.history.length === 0
+                visible: Notify.history.length === 0 || (searchField.text.length > 0 && root._filteredHistory.length === 0)
                 spacing: Theme.sp2
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "NO HISTORY"
+                    text: searchField.text.length > 0 ? "NO MATCHES" : "NO HISTORY"
                     color: Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsLabel
@@ -358,7 +624,7 @@ PanelWindow {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: Theme.jpEnabled
-                    text: "履歴なし"
+                    text: searchField.text.length > 0 ? "該当なし" : "履歴なし"
                     color: Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsMicro
@@ -386,7 +652,7 @@ PanelWindow {
                     anchors.left: parent.left
                     anchors.leftMargin: root.padX
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "RING 50 · PERSISTED 30"
+                    text: searchField.text.length > 0 ? root._filteredHistory.length + " FOUND · RING 50" : "RING 50 · PERSISTED 30"
                     color: Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsMicro

@@ -13,12 +13,34 @@ Singleton {
     property var history: []
     property int seq: 1
 
+    // PH.03.3: snooze — suppresses non-critical toasts for N minutes
+    property real _snoozeUntil: 0 // timestamp (ms); 0 = not snoozed
+    readonly property bool snoozed: Date.now() < _snoozeUntil
+    readonly property int snoozeRemaining: Math.max(0, Math.round((_snoozeUntil - Date.now()) / 60000))
+
+    // PH.03.1: toast dedup — same-app toasts within 3s window update existing card
+    property var _recentApps: ({}) // { appName: { count, lastId, timestamp } }
+
+    // PH.03.1: grouped history — expanded state for notification center
+    property var _expandedApps: ({})
+
+    function toggleGroup(app) {
+        const copy = Object.assign({}, _expandedApps);
+        copy[app] = !copy[app];
+        _expandedApps = copy;
+    }
+
+    function isGroupExpanded(app) {
+        return _expandedApps[app] === true;
+    }
+
     // incremental stack sync — ToastStack mirrors these into an ObjectModel so
     // cards are created/removed individually instead of every array identity
     // change resetting the whole Repeater (which replayed entrances and broke
     // hover-pause under a stationary cursor)
     signal toastAdded(var vm)
     signal toastRemoved(var vm)
+    signal toastUpdated(var vmId, var count)
 
     readonly property bool dnd: ShellState.notifyDnd
     readonly property int maxVisible: Math.max(1, Math.min(6, ShellState.notifyMaxVisible))
@@ -71,7 +93,10 @@ Singleton {
         property real remainMs: -1
         property var acts: []
         property bool paused: false
+        property int count: 1 // PH.03.1: dedup badge count
         readonly property bool persistent: durMs <= 0
+        readonly property bool hasInlineReply: n ? n.hasInlineReply : false
+        readonly property string inlineReplyPlaceholder: n ? n.inlineReplyPlaceholder : ""
     }
 
     function _loadHistory() {
@@ -189,6 +214,13 @@ Singleton {
         }
 
         const suppressed = urg < 2 && (root.dnd || mode === "quiet");
+
+        // PH.03.3: snooze suppresses non-critical toasts
+        if (suppressed || (root.snoozed && urg < 2)) {
+            root.suppressedCount += 1;
+            return;
+        }
+
         root._record({
             "t": Date.now(),
             "app": app,
@@ -209,9 +241,25 @@ Singleton {
         }
 
         n.tracked = true;
+
+        // PH.03.1: toast dedup — same-app within 3s window bumps count
+        const now = Date.now();
+        const recent = root._recentApps[app];
+        if (recent && (now - recent.timestamp) < 3000) {
+            recent.count += 1;
+            recent.timestamp = now;
+            root._recentApps = Object.assign({}, root._recentApps);
+            root.toastUpdated(recent.lastId, recent.count);
+            return;
+        }
+        const entryId = root.seq++;
+        root._recentApps = Object.assign({}, root._recentApps, {
+            [app]: { count: 1, lastId: entryId, timestamp: now }
+        });
+
         const vm = entryComp.createObject(root, {
                 "n": n,
-                "id": root.seq++,
+                "id": entryId,
                 "app": app,
                 "icon": String(n.appIcon),
                 "sum": String(n.summary),
@@ -328,6 +376,18 @@ Singleton {
         }
     }
 
+    Timer {
+        id: snoozeTimer
+        interval: 60000
+        repeat: true
+        onTriggered: {
+            if (Date.now() >= root._snoozeUntil) {
+                root.clearSnooze();
+                root.announce("Snooze ended", "Notifications restored", 1);
+            }
+        }
+    }
+
     function invokeAction(id, actId) {
         const vm = root.live.find(v => v.id === id);
         if (!vm)
@@ -341,6 +401,17 @@ Singleton {
     function clearAll() {
         const ids = root.live.map(v => v.id);
         ids.forEach(id => root.retire(id));
+    }
+
+    function snooze(minutes) {
+        root._snoozeUntil = Date.now() + minutes * 60000;
+        snoozeTimer.restart();
+        console.log("[notify] snoozed for " + minutes + " min until " + new Date(root._snoozeUntil).toLocaleTimeString());
+    }
+
+    function clearSnooze() {
+        root._snoozeUntil = 0;
+        snoozeTimer.stop();
     }
 
     function _trimLive() {

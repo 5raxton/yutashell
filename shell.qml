@@ -228,8 +228,16 @@ ShellRoot {
             Notify.setDnd(false);
         }
 
+        function snooze(minutes: int): void {
+            Notify.snooze(minutes);
+        }
+
+        function clearSnooze(): void {
+            Notify.clearSnooze();
+        }
+
         function status(): string {
-            return (Notify.dnd ? "on" : "off") + " · suppressed " + Notify.suppressedCount + " · history " + Notify.history.length;
+            return (Notify.dnd ? "on" : "off") + " · suppressed " + Notify.suppressedCount + " · history " + Notify.history.length + (Notify.snoozed ? " · snoozed " + Notify.snoozeRemaining + "m" : "");
         }
     }
 
