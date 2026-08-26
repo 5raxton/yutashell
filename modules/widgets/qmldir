@@ -1,3 +1,4 @@
+singleton ClipboardService 1.0 ClipboardService.qml
 singleton Clipboard 1.0 Clipboard.qml
 ClipboardPanel 1.0 ClipboardPanel.qml
 Calendar 1.0 Calendar.qml

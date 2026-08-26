@@ -7,3 +7,4 @@ singleton Health 1.0 Health.qml
 singleton PluginService 1.0 PluginService.qml
 singleton FocusMonitor 1.0 FocusMonitor.qml
 singleton Compositor 1.0 Compositor.qml
+singleton GlobalKeys 1.0 GlobalKeys.qml

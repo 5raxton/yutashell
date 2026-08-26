@@ -89,7 +89,7 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-87 QML files · 28 singletons · 13 UI primitives · 30 IPC targets · 130+ functions
+87 QML files · 30+ singletons · 13 UI primitives · 30 IPC targets · 130+ functions
 89 matugen templates · 17 snippet rules · 22 bar segments · 12 color schemes
 15 settings pages · 11 control center tabs · 4 spawn modes
 ```

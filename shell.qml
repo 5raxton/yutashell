@@ -41,14 +41,18 @@ ShellRoot {
             void Weather.available;
             void Geo.available;
             void Clipboard.available;
+            void ClipboardService.available;
             void SystemStats.hostname;
             void DisplayService.available;
             void NightLight.available;
             void Session.ppdAvailable;
+            void IdleInhibitor.inhibited;
             // plugin scan starts at singleton boot — force it now (PH.05)
             void PluginService.manifests;
             // compositor capability probe + Health report land early (PH.07)
             void Compositor.kind;
+            // PH.01.4: seed keybind bindings at boot
+            void GlobalKeys.bindings;
         }
     }
 
@@ -963,6 +967,53 @@ ShellRoot {
 
         function close(): void {
             ShellState.closeCc();
+        }
+    }
+
+    IpcHandler {
+        target: "idle"
+
+        function toggle(): void {
+            IdleInhibitor.toggle();
+        }
+
+        function automode(on: string): string {
+            IdleInhibitor.autoMode = String(on).toLowerCase() !== "off";
+            return "auto " + (IdleInhibitor.autoMode ? "on" : "off");
+        }
+
+        function list(): string {
+            return IdleInhibitor.list();
+        }
+    }
+
+    IpcHandler {
+        target: "keys"
+
+        function toggle(id: string): string {
+            const bid = String(id);
+            const cur = GlobalKeys._isEnabled(bid);
+            GlobalKeys.setEnabled(bid, !cur);
+            return bid + " " + (cur ? "off" : "on");
+        }
+
+        function enable(id: string): string {
+            GlobalKeys.setEnabled(String(id), true);
+            return String(id) + " on";
+        }
+
+        function disable(id: string): string {
+            GlobalKeys.setEnabled(String(id), false);
+            return String(id) + " off";
+        }
+
+        function list(): string {
+            return GlobalKeys.bindings.map(b => b.id + "=" + (b.enabled ? "on" : "off")).join(", ");
+        }
+
+        function reset(): string {
+            GlobalKeys.resetDefaults();
+            return "reset to defaults";
         }
     }
 }

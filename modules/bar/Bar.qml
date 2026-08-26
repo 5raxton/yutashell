@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Wayland._IdleInhibitor
 import QtQuick
 import qs.theme
 import qs.modules.common
@@ -623,6 +624,14 @@ PanelWindow {
     Component.onCompleted: {
         bootFadeIn.start();
         bootSlideIn.start();
+    }
+
+    // PH.01.2: Wayland idle-inhibit surface attached to the bar window.
+    // When IdleInhibitor.inhibited is true, the compositor suppresses
+    // idle timeout (screen blank, lock) for as long as this surface exists.
+    IdleInhibitor {
+        enabled: IdleInhibitor.inhibited
+        window: root
     }
 
     // PH.05: widget plugins from <config>/plugins, enabled via settings

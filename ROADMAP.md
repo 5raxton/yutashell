@@ -8,12 +8,12 @@
 
 ---
 
-## Phase 1 — Native API Adoption
+## Phase 1 — Native API Adoption ✅
 
 > Replace subprocess shelling with Quickshell-native APIs. Unlocks every later
 > phase by making the shell reactive instead of poll-based.
 
-### 1.1 Clipboard Singleton (replace cliphist polling)
+### 1.1 Clipboard Singleton (replace cliphist polling) ✅
 
 **File:** `modules/widgets/Clipboard.qml`, `modules/widgets/ClipboardPanel.qml`
 
@@ -36,7 +36,7 @@ subprocesses for every copy/paste.
 **Touches:** `ClipboardService.qml` (new), `Clipboard.qml`, `ClipboardPanel.qml`,
 `qmldir`.
 
-### 1.2 Idle Inhibitor
+### 1.2 Idle Inhibitor ✅
 
 **File:** `modules/audio/NightLight.qml` area + new `modules/session/IdleInhibitor.qml`
 
@@ -56,7 +56,7 @@ video playback or screen recording.
 **Touches:** `IdleInhibitor.qml` (new), `Session.qml` (IPC), `BarSegments` (chip),
 `ControlCenter.qml` (POWER tab), `settings/PowerPage.qml`.
 
-### 1.3 PipeWire Peak Monitor (Audio Visualizer)
+### 1.3 PipeWire Peak Monitor (Audio Visualizer) ✅
 
 **File:** `modules/audio/AudioService.qml`, `modules/control/ControlCenter.qml`
 
@@ -75,7 +75,7 @@ any PipeWire node. Today the MEDIA tab has a static fake cava.
 **Touches:** `AudioService.qml`, `ControlCenter.qml` MEDIA tab,
 `BarSegments.qml` + new `AudioBars.qml` segment.
 
-### 1.4 Hyprland Global Shortcuts
+### 1.4 Hyprland Global Shortcuts ✅
 
 **Files:** `shell.qml`, new `modules/common/GlobalKeys.qml`
 

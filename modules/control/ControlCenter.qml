@@ -735,22 +735,20 @@ PanelWindow {
                 }
             }
 
-            // cava visualizer — only shown when cava is installed
+            // PH.01.3: live peak visualizer from PipeWire — replaces fake cava bars.
+            // Falls back to static hairline if peak data is unavailable.
             YSection {
                 width: parent.width
                 index: "02"
                 label: "Visualizer"
-                chip: "CAVA"
-                visible: cavaProbe._ok
+                chip: AudioService.ready ? "LIVE" : "OFF"
             }
 
-            // static hairline baseline — the cava feed arrives in a later pass
             Row {
                 width: parent.width
                 height: 40
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 2
-                visible: cavaProbe._ok
 
                 Repeater {
                     model: 48
@@ -758,8 +756,32 @@ PanelWindow {
                     delegate: Rectangle {
                         anchors.bottom: parent.bottom
                         width: (parent.width - 47 * 2) / 48
-                        height: 2 + (index % 5)
-                        color: Theme.hairline
+                        height: {
+                            // map bar index to a peak channel range — spread
+                            // the 48 bars across available channel peaks
+                            const peaks = AudioService.channelPeaks;
+                            const nPeaks = peaks ? peaks.length : 0;
+                            if (nPeaks === 0)
+                                return 2 + (index % 5); // fallback static
+                            const chIdx = Math.floor(index * nPeaks / 48);
+                            const peak = peaks[chIdx] ?? 0;
+                            return Math.max(2, Math.round(peak * 38));
+                        }
+                        color: {
+                            const peaks = AudioService.channelPeaks;
+                            const nPeaks = peaks ? peaks.length : 0;
+                            if (nPeaks === 0)
+                                return Theme.hairline;
+                            const chIdx = Math.floor(index * nPeaks / 48);
+                            const peak = peaks[chIdx] ?? 0;
+                            return peak > 0.01 ? Theme.acid : Theme.hairline;
+                        }
+                        Behavior on height {
+                            NumberAnimation { duration: 50; easing.type: Easing.OutQuad }
+                        }
+                        Behavior on color {
+                            ColorAnimation { duration: 80 }
+                        }
                     }
                 }
             }
@@ -1762,14 +1784,5 @@ PanelWindow {
                 height: Theme.sp2
             }
         }
-    }
-
-    // cava availability probe — runs once at boot
-    Process {
-        id: cavaProbe
-        property bool _ok: false
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1"]
-        running: true
-        onExited: code => cavaProbe._ok = (code === 0)
     }
 }

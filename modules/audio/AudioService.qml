@@ -11,6 +11,9 @@ import qs.modules.common
 // Volume math: PipeWire amplitudes are LINEAR (1.0 = 100 %). UI sliders run
 // on a CUBIC taper (perceptual) mapped across 0..audioCeiling — the overdrive
 // region above 100 % rides the same curve.
+//
+// PH.01.3: PwNodePeakMonitor feeds real audio peaks for the visualizer —
+// replaces fake static bars.
 Singleton {
     id: root
 
@@ -26,6 +29,17 @@ Singleton {
     readonly property PwObjectTracker tracker: PwObjectTracker {
         objects: Pipewire.nodes.values.filter(n => n.audio && (n.isSink || (!n.isSink && !n.isStream)))
     }
+
+    // ---- peak monitor (PH.01.3) -------------------------------------------
+    // Real-time peak levels from the default audio sink for the CC visualizer.
+    readonly property PwNodePeakMonitor peakMonitor: PwNodePeakMonitor {
+        node: root.sink
+        enabled: root.ready && root.sink !== null
+    }
+    // Normalized peak value 0..1 (PipeWire peaks are linear 0..1 already)
+    readonly property real peakLevel: peakMonitor ? peakMonitor.peak : 0
+    // Per-channel peaks list (float[])
+    readonly property var channelPeaks: peakMonitor ? peakMonitor.peaks : []
 
     // ---- handles -----------------------------------------------------------
     readonly property var sink: Pipewire.defaultAudioSink

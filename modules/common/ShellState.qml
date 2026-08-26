@@ -403,6 +403,13 @@ Singleton {
     property bool barSession: true
     property string lockAvatar: ""
 
+    // idle inhibit (PH.01.2): auto mode + manual override
+    property bool idleInhibitAuto: true
+    property bool idleInhibitManual: false
+
+    // global keybinds (PH.01.4): JSON array of {id, key, label, enabled}
+    property string globalKeybinds: "[]"
+
     // dock: master switch (OFF by default), layer mode (overlay|exclusive),
     // hide mode (never|dodge|always), monitor scope (all|primary),
     // pinned app ids (JSON array of desktop-entry ids)

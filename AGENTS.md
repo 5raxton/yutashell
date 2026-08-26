@@ -24,10 +24,18 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - **Notifications** (`NotificationServer`): caps props on server; `onNotification(n)` → `n.actions` is a plain JS array (NO `.values` — that's ObjectModel syntax; `.map` on the iterator throws). `tracked=true` holds it; `expire()/dismiss()` close it; C++ may enforce client expireTimeout first and destroy the wrapper — shrink our timeout by ~300 ms, set `dead` via `closed.connect`, never touch the object after close.
 - **Networking**: `Networking.devices.values` → WifiDevice (`networks/scannerEnabled/mode`) / WiredDevice (`hasLink/linkSpeed/address`); enum name is **NetworkConnectivity** (not Connectivity).
 - **Bluetooth**: root singleton exports as **`Bluetooth`** (NOT Bluez): `Bluetooth.defaultAdapter` → devices have `deviceName/icon/state/paired/trusted/battery` + `pair()/connect()/disconnect()/forget()`.
-- **Pipewire**: `Pipewire.nodes.values` → node `.audio` (volume LINEAR 0..1+, `muted`) + `.isStream`; perceptual steps need cubic mapping (see `AudioService.qml` `nodeFrac/stepPct`). `defaultAudioSink/Source` writable.
+- **Pipewire**: `Pipewire.nodes.values` → node `.audio` (volume LINEAR 0..1+, `muted`) + `.isStream`; perceptual steps need cubic mapping (see `AudioService.qml` `nodeFrac/stepPct`). `defaultAudioSink/Source` writable. **`PwNodePeakMonitor`** (`node`, `enabled`, `peak` float 0..1, `peaks` float list, `channels` PwAudioChannel list) — creatable type in `Quickshell.Services.Pipewire`. Bind `node` to a sink; `peak` is the summed peak, `peaks` is per-channel.
+- **GlobalShortcuts**: `Quickshell.Hyprland._GlobalShortcuts` — `GlobalShortcut` type with `appid`, `name`, `description`, `triggerDescription` properties and `pressed`/`released` signals. NOT a singleton — create instances declaratively and handle `onPressed`.
+- **IdleInhibitor**: `Quickshell.Wayland._IdleInhibitor` — `IdleInhibitor` type with `enabled` (bool) and `window` (QObject — a Wayland toplevel surface). Attach to any PanelWindow's surface to suppress idle. NOT the same as `IdleMonitor` (which detects idle, not prevent it).
 - **Session APIs**: `WlSessionLock` default property is `surface` (a Component) with `WlSessionLockSurface {}` inside; its `.screen` is **null until the compositor assigns it** — guard before reading `.name`. `PamContext.config` = `/etc/pam.d/` service name (`system-auth` works). `UPower` AND **`PowerProfiles`** are two separate singletons (profile enum 0=saver/1=balanced/2=performance); power-profiles-daemon availability must be probed via `busctl --system introspect net.hadess.PowerProfiles …` (`systemctl is-active` lies pre-activation). `PolkitAgent` is instantiable; `IdleMonitor` lives under `Quickshell.Wayland._IdleNotify`. Exit = `Quickshell.quit()`.
 - **Process**: assigning `command` does NOT start it — nothing runs until `running: true`. `StdioWriter` does not exist; write files via FileView (`setText` stages AND writes) then move with a Process.
 - Singletons instantiate lazily on first access — IPC right after spawn races their boot probes; shell.qml has a warm-up Timer touching each service's `available`.
+
+## New singletons (PH.01)
+
+- `ClipboardService` (widgets) — reactive clipboard monitor, polls `wl-paste` and feeds `cliphist add`.
+- `IdleInhibitor` (session) — prevents idle during media/recording; state singleton, per-Bar `Wayland._IdleInhibitor` instances bind `enabled` + `window`.
+- `GlobalKeys` (common) — shell-internal keybind registry; persists bindings in `ShellState.globalKeybinds`.
 
 ## Hyprland facts
 
