@@ -274,14 +274,12 @@ PanelWindow {
 
                     YButton {
                         label: "CHECK"
-                        compact: true
                         onClicked: root.daemon && root.daemon.refresh()
                     }
 
                     YButton {
                         label: "UPDATE ALL"
-                        compact: true
-                        accent: true
+                        tone: "acid"
                         onClicked: root.daemon && root.daemon.updateAll()
                     }
                 }
