@@ -34,6 +34,10 @@ Singleton {
     property bool netDetailsOpen: false
     property bool processesOpen: false
 
+    // AI agent (PH.11)
+    property bool aiOpen: false
+    property bool aiChatOpen: false
+
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
@@ -66,6 +70,8 @@ Singleton {
         root.netDetailsOpen = name === "netdetails";
         root.processesOpen = name === "processes";
         root.cheatsheetOpen = name === "cheatsheet";
+        root.aiOpen = name === "ai";
+        root.aiChatOpen = name === "aichat";
     }
 
     function togglePanel() {
@@ -283,6 +289,31 @@ Singleton {
         root.cheatsheetOpen = false;
     }
 
+    // AI agent (PH.11)
+    function toggleAi() {
+        root._exclusive(root.aiOpen ? "" : "ai");
+    }
+
+    function openAi() {
+        root._exclusive("ai");
+    }
+
+    function closeAi() {
+        root.aiOpen = false;
+    }
+
+    function toggleAiChat() {
+        root._exclusive(root.aiChatOpen ? "" : "aichat");
+    }
+
+    function openAiChat() {
+        root._exclusive("aichat");
+    }
+
+    function closeAiChat() {
+        root.aiChatOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -348,6 +379,13 @@ Singleton {
     readonly property alias dockHide: adapter.dockHide
     readonly property alias dockMonitors: adapter.dockMonitors
     readonly property alias dockPins: adapter.dockPins
+
+    // AI agent (PH.11)
+    readonly property alias aiProvider: adapter.aiProvider
+    readonly property alias aiEndpoint: adapter.aiEndpoint
+    readonly property alias aiModel: adapter.aiModel
+    readonly property alias aiApiKey: adapter.aiApiKey
+    readonly property alias aiHistory: adapter.aiHistory
 
     // system / widgets (PH.11 + PH.13)
     readonly property alias clock24h: adapter.clock24h
@@ -547,6 +585,14 @@ Singleton {
     // plugins (PH.05): namespaced per-plugin state — JSON map
     // { "<pluginId>": { "enabled": bool, "data": { key: value } } }
     property string pluginData: "{}"
+
+    // AI agent (PH.11): provider ("ollama"|"openai"|"anthropic"), endpoint URL,
+    // selected model name, API key env var reference, command history JSON
+    property string aiProvider: "ollama"
+    property string aiEndpoint: ""
+    property string aiModel: ""
+    property string aiApiKey: ""
+    property string aiHistory: "[]"
         }
     }
 

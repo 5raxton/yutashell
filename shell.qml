@@ -21,6 +21,7 @@ import "modules/dock"
 import "modules/overview"
 import "modules/widgets"
 import "modules/control"
+import "modules/ai"
 
 ShellRoot {
     Tooltip {
@@ -55,6 +56,8 @@ ShellRoot {
             void Compositor.kind;
             // PH.01.4: seed keybind bindings at boot
             void GlobalKeys.bindings;
+            // PH.11: AI service probe
+            void AiService.available;
         }
     }
 
@@ -125,6 +128,10 @@ ShellRoot {
     Emoji {}
 
     ControlCenter {}
+
+    CommandPalette {}
+
+    ChatSidebar {}
 
     IpcHandler {
         target: "launcher"
@@ -1197,6 +1204,74 @@ ShellRoot {
 
         function schedulestatus(): string {
             return NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
+        }
+    }
+
+    IpcHandler {
+        target: "ai"
+
+        function toggle(): void {
+            ShellState.toggleAi();
+        }
+
+        function open(): void {
+            ShellState.openAi();
+        }
+
+        function close(): void {
+            ShellState.closeAi();
+        }
+
+        function chat(): void {
+            ShellState.toggleAiChat();
+        }
+
+        function send(prompt: string): string {
+            if (!AiService.available) return "AI not available (Ollama not detected)";
+            const ctx = AiContext.buildContext();
+            const systemPrompt = "You are YUTA, an intelligent desktop shell assistant. Desktop state:\n" + ctx;
+            AiService.complete(String(prompt), systemPrompt);
+            return "sent to " + AiService.model + " via " + AiService.provider;
+        }
+
+        function models(): string {
+            return AiService.models.join("\n") || "no models found";
+        }
+
+        function setmodel(name: string): string {
+            const n = String(name);
+            if (AiService.models.indexOf(n) < 0)
+                return "unknown model: " + n + " (available: " + AiService.models.join(", ") + ")";
+            ShellState.set("aiModel", n);
+            return "model set to " + n;
+        }
+
+        function setprovider(name: string): string {
+            const n = String(name).toLowerCase();
+            if (["ollama", "openai", "anthropic"].indexOf(n) < 0)
+                return "provider must be ollama|openai|anthropic";
+            ShellState.set("aiProvider", n);
+            return "provider set to " + n;
+        }
+
+        function setendpoint(url: string): string {
+            ShellState.set("aiEndpoint", String(url));
+            return "endpoint set to " + ShellState.aiEndpoint;
+        }
+
+        function screenshot(question: string): void {
+            ScreenshotAction.captureAndAnalyze(String(question || "What do you see?"));
+        }
+
+        function voice(): void {
+            if (VoiceInput.recording)
+                VoiceInput.stopRecording();
+            else
+                VoiceInput.startRecording();
+        }
+
+        function status(): string {
+            return "provider=" + ShellState.aiProvider + " model=" + ShellState.aiModel + " endpoint=" + ShellState.aiEndpoint + " available=" + AiService.available + " models=" + AiService.models.length;
         }
     }
 }

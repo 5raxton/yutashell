@@ -124,6 +124,9 @@ Singleton {
         case "cheatsheet":
             ShellState.toggleCheatsheet();
             break;
+        case "ai":
+            ShellState.toggleAi();
+            break;
         default:
             return false;
         }

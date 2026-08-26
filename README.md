@@ -23,7 +23,8 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Workspace intelligence** — 5 workspace render modes (thumbnails/active/pills/numbers/default), scratchpad manager, window pin-to-all-workspaces, overview with search + move-between-workspaces, alt-tab, quick-tile
 - **Session** — Wayland session lock (`WlSessionLock` + PAM auth, multi-monitor), hold-to-confirm power menu, caffeine idle-inhibit toggle, inhibitor-aware idle actions, power profiles, polkit dialog, pomodoro timer (work/break cycles with bar chip and notifications), night light schedule (auto on/off by time of day)
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
-- **IPC** — 35 targets, 160+ functions; keybinds, CLI and settings panel share one implementation
+- **AI Desktop Agent** — Ollama/OpenAI-compatible chat via Process+curl with SSE streaming; two panels: Command Palette (natural language → parsed action with `[DISPATCH]`/`[SHELL]`/`[IPC]` directives, EXECUTE/COPY buttons) and Chat Sidebar (conversational bubbles, markdown rendering, model selector); context-aware system prompt built from live desktop state (focused window, workspace, stats, media, weather); voice input via pw-record+faster-whisper transcription; screenshot-to-action via grim+slurp region capture → Ollama vision model analysis; command history; kill button; boot probes endpoint availability and degrades cleanly
+- **IPC** — 36 targets, 170+ functions; keybinds, CLI and settings panel share one implementation
 - **Accessibility** — reduced motion mode (snaps all animations to instant), high contrast mode (maximum contrast palette), keyboard navigation (Tab/Shift+Tab focus cycling, Enter/Space activation, Escape to close panels)
 
 ## Requirements
@@ -93,9 +94,9 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-101 QML files · 35 singletons · 13 UI primitives · 32 IPC targets · 148+ functions
+103 QML files · 38 singletons · 13 UI primitives · 41 IPC targets · 170+ functions
 89 matugen templates · 17 snippet rules · 23 bar segments · 12 color schemes
-7 layout presets · 16 settings pages · 11 control center tabs · 4 spawn modes
+7 layout presets · 17 settings pages · 11 control center tabs · 4 spawn modes
 ```
 
 ## Documentation

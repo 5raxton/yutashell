@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–10 complete.
+Phases 1–11 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -49,6 +49,21 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - `Pomodoro` (widgets) — singleton state machine: idle → work → break → longBreak. Properties: `phase`, `remaining` (seconds), `round`, `running`, `display` (MM:SS), `label`. Functions: `start()`, `pause()`, `resume()`, `reset()`, `toggle()`. Timer drives bar chip (⏱ + countdown); notifications on phase change. IPC: `pomodoro start/pause/resume/reset/toggle/status`.
 - `Cheatsheet` (widgets) — YSurface panel parsing `hyprctl -j binds` JSON into categorized bind list (GENERAL, WINDOWS, WORKSPACES, APPS, MEDIA, SESSION). Searchable by key combo or description. Falls back to static embed if parsing fails. IPC: `cheatsheet toggle/open/close`.
 - `NightLight` extended with schedule — `ShellState.nlSchedule` JSON `{on:"HH:MM", off:"HH:MM", enabled:bool}`. Timer checks every 60 s; auto-enables/disables hyprsunset. Handles midnight wrap (on > off = overnight). Settings: 3 presets (21:00–07:00, 22:00–06:00, 20:00–08:00). IPC: `nightlight schedule <on> <off> <bool>`, `nightlight schedulestatus`.
+
+## AI Desktop Agent (PH.11)
+
+Six types in `modules/ai/`:
+
+- **`AiService`** (singleton) — core AI connection: Ollama local (default `http://localhost:11434`) or any OpenAI-compatible endpoint. HTTP via `Process` + `curl` (same pattern as Weather/SystemStats). Streams SSE responses into `responseBuffer` for real-time UI binding. Boot probes endpoint with `GET /api/tags` (Ollama) or `GET /v1/models` (OpenAI). `chat()` builds OpenAI-format messages array with system prompt + history; `complete()` for single-shot. Model list auto-discovers on probe. Provider/endpoint/model/apiKey persisted via `ShellState` keys (`aiProvider`, `aiEndpoint`, `aiModel`, `aiApiKey`, `aiHistory`).
+- **`AiContext`** (singleton) — builds system prompt from live shell state: focused window, workspace, active monitor, OS/compositor info, system stats (CPU/mem/temp via `SystemStats`), current media (`Mpris`), weather (`Weather`), and available IPC commands. Refreshed on each `chat()` call so the AI always sees current desktop state.
+- **`CommandPalette`** (PanelWindow) — AI-powered command surface: natural language input → AI response → parsed action. Action parsing detects `[DISPATCH]`, `[SHELL]`, `[IPC]` directives in AI output. EXECUTE button runs parsed actions; COPY button copies response. Model selector chips when multiple models available. Command history (last 20) persists in `ShellState`. Kill button for long-running requests.
+- **`ChatSidebar`** (PanelWindow) — conversational AI panel: message bubbles (user/assistant), streaming token display, markdown text rendering. Model selector chips + CLEAR button. Messages stored as `_conversation` array with `role`/`content`. `onRunningChanged` appends empty assistant message when new turn starts.
+- **`VoiceInput`** (singleton) — voice capture via `pw-record` (PipeWire) → transcription via `faster-whisper` or `whisper-cli`. Boot probe checks which backends are installed. `startRecording()` / `stopRecording()` / `transcribe()`. Transcribed text fed to AiService.
+- **`ScreenshotAction`** (singleton) — screenshot-to-action: `grim` + `slurp` region capture → base64 encode → Ollama vision model (`llava`) analysis. `capture()` spawns grim+slurp, `analyze()` sends image to vision model for natural language description, `takeAction()` captures and analyzes in sequence.
+
+IPC: `ai toggle/open/close`, `ai chat`, `ai send <text>`, `ai models`, `ai setmodel <name>`, `ai setprovider <ollama|openai>`, `ai setendpoint <url>`, `ai screenshot`, `ai voice`, `ai status`.
+
+ShellState additions: `aiOpen` / `aiChatOpen` (runtime, non-persisted, toggled by IPC), plus persisted config keys.
 
 ## Accessibility (PH.10)
 
