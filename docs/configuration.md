@@ -1,6 +1,6 @@
 # Configuration
 
-Day-to-day configuration happens in the settings panel (`qs ipc call panel toggle`) — 15 pages behind a searchable nav rail. Nothing needs hand-editing. Everything below is what the panel manages under the hood.
+Day-to-day configuration happens in the settings panel (`qs ipc call panel toggle`) — 17 pages behind a searchable nav rail. Nothing needs hand-editing. Everything below is what the panel manages under the hood.
 
 ## State files
 
@@ -8,7 +8,7 @@ All user preferences persist to `~/.local/state/yutashell/`:
 
 | file | purpose |
 |---|---|
-| `state.json` | every pref: scheme, wallpaper, bar segments, launcher pins/recents, notification rules, session/idle config, dock layout, plugin data, per-panel spawn origins |
+| `state.json` | every pref: scheme, wallpaper, bar segments, launcher pins/recents, notification rules, session/idle config, dock layout, plugin data, per-panel spawn origins, accessibility flags |
 | `geo.json` | cached IP-geolocation fix (lat/lon/city/timezone) for auto location |
 | `weather.json` | last open-meteo payload (boot-time conditions before first refresh) |
 | `theme.json` | current matugen-generated palette (watched; edits hot-reload) |

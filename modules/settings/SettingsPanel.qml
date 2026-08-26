@@ -108,6 +108,12 @@ PanelWindow {
             group: "LOOK",
             keywords: "osd volume brightness mic corner width fade"
         }, {
+            id: "accessibility",
+            label: "A11Y",
+            jp: "互",
+            group: "LOOK",
+            keywords: "accessibility motion animation contrast reduced high focus keyboard navigation a11y"
+        }, {
             id: "panels",
             label: "PANELS",
             jp: "面",
@@ -729,6 +735,8 @@ PanelWindow {
                             return notificationsPage;
                         case "osd":
                             return osdPage;
+                        case "accessibility":
+                            return accessibilityPage;
                     case "bar":
                         return barPage;
                     case "presets":
@@ -2276,6 +2284,94 @@ PanelWindow {
                     Item {
                         width: 1
                         height: Theme.sp2
+                    }
+                }
+            }
+
+            Component {
+                id: accessibilityPage
+
+                Column {
+                    width: root.contentW
+                    spacing: Theme.sp3
+
+                    YSection {
+                        width: parent.width
+                        label: "Motion"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Reduced motion"
+                        sub: Theme.reducedMotion ? "all animations instant" : "animations enabled"
+                        on_: Theme.reducedMotion
+
+                        YSwitch {
+                            checked: Theme.reducedMotion
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: Theme.setReducedMotion(!Theme.reducedMotion)
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Animation preview"
+                        sub: Theme.reducedMotion ? "instant (no animation)" : "smooth motion"
+                        interactive: false
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+
+                    YSection {
+                        width: parent.width
+                        label: "Contrast"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "High contrast"
+                        sub: Theme.highContrast ? "maximum contrast" : "standard palette"
+                        on_: Theme.highContrast
+
+                        YSwitch {
+                            checked: Theme.highContrast
+                            anchors.verticalCenter: parent.verticalCenter
+                            onToggled: Theme.setHighContrast(!Theme.highContrast)
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Contrast check"
+                        sub: "ink/bg ≥ 4.5:1 · acid/bg ≥ 3.0:1 · alert/bg ≥ 2.5:1"
+                        interactive: false
+                    }
+
+                    Item {
+                        width: 1
+                        height: Theme.sp2
+                    }
+
+                    YSection {
+                        width: parent.width
+                        label: "Keyboard"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Tab navigation"
+                        sub: "Tab / Shift+Tab cycles focus in panels"
+                        interactive: false
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Keyboard activation"
+                        sub: "Enter / Space activates focused element"
+                        interactive: false
                     }
                 }
             }

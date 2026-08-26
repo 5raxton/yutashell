@@ -12,7 +12,7 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 |---|---|---|
 | `launcher` | `toggle` / `open` / `close` | app launcher (grid/list/detail + :command mode) |
 | `panel` | `toggle` / `open` / `close` | settings panel |
-| `settings` | `page <id>` / `list` | jump to a settings page; list page ids (`appearance bar dock osd panels launcher controlcenter notifications power security services system shell plugins about`) |
+| `settings` | `page <id>` / `list` | jump to a settings page; list page ids (`appearance bar dock osd accessibility panels launcher controlcenter notifications power security services system shell plugins about`) |
 | `cc` | `toggle` / `open` / `close` | control center |
 | `picker` | `toggle` / `open` / `close` | wallpaper archive |
 | `overview` | `toggle` / `open` / `close` / `alttab` / `scratchpad` / `scratchsend` / `tile <preset>` / `status` | overview grid, window switcher, scratchpad, quick-tile |

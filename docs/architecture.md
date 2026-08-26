@@ -4,13 +4,13 @@
 
 ```
 yuta-qs/
-├── shell.qml              entry point, 30 IPC handlers (130+ functions), per-screen instances
+├── shell.qml              entry point, 35 IPC handlers (160+ functions), per-screen instances
 ├── theme/                 Theme singleton, 12 preset palettes, matugen setup
 ├── modules/
-│   ├── bar/               22 segment types + Kanban drag-drop editor, BarActions dispatcher
+│   ├── bar/               26 segment types + Kanban drag-drop editor, BarActions dispatcher
 │   ├── common/            ShellState, Wallpaper/89-template pipeline, SystemStats,
 │   │                      PluginService, FocusMonitor, Compositor, Health, 13 UI primitives
-│   ├── settings/          settings panel (15 pages behind searchable nav rail)
+│   ├── settings/          settings panel (17 pages behind searchable nav rail)
 │   ├── control/           control center (11 tabs)
 │   ├── launcher/          app launcher (grid/list/detail + :command mode + calculator)
 │   ├── picker/            wallpaper archive
@@ -22,7 +22,8 @@ yuta-qs/
 │   ├── dock/              bottom dock
 │   ├── overview/          workspace grid, alt-tab, tile presets
 │   └── widgets/           calendar, weather, clipboard, screenshots,
-│                          emoji, updates, recording, color picker
+│                          emoji, updates, recording, color picker,
+│                          pomodoro timer, keybind cheatsheet
 ├── plugins/               reference widget + daemon plugins
 └── docs/                  these pages
 ```
@@ -34,6 +35,14 @@ yuta-qs/
 - **Shared choreography** — every floating surface composes the `YSurface` primitive: one entrance ceremony, flare shoulders toward its spawn seam (bar / top edge / bottom edge / float), click-outside catcher
 - **Graceful degradation** — optional backends are probed at startup; missing features report through a `Health` singleton shown as a `!` chip in the bar instead of failing silently
 - **Single action path** — keybinds, CLI and panel buttons all route through the same IPC handlers
+- **Accessibility** — `Theme.reducedMotion` snaps all animation durations to 0 (toast entrance excluded at 80 ms); `Theme.highContrast` overrides palette tokens for maximum contrast; all UI primitives support Tab/Shift+Tab focus cycling and Enter/Space activation
+
+## Accessibility (PH.10)
+
+- `Theme.reducedMotion` — persisted in `ShellState.reducedMotion`; when true, all `mov*` tokens become 0; `Behavior on` blocks evaluate to instant transitions
+- `Theme.highContrast` — persisted in `ShellState.highContrast`; overrides ink/bg to pure black/white, sets muted/faint/hairline/lineStrong to maximum contrast; acid accent preserved
+- **Focus ring** — all interactive UI primitives (`YButton`, `YSwitch`, `YField`) have `activeFocusOnTab: true` and show an acid border on keyboard focus; Enter/Space activates the focused element
+- Settings → A11Y page with reduced motion toggle, high contrast toggle, and keyboard navigation reference
 
 ## Hyprland
 

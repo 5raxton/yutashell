@@ -532,6 +532,8 @@ Singleton {
     property real barScale: 1.0
     property string barPosition: "top"
     property bool barCompact: false
+    property bool reducedMotion: false
+    property bool highContrast: false
     property string customPresets: "[]"
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused

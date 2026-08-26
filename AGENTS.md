@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–9 complete.
+Phases 1–10 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -49,6 +49,13 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - `Pomodoro` (widgets) — singleton state machine: idle → work → break → longBreak. Properties: `phase`, `remaining` (seconds), `round`, `running`, `display` (MM:SS), `label`. Functions: `start()`, `pause()`, `resume()`, `reset()`, `toggle()`. Timer drives bar chip (⏱ + countdown); notifications on phase change. IPC: `pomodoro start/pause/resume/reset/toggle/status`.
 - `Cheatsheet` (widgets) — YSurface panel parsing `hyprctl -j binds` JSON into categorized bind list (GENERAL, WINDOWS, WORKSPACES, APPS, MEDIA, SESSION). Searchable by key combo or description. Falls back to static embed if parsing fails. IPC: `cheatsheet toggle/open/close`.
 - `NightLight` extended with schedule — `ShellState.nlSchedule` JSON `{on:"HH:MM", off:"HH:MM", enabled:bool}`. Timer checks every 60 s; auto-enables/disables hyprsunset. Handles midnight wrap (on > off = overnight). Settings: 3 presets (21:00–07:00, 22:00–06:00, 20:00–08:00). IPC: `nightlight schedule <on> <off> <bool>`, `nightlight schedulestatus`.
+
+## Accessibility (PH.10)
+
+- `Theme.reducedMotion` — persisted in `ShellState.reducedMotion`. When true, all `mov*` motion tokens snap to 0: `Behavior on` blocks evaluate to instant transitions. Toast entrance excluded (80 ms minimum). Settings: A11Y page toggle.
+- `Theme.highContrast` — persisted in `ShellState.highContrast`. Overrides palette tokens: ink → pure white/black, bg → pure black/white, muted/faint/hairline/lineStrong → ink. Acid accent preserved. Applied after scheme tokens via `_applyHighContrast()`.
+- **Keyboard navigation** — all UI primitives (`YButton`, `YSwitch`, `YField`) have `activeFocusOnTab: true`. Enter/Space activates focused element. Focus border goes acid. Arrow keys for sliders. ESC blurs field or closes panel. Tab/BackTab cycles focus within panel.
+- Settings: 17 pages total (new A11Y page in LOOK group).
 
 ## Launcher (PH.08)
 

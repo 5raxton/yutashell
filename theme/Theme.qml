@@ -47,16 +47,23 @@ Singleton {
     // ---- motion: positional indicators only; hover/focus snap ----
     // movFast/movMed: indicators + small moves. movSlow: surface entrances
     // (the shared drop-from-behind-the-bar choreography).
-    readonly property int movFast: 120
-    readonly property int movMed: 160
-    readonly property int movSlow: 260
+    // When reducedMotion is true these all snap to 0 (instant).
+    property bool reducedMotion: false
+    readonly property int movFast: root.reducedMotion ? 0 : 120
+    readonly property int movMed: root.reducedMotion ? 0 : 160
+    readonly property int movSlow: root.reducedMotion ? 0 : 260
     // organism layer: movSnap = knob/chip micro-physics; movDrift = idle
     // breathing period (life runs slow, machine runs fast — never pulse text)
-    readonly property int movSnap: 80
-    readonly property int movDrift: 2600
+    readonly property int movSnap: root.reducedMotion ? 0 : 80
+    readonly property int movDrift: root.reducedMotion ? 0 : 2600
     // how long a closed surface's window lingers mapped so YSurface's exit
     // ceremony (~170 ms) fully renders before the window unmaps
-    readonly property int lingerMs: 190
+    readonly property int lingerMs: root.reducedMotion ? 0 : 190
+
+    // ---- high contrast: override palette tokens for maximum readability ----
+    property bool highContrast: false
+    readonly property color hcInk: root.dark ? "#ffffff" : "#000000"
+    readonly property color hcBg: root.dark ? "#000000" : "#ffffff"
 
     readonly property int barHeight: 44
     readonly property int outerPad: 14
@@ -151,6 +158,7 @@ Singleton {
         }
         if (hit) {
             _applyAccentOverride();
+            _applyHighContrast();
             checkContrast();
         }
         return hit;
@@ -255,6 +263,17 @@ Singleton {
         }
     }
 
+    function _applyHighContrast() {
+        if (!root.highContrast)
+            return;
+        root.ink = root.hcInk;
+        root.bg = root.hcBg;
+        root.muted = root.hcInk;
+        root.faint = root.hcInk;
+        root.hairline = root.hcInk;
+        root.lineStrong = root.hcInk;
+    }
+
     function setFollowWallpaper(on) {
         root.followWallpaper = on;
         ShellState.set("followWallpaper", on);
@@ -264,6 +283,17 @@ Singleton {
             // here raced the read and logged a spurious "unreadable" every time)
             wallThemeFile.reload();
         }
+    }
+
+    function setReducedMotion(on) {
+        root.reducedMotion = on;
+        ShellState.set("reducedMotion", on);
+    }
+
+    function setHighContrast(on) {
+        root.highContrast = on;
+        ShellState.set("highContrast", on);
+        _reapplyCurrent();
     }
 
     function applyWallpaperTokens() {
@@ -423,6 +453,9 @@ Singleton {
         if (!root.dark)
             _applyTokens(defaults);
         root.followWallpaper = ShellState.followWallpaper;
+        // seed accessibility prefs
+        root.reducedMotion = ShellState.reducedMotion;
+        root.highContrast = ShellState.highContrast;
         if (ShellState.followWallpaper) {
             // reload() is async; the onLoaded handler applies tokens when ready
             wallThemeFile.reload();
