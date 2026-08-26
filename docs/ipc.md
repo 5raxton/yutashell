@@ -29,7 +29,8 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `dnd` | `on` / `off` / `toggle` / `status` | do not disturb |
 | `notify` | `show <app> <sum> <body>` | send a toast notification |
 | `notifycenter` | `toggle` / `open` / `close` / `clear` / `test <urgency>` | notification history center |
-| `network` | `toggle` / `open` / `close` | network panel |
+| `network` | `toggle` / `open` / `close` / `details` / `copy-ip` | network panel; `details` opens the info-dense panel, `copy-ip` copies current IPv4 |
+| `processes` | `open` / `close` / `kill <pid>` | process search + kill panel |
 | `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
 | `media` | `toggle` / `close` / `playpause` / `next` / `previous` | MPRIS media widget |
 | `nightlight` | `toggle` / `on` / `off` / `temp <kelvin>` / `status` | night light (hyprsunset) |

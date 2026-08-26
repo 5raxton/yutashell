@@ -67,6 +67,12 @@ Singleton {
         case "scratchpad":
             ShellState.toggleOverview();
             break;
+        case "networkdetails":
+            ShellState.toggleNetDetails();
+            break;
+        case "processes":
+            ShellState.toggleProcesses();
+            break;
         default:
             return false;
         }

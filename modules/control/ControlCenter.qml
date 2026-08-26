@@ -1176,6 +1176,28 @@ PanelWindow {
                 }
             }
 
+            YSection {
+                width: parent.width
+                index: "03"
+                label: "Storage"
+                chip: StorageMonitor.anyCrit ? "CRIT" : StorageMonitor.anyWarn ? "WARN" : StorageMonitor.mounts.length + ""
+            }
+
+            Repeater {
+                model: StorageMonitor.mounts
+
+                delegate: YRow {
+                    required property var modelData
+
+                    width: root.contentW
+                    interactive: false
+                    title: modelData.mount
+                    sub: modelData.device + " · " + modelData.type + " · " + modelData.used + " / " + modelData.size
+                    note: modelData.pct + "%"
+                    on_: modelData.pct < StorageMonitor.warnAt
+                }
+            }
+
             Item {
                 width: 1
                 height: Theme.sp2
@@ -1239,6 +1261,24 @@ PanelWindow {
                 note: "BAT"
                 interactive: false
                 on_: UPower.displayDevice && UPower.displayDevice.isPresent
+            }
+
+            YRow {
+                visible: SystemStats.batWearPct >= 0
+                width: parent.width
+                title: "Health"
+                sub: SystemStats.batWearPct >= 0 ? (100 - SystemStats.batWearPct) + "% capacity · " + SystemStats.batWearPct + "% wear" : "unknown"
+                note: "HLTH"
+                interactive: false
+            }
+
+            YRow {
+                visible: SystemStats.batTimeLeft > 0 || SystemStats.batTimeToFull > 0
+                width: parent.width
+                title: SystemStats.batCharging ? "Time to full" : "Time remaining"
+                sub: SystemStats.batCharging ? (SystemStats.batTimeToFull > 0 ? SystemStats.fmtDuration(SystemStats.batTimeToFull) : "estimating…") : (SystemStats.batTimeLeft > 0 ? SystemStats.fmtDuration(SystemStats.batTimeLeft) : "estimating…")
+                note: "TIME"
+                interactive: false
             }
 
             YSection {
@@ -1363,6 +1403,22 @@ PanelWindow {
                             onToggled: Connectivity.vpnToggle(modelData)
                         }
                     }
+                }
+
+                YRow {
+                    width: parent.width
+                    title: "Network details"
+                    sub: "IP · gateway · DNS · signal"
+                    note: "NET"
+                    onToggled: ShellState.toggleNetDetails()
+                }
+
+                YRow {
+                    width: parent.width
+                    title: "Process killer"
+                    sub: "search + kill processes"
+                    note: "PS"
+                    onToggled: ShellState.toggleProcesses()
                 }
 
                 Item {

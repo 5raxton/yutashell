@@ -30,6 +30,10 @@ Singleton {
     // scratchpad manager (PH.04)
     property bool scratchpadOpen: false
 
+    // PH.06: network details + process killer
+    property bool netDetailsOpen: false
+    property bool processesOpen: false
+
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
@@ -59,6 +63,8 @@ Singleton {
         root.ccOpen = name === "cc";
         root.mixerOpen = name === "mixer";
         root.scratchpadOpen = name === "scratchpad";
+        root.netDetailsOpen = name === "netdetails";
+        root.processesOpen = name === "processes";
     }
 
     function togglePanel() {
@@ -245,6 +251,22 @@ Singleton {
         root.scratchpadOpen = false;
     }
 
+    function toggleNetDetails() {
+        root._exclusive(root.netDetailsOpen ? "" : "netdetails");
+    }
+
+    function closeNetDetails() {
+        root.netDetailsOpen = false;
+    }
+
+    function toggleProcesses() {
+        root._exclusive(root.processesOpen ? "" : "processes");
+    }
+
+    function closeProcesses() {
+        root.processesOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -289,6 +311,7 @@ Singleton {
     readonly property alias osdVolume: adapter.osdVolume
     readonly property alias osdMic: adapter.osdMic
     readonly property alias osdBright: adapter.osdBright
+    readonly property alias osdThermal: adapter.osdThermal
     readonly property alias nlTemp: adapter.nlTemp
     readonly property alias nlActive: adapter.nlActive
 
@@ -424,6 +447,7 @@ Singleton {
     property bool osdVolume: true
     property bool osdMic: true
     property bool osdBright: true
+    property bool osdThermal: true
     property int nlTemp: 4500
     property bool nlActive: false
     // session/power: lock-screen monitor selection ("all"|"primary"|JSON name

@@ -298,72 +298,46 @@ Shows "CAFFEINE" label when active, "INHIBIT" with logind count otherwise.
 
 ---
 
-## Phase 6 — Information Density Widgets
+## Phase 6 — Information Density Widgets [DONE]
 
 > Give power users the data they need at a glance, without leaving the shell.
 
-### 6.1 Network Details Widget
+### 6.1 Network Details Widget — DONE
 
-**File:** New `modules/net/NetDetails.qml`
+Shipped `modules/net/NetDetails.qml`: `YSurface` panel sourcing data from
+nmcli (one-shot `Process`, 5 s refresh). Shows active interface, SSID,
+IP4/IP6, gateway, DNS, signal strength (dBm + %), link speed, VPN status.
+IPC `network details` and `network copy-ip` (copies IP to clipboard).
+CC NETWORK tab "Details" button opens the panel.
 
-**Plan:**
-- `YSurface` panel showing: active interface, SSID/ESSID, IP4/IP6 addresses,
-  gateway, DNS servers, signal strength dBm + percentage, link speed (wired),
-  VPN status.
-- Data sourced from `nmcli` (one-shot `Process` + `StdioCollector`, 5s refresh).
-- Accessible via IPC `network details`, right-click on the bar `net` segment,
-  or CC NETWORK tab "Details" button.
-- Copy IP address to clipboard on click (like iNiR's network widget).
+### 6.2 Storage Monitor — DONE
 
-### 6.2 Storage Monitor
+Shipped `modules/widgets/StorageMonitor.qml`: singleton reading `df -h` every
+5 s. Exposes per-mount device, mount point, used/total, percent, fs type.
+Warn at 85%, critical at 95% per mount. CC SYSTEM tab storage section shows
+the breakdown.
 
-**File:** New `modules/widgets/StorageMonitor.qml`
+### 6.3 Process Killer — DONE
 
-**Plan:**
-- Singleton reading `df -h` via Process (5s interval, like SystemStats SLOW).
-- Expose per-mount: device, mount point, used/total, percent, fs type.
-- Derived signals: `warnAt` (85%), `critAt` (95%) per mount.
-- Bar segment `disk` already shows I/O rates; enhance it with a tooltip
-  showing per-mount usage breakdown.
-- CC SYSTEM tab: add a storage section below the sparklines.
+Shipped `modules/widgets/ProcessKiller.qml`: `YSurface` panel with `YField`
+search + live process list from `ps aux --sort=-%mem`. Each row shows PID,
+user, CPU%, MEM%, truncated command. Kill button sends SIGTERM; shift+click
+sends SIGKILL with confirmation dialog. IPC `processes open`, `processes close`,
+`processes kill <pid>`. CC NETWORK tab shortcut entry.
 
-### 6.3 Process Killer
+### 6.4 Battery Health & Time Estimates — DONE
 
-**File:** New `modules/widgets/ProcessKiller.qml`
+Extended `SystemStats.qml` to read `energy_full`, `energy_full_design`, and
+`power_now` from sysfs. Computes `batWearPct`, `batTimeLeft`,
+`batTimeToFull`. Added `fmtDuration()` formatter. CC POWER tab shows battery
+health ring + wear percentage + time estimates.
 
-**Plan:**
-- `YSurface` panel with a `YField` search + list of matching processes.
-- Data from `ps aux --sort=-%mem` (one-shot Process).
-- Each row: PID, user, CPU%, MEM%, command (truncated).
-- Kill button (`YButton` danger tone) sends `SIGTERM`; shift+click sends
-  `SIGKILL`.
-- Confirmation dialog for SIGKILL via `YClickAway` modal.
-- IPC `processes kill <pid>`.
+### 6.5 Fan Speed / Thermal OSD — DONE
 
-### 6.4 Battery Health & Time Estimates
-
-**File:** `modules/common/SystemStats.qml`
-
-**Plan:**
-- Extend battery stats: read `energy_full` / `energy_full_design` from UPower
-  (or `/sys/class/power_supply/BAT*/energy_*` files).
-- Compute wear level: `(1 - full/design) * 100`.
-- Compute time-to-empty/charge from `energy_rate` and current capacity.
-- Expose: `batHealth`, `batWearPct`, `batTimeLeft`, `batTimeToFull`.
-- `StatCell` shows time remaining instead of just percentage when
-  `batTimeLeft > 0`.
-- CC POWER tab: show battery health ring + wear percentage.
-
-### 6.5 Fan Speed / Thermal OSD
-
-**File:** `modules/audio/Osd.qml`, `modules/common/SystemStats.qml`
-
-**Plan:**
-- Extend `SystemStats._sampleTempJson` to also read `fan*_input` from hwmon.
-- New `Osd` kind `"thermal"`: shows a warning card when any sensor crosses
-  `Theme.tempWarn` or `Theme.tempCrit`.
-- Non-intrusive: appears once per threshold crossing, auto-dismiss after 4s.
-- Gate on `ShellState.osdThermal` toggle.
+Extended `SystemStats` to extract `fan*_input` from `sensors -j`, exposing a
+`fans[]` array. Added `Osd.qml` "thermal" kind for threshold-crossing
+warnings. New `thermalWarning` / `thermalCritical` signals on SystemStats.
+Auto-dismiss after 4 s. Gated by `ShellState.osdThermal` toggle.
 
 **Touches:** `NetDetails.qml` (new), `StorageMonitor.qml` (new),
 `ProcessKiller.qml` (new), `SystemStats.qml`, `Osd.qml`,
@@ -371,6 +345,8 @@ Shows "CAFFEINE" label when active, "INHIBIT" with logind count otherwise.
 `ShellState.qml`.
 
 ---
+
+**Phase 7 — Customization Power is next.**
 
 ## Phase 7 — Customization Power
 

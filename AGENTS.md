@@ -1,5 +1,7 @@
 # YUTASHELL
 
+Phases 1–6 complete.
+
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
 README.md is the public-facing doc (features, install, IPC table) — keep it accurate when features change.
@@ -47,7 +49,7 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - Runtime config only via `hyprctl eval '<lua>'` — plain `hyprctl keyword` fails ("non-legacy parsers"). Nested Lua tables mirror option paths: `hl.config({general={col={active_border="…"}}})` → `general:col.active_border`.
 - Color formats (hyprctl round-trip verified): `rgba()` hex parses RRGGBBAA (trailing alpha!), bare `"0xAARRGGBB"` strings parse directly; internal form is always AARRGGBB. colors.lua template's `0xff…` values correct as-is; it applies borders via `hl.config` at require time, and the catalog post-hook re-applies through `hyprctl eval` after every matugen run.
 - `WlrLayershell` anchors are ONLY left/right/top/bottom — no horizontalCenter. Centered dock = full-width window (left+right+bottom) + `mask: Region { item: <centered content> }`.
-- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle.
+- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`.
 
 ## Hard-won lessons (do not regress)
 
@@ -97,11 +99,14 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 - FileView semantics that DO work: JsonAdapter+writeAdapter for structured prefs; setText for staging+write; watchChanges+reload-on-callback for live theme recolor.
 
 ### 7. Architecture rules
-- **SystemStats is the one sampler** — any new stat reader binds to `SystemStats.*` (FAST 2 s FileViews, SLOW 5 s Process); never open a second FileView/Timer over /proc//hwmon/nvidia-smi. Shared formatters `fmtRate/fmtBytes/fmtTime/fmtTemp` live there.
+- **SystemStats is the one sampler** — any new stat reader binds to `SystemStats.*` (FAST 2 s FileViews, SLOW 5 s Process); never open a second FileView/Timer over /proc//hwmon/nvidia-smi. Shared formatters `fmtRate/fmtBytes/fmtTime/fmtTemp/fmtDuration` live there. Now reads fan RPM from `sensors -j` (`fans[]` array), battery health from sysfs (`batWearPct`, `batTimeLeft`, `batTimeToFull`), and emits `thermalWarning`/`thermalCritical` signals.
 - Widgets split into singleton services (probe backend once, expose `available`) vs PanelWindows. Missing backend ⇒ flat "not installed" message or hidden feature + `Health.report(module,msg)` — never a dead button. Bar shows `!` chip while `Health.count > 0`.
 - Bar is data-driven: `ShellState.barSegments` ordered `{id,zone,enabled}`; new segment = Component in Bar.qml + `BarSegments.meta` + `present()` case (+ optional `BarActions.dispatch` action). Height-only scaling via `transform: Scale { yScale }`.
 - SettingsPanel: 15 declarative pages behind lazy Loaders + switch; searchable two-level nav rail. ControlCenter: 11 tabs from `ShellState.ccTabs`; per-tab Timers gate on `activePageId === "x" && ShellState.ccOpen`.
 - SNI tray menu needs `//@ pragma UseQApplication` in shell.qml — takes effect only on fresh start, so the warning still logs mid-session after hot-reloads.
+- **StorageMonitor** (widgets) — singleton reading `df -h` every 5 s, per-mount usage with warn/crit thresholds; feeds disk bar segment and surface panel.
+- **NetDetails** (net) — YSurface panel showing IP4/IP6/gateway/DNS/signal; IPC: `network details`, `network copy-ip`.
+- **ProcessKiller** (widgets) — YSurface panel with process search + kill; IPC: `processes open/close/kill <pid>`.
 
 ## Conventions (enforced)
 

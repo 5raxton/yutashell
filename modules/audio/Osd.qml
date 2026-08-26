@@ -21,6 +21,7 @@ PanelWindow {
     property string kind: "volume"
     readonly property bool isMic: kind === "mic"
     readonly property bool isBright: kind === "bright"
+    readonly property bool isThermal: kind === "thermal"
 
     readonly property var sinkNode: AudioService.sink
     readonly property var srcNode: AudioService.source
@@ -29,21 +30,35 @@ PanelWindow {
     readonly property bool sinkMuted: !isMic && !isBright && sinkNode && sinkNode.audio ? sinkNode.audio.muted : false
     readonly property bool hot: isMic ? (srcNode && srcNode.audio ? srcNode.audio.muted : false) : isBright ? false : root.sinkMuted || pct > 100
 
-    readonly property real barFill: Math.max(0, Math.min(1, root.frac))
+    readonly property real barFill: root.isThermal ? Math.max(0, Math.min(1, root.thermalTemp / SystemStats.tempCrit)) : Math.max(0, Math.min(1, root.frac))
 
-    readonly property string statusText: root.isMic
+    // thermal OSD state
+    property real thermalTemp: -1
+    property bool thermalCritical: false
+
+    readonly property string statusText: root.isThermal
+        ? (root.thermalCritical ? "CRITICAL" : "WARNING")
+        : root.isMic
         ? (root.hot ? "MUTED" : "LIVE")
         : root.sinkMuted ? "MUTED" : ""
-    readonly property string pctText: root.isMic ? "" : root.pct + "%"
+    readonly property string pctText: root.isThermal
+        ? SystemStats.fmtTemp(root.thermalTemp)
+        : root.isMic ? "" : root.pct + "%"
 
     function ping(k) {
-        const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : ShellState.osdVolume;
+        const on = k === "bright" ? ShellState.osdBright : k === "mic" ? ShellState.osdMic : k === "thermal" ? ShellState.osdThermal : ShellState.osdVolume;
         if (!on)
             return;
         kind = k;
         shown.opacity = 1;
         shown.y = shown.targetY;
         fadeTimer.restart();
+    }
+
+    function pingThermal(temp, crit) {
+        thermalTemp = temp;
+        thermalCritical = crit;
+        ping("thermal");
     }
 
     anchors {
@@ -124,7 +139,7 @@ PanelWindow {
             anchors.fill: parent
             color: Theme.surface
             border.width: 1
-            border.color: root.hot ? Theme.alert : Theme.lineStrong
+            border.color: root.thermalCritical || root.hot ? Theme.alert : root.isThermal ? Theme.acid : Theme.lineStrong
             radius: Theme.sp1
 
             Behavior on border.color {
@@ -138,7 +153,7 @@ PanelWindow {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: 2
-                color: root.hot ? Theme.alert : Theme.acid
+                color: root.thermalCritical || root.hot ? Theme.alert : Theme.acid
                 radius: 1
 
                 Behavior on color {
@@ -158,7 +173,7 @@ PanelWindow {
 
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: root.statusText.length > 0 ? root.statusText : root.pctText
-                    color: root.hot ? Theme.alert : root.statusText.length > 0 ? Theme.muted : Theme.ink
+                    color: root.thermalCritical || root.hot ? Theme.alert : root.isThermal ? Theme.acid : root.statusText.length > 0 ? Theme.muted : Theme.ink
                     font.family: Theme.fontFamily
                     font.pixelSize: 20
                     font.weight: Font.Bold
@@ -190,8 +205,8 @@ PanelWindow {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : "VOL"
-                    color: root.hot ? Theme.alert : Theme.faint
+                    text: root.isMic ? "MIC" : root.isBright ? "BRIGHT" : root.isThermal ? "TEMP" : "VOL"
+                    color: root.thermalCritical || root.hot ? Theme.alert : root.isThermal ? Theme.acid : Theme.faint
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fsMicro
                     font.weight: Font.Bold
@@ -215,7 +230,7 @@ PanelWindow {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     width: root.barFill * parent.width
-                    color: root.hot ? Theme.alert : Theme.acid
+                    color: root.thermalCritical || root.hot ? Theme.alert : Theme.acid
                     radius: 2
 
                     Behavior on width {
@@ -240,7 +255,7 @@ PanelWindow {
                     width: 8
                     height: 8
                     visible: root.barFill > 0.02 && root.barFill < 0.98
-                    color: root.hot ? Theme.alert : Theme.acid
+                    color: root.thermalCritical || root.hot ? Theme.alert : Theme.acid
                     opacity: 0.3
                     radius: 4
 
@@ -271,6 +286,18 @@ PanelWindow {
 
         function onOsdPing(k) {
             root.ping(k);
+        }
+    }
+
+    Connections {
+        target: SystemStats
+
+        function onThermalWarning(temp) {
+            root.pingThermal(temp, false);
+        }
+
+        function onThermalCritical(temp) {
+            root.pingThermal(temp, true);
         }
     }
 }

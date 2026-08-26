@@ -43,11 +43,30 @@ Singleton {
     property int batPct: -1
     property bool batCharging: false
 
+    // ---- battery health (PH.06.4) ----
+    property real batEnergyFull: -1     // Wh (current full capacity)
+    property real batEnergyDesign: -1   // Wh (original design capacity)
+    property real batEnergyRate: -1     // W (discharge rate)
+    property int batWearPct: -1         // 0..100 wear percentage
+    property real batTimeLeft: -1       // seconds until empty (negative = unknown)
+    property real batTimeToFull: -1     // seconds until full (negative = unknown)
+
+    // ---- fan speed (PH.06.5) ----
+    property var fans: []               // [{ id, label, rpm }]
+
+    // ---- thermal OSD state (PH.06.5) ----
+    property real _hottestTemp: -1
+    property bool _thermalWarnFired: false
+    property bool _thermalCritFired: false
+
     // ---- thresholds (signals fire on crossing) ----
     signal warnRaised(string kind)
     signal critRaised(string kind)
+    signal thermalWarning(real temp)
+    signal thermalCritical(real temp)
 
     property var _lastLevel: ({})   // kind -> "ok"|"warn"|"crit"
+    property string _thermalLevel: "ok"  // PH.06.5 thermal OSD state
 
     // configurable limits (PH.16 steppers edit these)
     readonly property int cpuWarn: 85
@@ -103,6 +122,15 @@ Singleton {
         return v < 0 ? "--" : Math.round(v) + "°";
     }
 
+    // format seconds as "Xh Ym" duration string
+    function fmtDuration(secs) {
+        if (secs < 0) return "--";
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        if (h > 0) return h + "h " + m + "m";
+        return m + "m";
+    }
+
     // ---- thresholds -----------------------------------------------------
     function _threshold(kind, value, warn, crit) {
         let lvl = "ok";
@@ -114,10 +142,22 @@ Singleton {
         if (lvl === prev)
             return;
         root._lastLevel[kind] = lvl;
-        if (lvl === "crit")
+        if (lvl === "crit") {
             root.critRaised(kind);
-        else if (lvl === "warn")
+            if (kind === "temp" || kind === "gpu") {
+                root._thermalLevel = "crit";
+                root.thermalCritical(value);
+            }
+        } else if (lvl === "warn") {
             root.warnRaised(kind);
+            if (kind === "temp" || kind === "gpu") {
+                root._thermalLevel = "warn";
+                root.thermalWarning(value);
+            }
+        } else {
+            if (kind === "temp" || kind === "gpu")
+                root._thermalLevel = "ok";
+        }
     }
 
     // ---- /proc sampling ---------------------------------------------------
@@ -355,6 +395,73 @@ Singleton {
         }
     }
 
+    // ---- battery health (PH.06.4) ----
+    FileView {
+        id: batFullFile
+        path: "/sys/class/power_supply/BAT1/energy_full"
+        watchChanges: false
+        printErrors: false
+        onLoaded: {
+            const v = parseFloat(batFullFile.text());
+            if (!isNaN(v))
+                root.batEnergyFull = v / 1000;
+            _checkDesign();
+        }
+        onLoadFailed: {
+            if (!root._batFallback) {
+                batFullFile.path = "/sys/class/power_supply/BAT0/energy_full";
+                batDesignFile.path = "/sys/class/power_supply/BAT0/energy_full_design";
+                batRateFile.path = "/sys/class/power_supply/BAT0/power_now";
+            }
+        }
+    }
+
+    FileView {
+        id: batDesignFile
+        path: "/sys/class/power_supply/BAT1/energy_full_design"
+        watchChanges: false
+        printErrors: false
+        onLoaded: {
+            const v = parseFloat(batDesignFile.text());
+            if (!isNaN(v))
+                root.batEnergyDesign = v / 1000;
+        }
+    }
+
+    FileView {
+        id: batRateFile
+        path: "/sys/class/power_supply/BAT1/power_now"
+        watchChanges: false
+        printErrors: false
+        onLoaded: {
+            const v = parseFloat(batRateFile.text());
+            if (!isNaN(v))
+                root.batEnergyRate = v / 1000000;
+            _updateTimeEstimates();
+        }
+    }
+
+    function _checkDesign() {
+        if (root.batEnergyFull > 0 && root.batEnergyDesign > 0)
+            root.batWearPct = Math.max(0, Math.min(100, Math.round((1 - root.batEnergyFull / root.batEnergyDesign) * 100)));
+    }
+
+    function _updateTimeEstimates() {
+        if (root.batEnergyRate <= 0 || root.batPct < 0) {
+            root.batTimeLeft = -1;
+            root.batTimeToFull = -1;
+            return;
+        }
+        const remainingWh = root.batEnergyFull * (root.batPct / 100);
+        if (root.batCharging) {
+            root.batTimeLeft = -1;
+            root.batTimeToFull = root.batEnergyRate > 0 ? ((root.batEnergyFull - remainingWh) / root.batEnergyRate * 3600) : -1;
+        } else {
+            root.batTimeLeft = root.batEnergyRate > 0 ? (remainingWh / root.batEnergyRate * 3600) : -1;
+            root.batTimeToFull = -1;
+        }
+    }
+
     // ---- Process probes (hwmon temps + nvidia-smi) -----------------------
     Process {
         id: tempProc
@@ -370,6 +477,7 @@ Singleton {
         try {
             const data = JSON.parse(jsonText);
             const out = [];
+            const fanOut = [];
             const seen = {};
             for (const chip in data) {
                 const chipData = data[chip];
@@ -397,6 +505,16 @@ Singleton {
                             }
                         }
                     }
+                    // fan inputs
+                    for (const key in feat) {
+                        if (key.startsWith("fan") && key.endsWith("_input")) {
+                            const v = feat[key];
+                            const labelKey = key.replace("_input", "_label");
+                            const label = feat[labelKey] || chip + " " + key;
+                            if (typeof v === "number" && !isNaN(v) && v > 0)
+                                fanOut.push({ id: label, label: label, rpm: Math.round(v) });
+                        }
+                    }
                 }
             }
             // same readings → keep array identity so sensor-row delegates don't rebuild
@@ -413,11 +531,13 @@ Singleton {
                     return;
             }
             root.temps = out;
+            root.fans = fanOut;
             // hottest temp drives the threshold
             let hot = -1;
             for (const s of out)
                 if (s.temp > hot)
                     hot = s.temp;
+            root._hottestTemp = hot;
             if (hot >= 0)
                 root._threshold("temp", hot, root.tempWarn, root.tempCrit);
         } catch (e) {
@@ -483,8 +603,11 @@ Singleton {
             if (root.batPresent || !root._batFallback) {
                 batCapFile.reload();
                 batStatFile.reload();
+                batFullFile.reload();
+                batDesignFile.reload();
+                batRateFile.reload();
             }
-            // hwmon: discover + read temps in one shot
+            // hwmon: discover + read temps + fans in one shot
             tempProc.command = ["sensors", "-j"];
             tempProc.running = true;
             // GPU: one batched nvidia-smi query — but once absence is proven,

@@ -282,6 +282,34 @@ ShellRoot {
         function close(): void {
             ShellState.closeNet();
         }
+
+        function details(): void {
+            ShellState.toggleNetDetails();
+        }
+
+        function copyIp(): string {
+            copyIpProc.command = ["nmcli", "-g", "IP4.ADDRESS[1]", "dev", "show"];
+            copyIpProc.running = true;
+            return "copying…";
+        }
+    }
+
+    Process {
+        id: copyIpProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const ip = this.text.trim().split("\n")[0] || "";
+                if (ip.length > 0) {
+                    copyIpClip.command = ["wl-copy", ip];
+                    copyIpClip.running = true;
+                }
+            }
+        }
+    }
+
+    Process {
+        id: copyIpClip
+        stdout: StdioCollector {}
     }
 
     IpcHandler {
@@ -298,6 +326,33 @@ ShellRoot {
         function close(): void {
             ShellState.closeBt();
         }
+    }
+
+    IpcHandler {
+        target: "processes"
+
+        function open(): void {
+            ShellState.toggleProcesses();
+        }
+
+        function close(): void {
+            ShellState.closeProcesses();
+        }
+
+        function kill(pid: string): string {
+            const p = parseInt(pid);
+            if (isNaN(p) || p <= 0)
+                return "invalid pid";
+            killSigProc.command = ["kill", "-15", String(p)];
+            killSigProc.running = true;
+            return "sent SIGTERM to " + p;
+        }
+    }
+
+    Process {
+        id: killSigProc
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
     }
 
     IpcHandler {
