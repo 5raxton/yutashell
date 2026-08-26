@@ -384,68 +384,47 @@ mixer, scratchpad, networkdetails, and processes actions.
 
 ---
 
-**Phase 8 is next.**
+**Phase 9 is next.**
 
-## Phase 8 — Smart Launcher & Command Palette
+## Phase 8 — Smart Launcher & Command Palette [DONE]
 
 > The launcher is the primary interaction point. Make it think.
 
-### 8.1 Frecency Ranking
+### 8.1 Frecency Ranking [DONE]
 
-**File:** `modules/launcher/AppLauncher.qml`
+`ShellState.launchStats` tracks `{appId: {count, lastLaunch}}`. On app
+launch, `trackLaunch()` increments count and updates timestamp. Empty query
+sorts: pins, then recents, then frecency-weighted alphabetical. Search
+results use fuzzy score with up to 30% frecency boost. Decay factor drops
+unlaunched apps below never-launched after 30+ days.
 
-**Plan:**
-- Track launch counts and timestamps in `ShellState.launchStats`:
-  `{ "appId": { "count": N, "lastLaunch": timestamp } }`.
-- On app launch (`e.execute()`), increment count and update timestamp.
-- Sort search results by frecency score:
-  `score = count * (1 / (1 + daysSinceLastLaunch))`.
-- Pinned apps always appear first; recents second; frecency third; alpha last.
-- Decay factor: apps not launched in 30+ days drop below never-launched apps.
+### 8.2 Multi-Mode Launcher (Command Palette) [DONE]
 
-### 8.2 Multi-Mode Launcher (Command Palette)
+Extended the launcher with prefix-based modes: `=` safe calculator (no
+eval), `>` shell command execution (output via notify), `@` notification
+history search, `#` color converter (#hex to RGB to HSL), `~` recent files
+browser. Mode indicator shown in placeholder text. New result kinds:
+`shellcmd`, `notifyitem`, `recentfile`. Each mode renders in a unified card
+format with distinct icon.
 
-**File:** `modules/launcher/AppLauncher.qml`
+### 8.3 Recent Files Integration [DONE]
 
-**Plan:**
-- Extend the existing `:command` mode with additional built-in evaluators:
-  - `=` prefix: math expression evaluator (JS `eval` with sandboxed Math).
-  - `>` prefix: run shell command, show output in a card.
-  - `@` prefix: search notification history.
-  - `#` prefix: color converter (hex → rgb → hsl).
-  - `~` prefix: file browser (show recent files from xdg-recent, or
-    fuzzy-match files in `~/`).
-- Each mode has a distinct icon chip in the search bar.
-- Results render in a unified card format with app icon / result icon +
-  primary text + secondary text.
-- Keep current app search as default (no prefix).
+Shipped `modules/launcher/RecentFiles.qml` singleton reading
+`~/.local/state/recently-used.xbel`. Exposes top 20 most recent files.
+Typing `~` in the launcher shows them; clicking opens with `xdg-open`.
 
-### 8.3 Recent Files Integration
+### 8.4 Safe Calculator [DONE]
 
-**File:** New `modules/launcher/RecentFiles.qml`
-
-**Plan:**
-- Read `recently-used.xbel` (XDG standard) via FileView.
-- Parse the XML into a list of `{ uri, name, timestamp, mimeType }`.
-- Expose top 20 most recent files.
-- In launcher: typing `~` shows recent files; clicking opens with
-  `xdg-open`.
-- IPC `launcher recents` to open directly to the recent files view.
-
-### 8.4 Launcher Calculator Widget
-
-**File:** `modules/launcher/AppLauncher.qml`
-
-**Plan:**
-- When input starts with `=`, evaluate the expression using a safe parser
-  (no `eval`; tokenize numbers, operators, parentheses; recursive descent).
-- Show result in a large display card at the top of results.
-- Copy result to clipboard on Enter.
-- Support basic ops: `+`, `-`, `*`, `/`, `%`, `^`, `sqrt()`, `sin()`,
-  `cos()`, `pi`, `e`.
+Replaced `Function()` eval with a recursive descent parser supporting
+`+`, `-`, `*`, `/`, `%`, `^`, `sqrt`, `abs`, `sin`, `cos`, `tan`,
+`log`, `ln`, `floor`, `ceil`, `round`, and constants `pi`, `e`, `phi`.
+Parentheses supported. Result displays in a large card; Enter copies
+to clipboard.
 
 **Touches:** `AppLauncher.qml`, `RecentFiles.qml` (new),
 `fuzzy.js` (extend), `ShellState.qml`.
+
+> Phase 9 is next.
 
 ---
 
@@ -625,12 +604,13 @@ Phase 1  (Native APIs)
 Phase 3  (Notifications)       ← independent
 Phase 6  (Info Widgets)        ← independent
 Phase 7  (Customization)       ← independent
-Phase 8  (Smart Launcher)      ← independent
+Phase 8  (Smart Launcher)      ← DONE
 Phase 9  (Power User Tools)    ← independent
 ```
 
 Phases 3, 6, 7, 8, 9 are fully independent and can be developed in any order
 or in parallel. Phase 1 is the foundation for 2, 4, 5, and parts of 10.
+Phase 8 is complete.
 
 ---
 
@@ -645,7 +625,7 @@ or in parallel. Phase 1 is the foundation for 2, 4, 5, and parts of 10.
 | 5 — Secure Session | 0 | 3 | Medium |
 | 6 — Info Widgets | 3 | 3 | Medium |
 | 7 — Customization | 2 | 5 | Medium |
-| 8 — Smart Launcher | 1 | 2 | Medium |
+| 8 — Smart Launcher | 1 | 2 | Medium | DONE |
 | 9 — Power User Tools | 4 | 2 | Medium |
 | 10 — Polish & A11y | 0 | All | Low (per file) |
 
@@ -2377,7 +2357,7 @@ Phase 29 (Notification Intel) ──┘      │
 | 5 — Secure Session | 0 | 3 | Medium |
 | 6 — Info Widgets | 3 | 3 | Medium |
 | 7 — Customization | 2 | 5 | Medium |
-| 8 — Smart Launcher | 1 | 2 | Medium |
+| 8 — Smart Launcher | 1 | 2 | Medium | DONE |
 | 9 — Power User Tools | 4 | 2 | Medium |
 | 10 — Polish & A11y | 0 | All | Low (per file) |
 | 11 — AI Desktop Agent | 6 | 3 | High |

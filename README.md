@@ -16,6 +16,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Bar** — 23 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp/fan), clock, mixer, scratchpad, chips; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
 - **Theme engine** — 12 preset schemes, wallpaper-derived palettes via matugen, runtime light mode, any-hex accent override; the whole shell repaints live
 - **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
+- **Launcher / command palette** — frecency-ranked search (launch count × time decay, pinned apps first, recents second), prefix modes: `=` calculator (recursive descent parser, no eval), `>` shell command runner, `@` notification history search, `#` color converter (#hex to rgb to hsl), `~` recent files browser (XDG recently-used.xbel)
 - **Surfaces** — settings panel (16 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, scratchpad manager, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview (search + move windows), AltTab, power menu, lock screen, color picker, recording widget, updates checker, network details panel, process killer panel, thermal OSD; each spawns from the bar, a screen edge, or float, per panel
 - **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, inline reply, DND + snooze, per-app rules, smart grouping & dedup, persisted history with search & replay
 - **Connectivity & audio** — NetworkManager + BlueZ panels (pairing UX with pulsing border + cancel), network details panel (IP4/IP6, gateway, DNS, signal, link speed, MAC), PipeWire console with perceptual volume taper, per-app audio mixer (MixerPanel), OSDs, night light, brightness (internal + DDC/CI)
@@ -91,7 +92,7 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-100 QML files · 34 singletons · 13 UI primitives · 32 IPC targets · 148+ functions
+101 QML files · 35 singletons · 13 UI primitives · 32 IPC targets · 148+ functions
 89 matugen templates · 17 snippet rules · 23 bar segments · 12 color schemes
 7 layout presets · 16 settings pages · 11 control center tabs · 4 spawn modes
 ```

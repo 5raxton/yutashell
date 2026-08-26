@@ -71,6 +71,161 @@ PanelWindow {
         if (uiLoader.item) uiLoader.item.surface.resetForOpen();
     }
 
+    // ---- frecency tracking ----
+    function trackLaunch(appId) {
+        let stats = {};
+        try { stats = JSON.parse(ShellState.launcherStats); } catch (e) {}
+        const existing = stats[appId] || {count: 0, lastLaunch: 0};
+        existing.count += 1;
+        existing.lastLaunch = Date.now();
+        stats[appId] = existing;
+        ShellState.set("launcherStats", JSON.stringify(stats));
+    }
+
+    // ---- safe calculator (recursive descent parser) ----
+    function safeCalc(expr) {
+        let pos = 0;
+        const s = expr.replace(/\s+/g, "");
+
+        function peek() { return pos < s.length ? s[pos] : null; }
+        function advance() { return s[pos++]; }
+
+        function parseExpr() { return parseAddSub(); }
+
+        function parseAddSub() {
+            let left = parseMulDiv();
+            while (peek() === "+" || peek() === "-") {
+                const op = advance();
+                const right = parseMulDiv();
+                left = op === "+" ? left + right : left - right;
+            }
+            return left;
+        }
+
+        function parseMulDiv() {
+            let left = parsePower();
+            while (peek() === "*" || peek() === "/" || peek() === "%") {
+                const op = advance();
+                const right = parsePower();
+                if (op === "*") left *= right;
+                else if (op === "/") left = right !== 0 ? left / right : NaN;
+                else left = left % right;
+            }
+            return left;
+        }
+
+        function parsePower() {
+            let left = parseUnary();
+            if (peek() === "^") {
+                advance();
+                const right = parsePower();
+                left = Math.pow(left, right);
+            }
+            return left;
+        }
+
+        function parseUnary() {
+            if (peek() === "-") { advance(); return -parseAtom(); }
+            if (peek() === "+") { advance(); return parseAtom(); }
+            return parseAtom();
+        }
+
+        function parseAtom() {
+            // parentheses
+            if (peek() === "(") {
+                advance();
+                const v = parseExpr();
+                if (peek() === ")") advance();
+                return v;
+            }
+            // functions
+            const funcs = {
+                "sqrt": Math.sqrt, "abs": Math.abs, "sin": Math.sin,
+                "cos": Math.cos, "tan": Math.tan, "log": Math.log10,
+                "ln": Math.log, "floor": Math.floor, "ceil": Math.ceil,
+                "round": Math.round
+            };
+            const consts = { "pi": Math.PI, "e": Math.E, "phi": (1 + Math.sqrt(5)) / 2 };
+
+            let name = "";
+            while (pos < s.length && /[a-zA-Z_]/.test(s[pos])) name += advance();
+            if (name.length > 0) {
+                if (consts[name] !== undefined) return consts[name];
+                if (funcs[name]) {
+                    if (peek() === "(") {
+                        advance();
+                        const arg = parseExpr();
+                        if (peek() === ")") advance();
+                        return funcs[name](arg);
+                    }
+                    return NaN;
+                }
+                return NaN; // unknown identifier
+            }
+            // number
+            let num = "";
+            while (pos < s.length && /[0-9.]/.test(s[pos])) num += advance();
+            if (num.length === 0) return NaN;
+            return parseFloat(num);
+        }
+
+        try {
+            const result = parseExpr();
+            if (pos < s.length || !isFinite(result)) return null;
+            return result;
+        } catch (e) { return null; }
+    }
+
+    // ---- color converter (#hex → rgb/hsl) ----
+    function parseColor(input) {
+        let hex = input.replace(/^#/, "").trim();
+        if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+        if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) return "ERR";
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        // HSL conversion
+        const rn = r / 255, gn = g / 255, bn = b / 255;
+        const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+        const l = (max + min) / 2;
+        let h = 0, s = 0;
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+            else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+            else h = ((rn - gn) / d + 4) / 6;
+        }
+        return "#" + hex + " rgb(" + r + "," + g + "," + b + ") hsl(" + Math.round(h*360) + "," + Math.round(s*100) + "%," + Math.round(l*100) + "%)";
+    }
+
+    // ---- shell command execution ----
+    property string _shellOutput: ""
+
+    function runShellCmd(cmd) {
+        _shellOutput = "";
+        shellExec.command = ["sh", "-c", cmd];
+        shellExec.running = true;
+    }
+
+    Process {
+        id: shellExec
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root._shellOutput = this.text;
+                Notify.announce("SHELL", root._shellOutput.slice(0, 200) || "(no output)", 4);
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (this.text.length > 0) {
+                    root._shellOutput = this.text;
+                    Notify.announce("SHELL ERR", root._shellOutput.slice(0, 200), 4);
+                }
+            }
+        }
+    }
+
     Component {
         id: cardComponent
 
@@ -98,7 +253,7 @@ PanelWindow {
 
                 // ---- selection ----
                 property int selIdx: 0
-                readonly property int selCount: commandMode ? cmdMatches.length : results.length
+                readonly property int selCount: specialMode ? (commandMode ? cmdMatches.length : shellMode ? shellResults.length : notifySearchMode ? notifyResults.length : colorMode ? 1 : recentFilesMode ? recentFilesResults.length : 1) : results.length
                 onQueryChanged: selIdx = 0
 
                 function clampSel() {
@@ -172,6 +327,12 @@ PanelWindow {
                 readonly property string query: searchField.text
                 readonly property string queryLs: query.replace(/^\s+/, "")
                 readonly property bool commandMode: queryLs.startsWith(":")
+                readonly property bool shellMode: queryLs.startsWith(">")
+                readonly property bool notifySearchMode: queryLs.startsWith("@")
+                readonly property bool colorMode: queryLs.startsWith("#")
+                readonly property bool recentFilesMode: queryLs.startsWith("~")
+                readonly property bool calcMode: queryLs.startsWith("=")
+                readonly property bool specialMode: commandMode || shellMode || notifySearchMode || colorMode || recentFilesMode || calcMode
                 readonly property int mode: ShellState.launcherMode === "grid" ? 0 : ShellState.launcherMode === "detail" ? 2 : 1
 
                 function byName(a, b) { return a.name.localeCompare(b.name); }
@@ -192,21 +353,51 @@ PanelWindow {
 
                 readonly property var results: {
                     const q = query.trim();
+                    if (specialMode && !calcMode) return [];
                     const apps = allApps;
                     let pool = catFilter === "all" ? apps : apps.filter(e => appMatchesCat(e));
                     let out = [];
 
+                    // frecency stats
+                    let stats = {};
+                    try { stats = JSON.parse(ShellState.launcherStats); } catch (e) {}
+                    const now = Date.now();
+                    const DAY_MS = 86400000;
+
+                    function frecencyScore(entry) {
+                        const s = stats[entry.id];
+                        if (!s) return 0;
+                        const daysSince = Math.max(1, (now - s.lastLaunch) / DAY_MS);
+                        // decay: score drops if not used recently
+                        return s.count * (1 / (1 + daysSince * 0.1));
+                    }
+
                     if (q.length === 0) {
                         const pinList = parseIds(ShellState.launcherPins).map(id => pool.find(e => e.id === id)).filter(Boolean);
                         const recs = parseIds(ShellState.launcherRecents).map(id => pool.find(e => e.id === id)).filter(e => e && !pinList.includes(e));
-                        const rest = pool.filter(e => !pinList.includes(e) && !recs.includes(e)).sort(byName);
+                        const rest = pool.filter(e => !pinList.includes(e) && !recs.includes(e)).sort((a, b) => frecencyScore(b) - frecencyScore(a) || byName(a, b));
                         out = pinList.concat(recs, rest).map(wrapApp);
+                    } else if (calcMode) {
+                        // calc mode: no app results, show result in calc strip
+                        out = [];
+                    } else if (recentFilesMode) {
+                        const rq = q.substring(1).trim().toLowerCase();
+                        const rFiles = (RecentFiles.files ?? []).filter(f => {
+                            if (rq.length === 0) return true;
+                            return f.name.toLowerCase().indexOf(rq) >= 0 || f.uri.toLowerCase().indexOf(rq) >= 0;
+                        });
+                        out = rFiles.map(f => ({kind: "recentfile", entry: null, recentFile: f}));
                     } else {
                         const scored = [];
                         for (let i = 0; i < apps.length; i++) {
                             if (catFilter !== "all" && !appMatchesCat(apps[i])) continue;
-                            const s = Fuzzy.entryScore(q, apps[i]);
-                            if (s >= 0) scored.push({s: s, item: wrapApp(apps[i]), name: apps[i].name});
+                            let s = Fuzzy.entryScore(q, apps[i]);
+                            if (s >= 0) {
+                                // frecency boost: up to +30% for frequently-used apps
+                                const fScore = frecencyScore(apps[i]);
+                                s += s * Math.min(0.3, fScore * 0.03);
+                                scored.push({s: s, item: wrapApp(apps[i]), name: apps[i].name});
+                            }
                             if (q.length >= 2) {
                                 const acts = apps[i].actions ?? [];
                                 for (let j = 0; j < acts.length; j++) {
@@ -221,8 +412,43 @@ PanelWindow {
                     return out;
                 }
 
+                // ---- > shell mode ----
+                readonly property var shellResults: {
+                    if (!shellMode) return [];
+                    const cmd = queryLs.substring(1).trim();
+                    if (cmd.length === 0) return [];
+                    return [{kind: "shellcmd", cmd: cmd}];
+                }
+
+                // ---- @ notification search ----
+                readonly property var notifyResults: {
+                    if (!notifySearchMode) return [];
+                    const nq = queryLs.substring(1).trim().toLowerCase();
+                    if (nq.length === 0) return [];
+                    let hist = [];
+                    try { hist = JSON.parse(ShellState.notifyHistory); } catch (e) {}
+                    if (!Array.isArray(hist)) return [];
+                    return hist.filter(n => {
+                        const hay = ((n.app ?? "") + " " + (n.summary ?? "") + " " + (n.body ?? "")).toLowerCase();
+                        return hay.indexOf(nq) >= 0;
+                    }).slice(0, 32).map(n => ({kind: "notifyitem", notifyItem: n}));
+                }
+
+                // ---- ~ recent files ----
+                // (uses results property above with recentFilesMode check)
+
+                // ---- # color converter ----
+                readonly property string colorText: {
+                    if (!colorMode) return "";
+                    const cq = queryLs.substring(1).trim();
+                    if (cq.length === 0) return "";
+                    return root.parseColor(cq);
+                }
+
                 onResultsChanged: clampSel()
                 onCmdMatchesChanged: if (commandMode) clampSel()
+                onShellResultsChanged: if (shellMode) clampSel()
+                onNotifyResultsChanged: if (notifySearchMode) clampSel()
 
                 // ---- :command mode ----
                 readonly property var commands: [{
@@ -259,15 +485,16 @@ PanelWindow {
                     ShellState.closeLauncher();
                 }
 
-                // ---- calculator ----
+                // ---- calculator (safe parser, no eval) ----
                 readonly property string calcText: {
                     const q = query.trim();
-                    if (q.startsWith(":") || !/[0-9]/.test(q) || !/[+\-*/^]/.test(q) || !/^[0-9+\-*/().^\s]+$/.test(q)) return "";
-                    try {
-                        const v = Function('"use strict";return (' + q.replace(/\^/g, "**") + ')')();
-                        if (typeof v !== "number" || !isFinite(v)) return "";
-                        return String(Math.round(v * 1e10) / 1e10);
-                    } catch (err) { return ""; }
+                    if (q.length === 0 || q.startsWith(":") || q.startsWith(">") || q.startsWith("@") || q.startsWith("#") || q.startsWith("~")) return "";
+                    if (!q.startsWith("=")) return "";
+                    const expr = q.substring(1).trim();
+                    if (expr.length === 0) return "";
+                    const v = root.safeCalc(expr);
+                    if (v === null) return "ERR";
+                    return String(Math.round(v * 1e10) / 1e10);
                 }
 
                 Process {
@@ -300,6 +527,17 @@ PanelWindow {
                         if (selCount > 0) runCommand(cmdMatches[Math.min(selIdx, selCount - 1)]);
                         return;
                     }
+                    if (shellMode) {
+                        const cmd = queryLs.substring(1).trim();
+                        if (cmd.length > 0) root.runShellCmd(cmd);
+                        return;
+                    }
+                    if (colorMode && card.colorText.length > 0) {
+                        copyProc.command = ["wl-copy", card.colorText];
+                        copyProc.running = true;
+                        ShellState.closeLauncher();
+                        return;
+                    }
                     if (calcText !== "") {
                         if (card.wlCopyOk) {
                             copyProc.command = ["wl-copy", calcText];
@@ -315,10 +553,17 @@ PanelWindow {
 
                 function activate(r) {
                     if (!r) return;
+                    if (r.kind === "recentfile") {
+                        RecentFiles.openFile(r.recentFile.uri);
+                        ShellState.closeLauncher();
+                        return;
+                    }
                     try {
                         if (r.kind === "action") r.action.execute(); else r.entry.execute();
                     } catch (err) { console.warn("[launcher] execute failed:", err); return; }
                     pushRecent(r.entry.id);
+                    // track frecency
+                    root.trackLaunch(r.entry.id);
                     ShellState.closeLauncher();
                 }
 
@@ -427,7 +672,7 @@ PanelWindow {
                         anchors.leftMargin: Theme.sp4
                         anchors.rightMargin: Theme.sp4
                         anchors.verticalCenter: parent.verticalCenter
-                        placeholder: Theme.jpEnabled ? "検索 // SEARCH OR :COMMANDS" : "SEARCH OR :COMMANDS"
+                        placeholder: Theme.jpEnabled ? "検索 // SEARCH" : "SEARCH  :cmd  >run  @notify  #color  ~files  =math"
                         navKeys: true
 
                         onAccepted: card.acceptCurrent()
@@ -537,7 +782,7 @@ PanelWindow {
                     anchors.top: catBar.visible ? catBar.bottom : searchBand.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: card.calcText !== "" ? 34 : 0
+                    height: card.calcText !== "" || card.colorText !== "" ? 34 : 0
                     visible: height > 0
                     color: Theme.surface
 
@@ -554,12 +799,12 @@ PanelWindow {
                     Text {
                         x: Theme.sp4
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "= " + card.calcText
+                        text: card.colorText !== "" ? card.colorText : "= " + card.calcText
                         color: Theme.acid
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsBody
                         font.weight: Font.Bold
-                        opacity: card.calcText !== "" ? 1 : 0
+                        opacity: (card.calcText !== "" || card.colorText !== "") ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: Theme.movFast } }
                     }
 
@@ -572,7 +817,7 @@ PanelWindow {
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel
                         font.letterSpacing: 0.8
-                        opacity: card.calcText !== "" ? 1 : 0
+                        opacity: (card.calcText !== "" || card.colorText !== "") ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: Theme.movFast } }
                     }
                 }
@@ -670,6 +915,140 @@ PanelWindow {
                         }
                     }
 
+                    // ---- shell mode: run command card ----
+                    Item {
+                        anchors.fill: parent
+                        anchors.margins: Theme.sp2
+                        visible: card.shellMode
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Theme.surface
+                            radius: Theme.sp1
+                            border.width: 1
+                            border.color: Theme.hairline
+
+                            Column {
+                                anchors.fill: parent
+                                anchors.margins: Theme.sp3
+                                spacing: Theme.sp2
+
+                                Row {
+                                    spacing: Theme.sp1
+
+                                    Rectangle {
+                                        width: 20; height: 20
+                                        radius: 3
+                                        color: Theme.acid
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: ">"
+                                            color: Theme.bg
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fsLabel
+                                            font.weight: Font.Bold
+                                        }
+                                    }
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "RUN COMMAND"
+                                        color: Theme.ink
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fsLabel
+                                        font.weight: Font.Bold
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: parent.width
+                                    height: 1
+                                    color: Theme.hairline
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: card.queryLs.substring(1).trim()
+                                    color: Theme.acid
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsBody
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: "ENTER to execute · output via notification"
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fsMicro
+                                }
+                            }
+                        }
+                    }
+
+                    // ---- @ notification search list ----
+                    ListView {
+                        anchors.fill: parent
+                        anchors.margins: Theme.sp2
+                        visible: card.notifySearchMode
+                        clip: true
+                        model: card.notifyResults
+                        currentIndex: card.selIdx
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                        spacing: 1
+                        boundsBehavior: Flickable.StopAtBounds
+                        FastWheel {}
+
+                        delegate: Item {
+                            id: nRoot
+                            required property var modelData
+                            required property int index
+                            readonly property bool sel: index === card.selIdx
+
+                            width: parent.width
+                            height: 36
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: nRoot.sel ? Theme.surface : "transparent"
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top; anchors.bottom: parent.bottom
+                                    width: 2
+                                    color: nRoot.sel ? Theme.acid : "transparent"
+                                }
+                            }
+
+                            Text {
+                                x: Theme.sp3
+                                width: parent.width * 0.3
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: nRoot.modelData.notifyItem.app ?? ""
+                                color: Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsLabel
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                x: parent.width * 0.3 + Theme.sp3
+                                width: parent.width * 0.7 - Theme.sp3 * 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: nRoot.modelData.notifyItem.summary ?? nRoot.modelData.notifyItem.body ?? ""
+                                color: Theme.ink
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fsBody
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    // ---- ~ recent files: shown via standard list view with updated delegate ----
+
                     // ---- grid view ----
                     GridView {
                         id: gridView
@@ -678,7 +1057,7 @@ PanelWindow {
 
                         anchors.fill: parent
                         anchors.margins: Theme.sp2
-                        visible: !card.commandMode && card.mode === 0
+                        visible: !card.specialMode && card.mode === 0
                         clip: true
                         model: card.results
                         currentIndex: card.selIdx
@@ -806,7 +1185,7 @@ PanelWindow {
                         id: listView
                         anchors.fill: parent
                         anchors.margins: Theme.sp2
-                        visible: !card.commandMode && card.mode === 1
+                        visible: !card.specialMode && card.mode === 1
                         clip: true
                         model: card.results
                         currentIndex: card.selIdx
@@ -825,10 +1204,12 @@ PanelWindow {
 
                             readonly property bool sel: index === card.selIdx
                             readonly property bool isAction: modelData.kind === "action"
-                            readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
+                            readonly property bool isRecentFile: modelData.kind === "recentfile"
+                            readonly property bool isNotify: modelData.kind === "notifyitem"
+                            readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : isRecentFile ? "" : isNotify ? "" : (modelData.entry.icon ?? "")
                             readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
-                            readonly property string label: isAction ? modelData.action.name : modelData.entry.name
-                            readonly property string sub: isAction ? modelData.entry.name : (modelData.entry.genericName ?? "")
+                            readonly property string label: isAction ? modelData.action.name : isRecentFile ? (modelData.recentFile.name ?? modelData.recentFile.uri ?? "") : isNotify ? (modelData.notifyItem.summary ?? modelData.notifyItem.body ?? "") : modelData.entry.name
+                            readonly property string sub: isAction ? modelData.entry.name : isRecentFile ? (modelData.recentFile.mimeType ?? "") : isNotify ? (modelData.notifyItem.app ?? "") : (modelData.entry.genericName ?? "")
 
                             Rectangle {
                                 anchors.fill: parent
@@ -846,7 +1227,7 @@ PanelWindow {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 5; height: 5
                                     color: Theme.acid
-                                    visible: !rowRoot.isAction && card.pinIds.includes(rowRoot.modelData.entry.id)
+                                    visible: rowRoot.modelData.kind === "app" && card.pinIds.includes(rowRoot.modelData.entry.id)
                                 }
 
                                 Item {
@@ -861,10 +1242,10 @@ PanelWindow {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: rowRoot.label.charAt(0).toUpperCase()
+                                            text: rowRoot.isRecentFile ? "~" : rowRoot.isNotify ? "@" : rowRoot.label.charAt(0).toUpperCase()
                                             color: Theme.bg
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: Theme.fsLabel
+                                            font.pixelSize: rowRoot.isRecentFile || rowRoot.isNotify ? 12 : Theme.fsLabel
                                             font.weight: Font.ExtraBold
                                         }
                                     }
@@ -926,7 +1307,7 @@ PanelWindow {
                         id: detailList
                         anchors.fill: parent
                         anchors.margins: Theme.sp2
-                        visible: !card.commandMode && card.mode === 2
+                        visible: !card.specialMode && card.mode === 2
                         clip: true
                         model: card.results
                         currentIndex: card.selIdx

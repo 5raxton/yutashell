@@ -305,6 +305,7 @@ Singleton {
     readonly property alias launcherDetail: adapter.launcherDetail
     readonly property alias launcherPins: adapter.launcherPins
     readonly property alias launcherRecents: adapter.launcherRecents
+    readonly property alias launcherStats: adapter.launcherStats
 
     // audio / OSD knobs
     readonly property alias audioCeiling: adapter.audioCeiling
@@ -442,6 +443,8 @@ Singleton {
     property bool launcherDetail: true
     property string launcherPins: "[]"
     property string launcherRecents: "[]"
+    // frecency: { "appId": { "count": N, "lastLaunch": timestamp } }
+    property string launcherStats: "{}"
 
     // audio: overdrive ceiling percent (100+), OSD corner (tl|tc|tr|bl|bc|br),
     // OSD card width, OSD fade delay ms, per-kind OSD gates, night light

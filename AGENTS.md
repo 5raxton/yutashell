@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–7 complete.
+Phases 1–8 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -40,6 +40,17 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - `GlobalKeys` (common) — shell-internal keybind registry; persists bindings in `ShellState.globalKeybinds`.
 - `MixerService` (audio) — per-app audio mixer over PipeWire; wraps AudioService streams with desktop-entry icon resolution and clean write-back API.
 
+## New singletons (PH.08)
+
+- `RecentFiles` (launcher) — reads `~/.local/state/recently-used.xbel`, exposes top 20 files; click opens with `xdg-open`.
+
+## Launcher (PH.08)
+
+- **Frecency ranking**: `ShellState.launchStats` stores per-app `{count, lastLaunch}` timestamps; `frecencyScore()` applies time-decay (`count * 1/(1 + daysSince * 0.1)`). Used to sort unqueried results (pins -> recents -> frecency -> alpha) and to boost fuzzy search scores by up to +30%.
+- **Multi-mode prefixes**: `=` calculator, `>` shell command, `@` notification history search, `#` color converter, `~` recent files. Each mode has its own result kind and UI component.
+- **Safe calculator** (`=` prefix): recursive descent parser (no `eval`/`Function()`); supports `+`, `-`, `*`, `/`, `%`, `^`, parentheses, functions (`sqrt`, `abs`, `sin`, `cos`, `tan`, `log`, `ln`, `floor`, `ceil`, `round`), constants (`pi`, `e`, `phi`). Result copied to clipboard via `wl-paste` (missing `wl-clipboard` = Health warning).
+- **Result kinds**: `app` (desktop entry, default), `action` (desktop entry action), `recentfile` (XDG recent, opened via `xdg-open`), `shellcmd` (> prefix, run via Process), `notifyitem` (@ prefix, matched notification history entry).
+
 ## Hyprland facts
 
 - **Warm-client rule**: `Hyprland.dispatch('hl.dsp.*')` silently no-ops from a fresh instance unless the event socket is subscribed AND ~8 s uptime elapsed. Live shell always qualifies; 2 s test instances don't. `hyprctl eval '<lua>'` is always cold — fine for `hl.config`, inert for `hl.dsp.*`.
@@ -49,7 +60,7 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - Runtime config only via `hyprctl eval '<lua>'` — plain `hyprctl keyword` fails ("non-legacy parsers"). Nested Lua tables mirror option paths: `hl.config({general={col={active_border="…"}}})` → `general:col.active_border`.
 - Color formats (hyprctl round-trip verified): `rgba()` hex parses RRGGBBAA (trailing alpha!), bare `"0xAARRGGBB"` strings parse directly; internal form is always AARRGGBB. colors.lua template's `0xff…` values correct as-is; it applies borders via `hl.config` at require time, and the catalog post-hook re-applies through `hyprctl eval` after every matugen run.
 - `WlrLayershell` anchors are ONLY left/right/top/bottom — no horizontalCenter. Centered dock = full-width window (left+right+bottom) + `mask: Region { item: <centered content> }`.
-- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`.
+- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`. PH.08: Launcher features in dedicated section below.
 
 ## Hard-won lessons (do not regress)
 
@@ -107,6 +118,7 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 - **StorageMonitor** (widgets) — singleton reading `df -h` every 5 s, per-mount usage with warn/crit thresholds; feeds disk bar segment and surface panel.
 - **NetDetails** (net) — YSurface panel showing IP4/IP6/gateway/DNS/signal; IPC: `network details`, `network copy-ip`.
 - **ProcessKiller** (widgets) — YSurface panel with process search + kill; IPC: `processes open/close/kill <pid>`.
+- **Launcher prefix modes** — search input prefixed with `=`, `>`, `@`, `#`, or `~` switches to a dedicated mode (calc/command/notify/color/recent). Each mode has its own UI component (CalcStrip, CommandCard, NotifyList, ColorResult, RecentFileList). Calculator uses a recursive descent parser (`CalcParser.qml`) — never `Function()` or `eval`. Frecency ranking: `ShellState.launchStats` per-app `{count, timestamps[]}`, score = `count * 1/(1+daysSince*0.1)`, 30-day decay. Sort: pinned → recent → frecency → alpha.
 
 ## Conventions (enforced)
 
