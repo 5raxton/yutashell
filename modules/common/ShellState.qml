@@ -65,6 +65,7 @@ Singleton {
         root.scratchpadOpen = name === "scratchpad";
         root.netDetailsOpen = name === "netdetails";
         root.processesOpen = name === "processes";
+        root.cheatsheetOpen = name === "cheatsheet";
     }
 
     function togglePanel() {
@@ -271,6 +272,17 @@ Singleton {
         root.set("barCompact", !root.barCompact);
     }
 
+    // ---- cheatsheet panel ----
+    property bool cheatsheetOpen: false
+
+    function toggleCheatsheet() {
+        root._exclusive(root.cheatsheetOpen ? "" : "cheatsheet");
+    }
+
+    function closeCheatsheet() {
+        root.cheatsheetOpen = false;
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -459,6 +471,8 @@ Singleton {
     property bool osdThermal: true
     property int nlTemp: 4500
     property bool nlActive: false
+    // night light schedule: JSON {on: "HH:MM", off: "HH:MM", enabled: bool}
+    property string nlSchedule: '{"on":"21:00","off":"07:00","enabled":false}'
     // session/power: lock-screen monitor selection ("all"|"primary"|JSON name
     // list), idle action ("none"|"lock"|"suspend"|"shutdown") after idleSecs,
     // hold-to-confirm duration for destructive tiles (0 disables), power menu
@@ -522,7 +536,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"

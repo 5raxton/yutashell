@@ -1142,4 +1142,61 @@ ShellRoot {
             return "reset to defaults";
         }
     }
+
+    IpcHandler {
+        target: "pomodoro"
+
+        function start(): void {
+            Pomodoro.start();
+        }
+
+        function pause(): void {
+            Pomodoro.pause();
+        }
+
+        function resume(): void {
+            Pomodoro.resume();
+        }
+
+        function reset(): void {
+            Pomodoro.reset();
+        }
+
+        function toggle(): void {
+            Pomodoro.toggle();
+        }
+
+        function status(): string {
+            return Pomodoro.phase + " " + Pomodoro.display + " round " + Pomodoro.round;
+        }
+    }
+
+    IpcHandler {
+        target: "cheatsheet"
+
+        function toggle(): void {
+            ShellState.toggleCheatsheet();
+        }
+
+        function open(): void {
+            ShellState._exclusive("cheatsheet");
+        }
+
+        function close(): void {
+            ShellState.closeCheatsheet();
+        }
+    }
+
+    IpcHandler {
+        target: "nightlight"
+
+        function schedule(onTime: string, offTime: string, enabled: string): string {
+            NightLight.setSchedule(String(onTime), String(offTime), String(enabled).toLowerCase() === "true" || String(enabled) === "on");
+            return "schedule " + NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
+        }
+
+        function schedulestatus(): string {
+            return NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
+        }
+    }
 }

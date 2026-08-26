@@ -118,6 +118,12 @@ Singleton {
         case "processes":
             ShellState.toggleProcesses();
             break;
+        case "pomodoro":
+            Pomodoro.toggle();
+            break;
+        case "cheatsheet":
+            ShellState.toggleCheatsheet();
+            break;
         default:
             return false;
         }

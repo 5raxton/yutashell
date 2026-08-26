@@ -136,7 +136,7 @@ PanelWindow {
             label: "POWER",
             jp: "電",
             group: "SYSTEM",
-            keywords: "power plan session menu hold idle battery ppd profile"
+            keywords: "power plan session menu hold idle battery ppd profile pomodoro timer"
         }, {
             id: "security",
             label: "SECURITY",
@@ -148,7 +148,7 @@ PanelWindow {
             label: "SERVICES",
             jp: "務",
             group: "SYSTEM",
-            keywords: "autostart calendar audio overdrive brightness night light"
+            keywords: "autostart calendar audio overdrive brightness night light schedule"
         }, {
             id: "system",
             label: "MONITOR",
@@ -3605,6 +3605,65 @@ PanelWindow {
                         }
                     }
 
+                    // Night light schedule
+                    YSection {
+                        width: root.contentW
+                        label: "Night Light Schedule"
+                        visible: NightLight.available
+
+                        YRow {
+                            width: parent.width
+                            title: "Auto schedule"
+                            sub: NightLight.scheduleEnabled
+                                  ? NightLight.scheduleOn + " → " + NightLight.scheduleOff
+                                  : "disabled"
+                            on_: NightLight.scheduleEnabled
+
+                            YSwitch {
+                                checked: NightLight.scheduleEnabled
+                                anchors.verticalCenter: parent.verticalCenter
+                                onToggled: NightLight.setSchedule(
+                                    NightLight.scheduleOn, NightLight.scheduleOff, !NightLight.scheduleEnabled)
+                            }
+                        }
+
+                        YRow {
+                            width: parent.width
+                            title: "Preset"
+                            sub: "Select schedule"
+
+                            property var nlPresets: [
+                                { id: "custom2107", label: "21:00 – 07:00", on_: "21:00", off: "07:00" },
+                                { id: "custom2206", label: "22:00 – 06:00", on_: "22:00", off: "06:00" },
+                                { id: "custom2008", label: "20:00 – 08:00", on_: "20:00", off: "08:00" }
+                            ]
+
+                            Repeater {
+                                model: parent.nlPresets
+
+                                delegate: Item {
+                                    required property var modelData
+
+                                    width: chipDel.implicitWidth + Theme.sp2
+                                    height: Theme.ctlH
+
+                                    YChip {
+                                        id: chipDel
+                                        anchors.centerIn: parent
+                                        label: modelData.label
+                                        tone: (NightLight.scheduleOn === modelData.on_ && NightLight.scheduleOff === modelData.off) ? "acid" : "outline"
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: NightLight.setSchedule(modelData.on_, modelData.off, NightLight.scheduleEnabled)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Item {
                         width: 1
                         height: Theme.sp2
@@ -3713,6 +3772,45 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "04"
+                        label: "Pomodoro"
+                        chip: Pomodoro.phase !== "idle" ? Pomodoro.label + " " + Pomodoro.display : "IDLE"
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Timer"
+                        sub: Pomodoro.phase !== "idle" ? Pomodoro.display + " · round " + Pomodoro.round : "not running"
+                        note: "⏱"
+                        on_: Pomodoro.running
+
+                        Row {
+                            spacing: Theme.sp1
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            YButton {
+                                label: Pomodoro.running ? "PAUSE" : Pomodoro.phase === "idle" ? "START" : "RESUME"
+                                tone: "acid"
+                                onClicked: Pomodoro.toggle()
+                            }
+
+                            YButton {
+                                label: "RESET"
+                                enabled: Pomodoro.phase !== "idle"
+                                onClicked: Pomodoro.reset()
+                            }
+                        }
+                    }
+
+                    YRow {
+                        width: root.contentW
+                        title: "Work duration"
+                        sub: Pomodoro.workMin + " min"
+                        interactive: false
+                    }
+
+                    YSection {
+                        width: parent.width
+                        index: "05"
                         label: "Battery"
                         chip: UPower.displayDevice && UPower.displayDevice.isPresent ? Math.round(UPower.displayDevice.percentage) + "%" : "NO BAT"
                     }

@@ -14,3 +14,5 @@ singleton ColorPicker 1.0 ColorPicker.qml
 Emoji 1.0 Emoji.qml
 singleton StorageMonitor 1.0 StorageMonitor.qml
 ProcessKiller 1.0 ProcessKiller.qml
+singleton Pomodoro 1.0 Pomodoro.qml
+Cheatsheet 1.0 Cheatsheet.qml

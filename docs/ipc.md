@@ -33,7 +33,9 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `processes` | `open` / `close` / `kill <pid>` | process search + kill panel |
 | `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
 | `media` | `toggle` / `close` / `playpause` / `next` / `previous` | MPRIS media widget |
-| `nightlight` | `toggle` / `on` / `off` / `temp <kelvin>` / `status` | night light (hyprsunset) |
+| `nightlight` | `toggle` / `on` / `off` / `temp <kelvin>` / `schedule <on> <off> <true/false>` / `schedulestatus` / `status` | night light (hyprsunset) with auto schedule |
+| `pomodoro` | `start` / `pause` / `resume` / `reset` / `toggle` / `status` | pomodoro timer (work/break cycles) |
+| `cheatsheet` | `toggle` / `open` / `close` | keybind cheatsheet panel (parsed from hyprctl binds) |
 | `shot` | `region` / `full` / `window` / `copy` / `dir` | screenshots (grim + slurp) |
 | `clipboard` | `toggle` / `open` / `close` / `status` | clipboard history (cliphist) |
 | `calendar` | `toggle` / `open` / `close` | calendar widget |
@@ -63,7 +65,7 @@ bar preset <id>                         # apply a bar layout preset
 bar status                              # current model as text
 ```
 
-22 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `pluginwidgets`, `clock`, `spacer`
+24 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `pluginwidgets`, `pomodoro`, `cheatsheet`, `clock`, `spacer`
 
 ### `spawn`
 

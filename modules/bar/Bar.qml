@@ -281,6 +281,10 @@ PanelWindow {
             return scratchpadComp;
         case "pluginwidgets":
             return pluginWidgetsComp;
+        case "pomodoro":
+            return pomodoroComp;
+        case "cheatsheet":
+            return cheatsheetComp;
         case "clock":
             return clockComp;
         case "spacer":
@@ -583,6 +587,76 @@ PanelWindow {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: ShellState.toggleScratchpad()
+            }
+        }
+    }
+
+    Component {
+        id: pomodoroComp
+
+        Item {
+            implicitWidth: pomoRow.width
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: pomoRow
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "⏱"
+                    color: Pomodoro.phase === "work" ? Theme.acid : Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Pomodoro.label + " " + Pomodoro.display
+                    color: Pomodoro.running ? Theme.ink : Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Pomodoro.toggle()
+                onWheel: function(event) {
+                    if (event.angleDelta.y > 0) Pomodoro.start();
+                    else Pomodoro.reset();
+                }
+            }
+        }
+    }
+
+    Component {
+        id: cheatsheetComp
+
+        Item {
+            implicitWidth: cheatText.implicitWidth + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Text {
+                id: cheatText
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                text: "⌨"
+                color: ShellState.cheatsheetOpen ? Theme.acid : Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.barFsBody
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleCheatsheet()
             }
         }
     }

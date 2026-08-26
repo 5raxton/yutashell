@@ -43,7 +43,9 @@ Singleton {
             "scratchpad": { label: "Scratchpad", jp: "隠" },
             "pluginwidgets": { label: "Plugin widgets", jp: "拡" },
             "clock": { label: "Clock", jp: "時" },
-            "spacer": { label: "Spacer", jp: "余" }
+            "spacer": { label: "Spacer", jp: "余" },
+            "pomodoro": { label: "Pomodoro timer", jp: "豆" },
+            "cheatsheet": { label: "Keybind cheatsheet", jp: "鍵" }
         };
         // merge bar plugin segments
         const bps = PluginService.enabledBarPlugins;
@@ -161,13 +163,17 @@ Singleton {
             return Overview.scratchWindows.length > 0;
         case "pluginwidgets":
             return PluginService.enabledWidgets.length > 0;
+        case "pomodoro":
+            return Pomodoro.phase !== "idle";
+        case "cheatsheet":
+            return true;
         default:
             return true;
         }
     }
 
     // compact mode: only identity, workspaces, clock
-    readonly property var compactIds: ["identity", "workspaces", "clock"]
+    readonly property var compactIds: ["identity", "workspaces", "clock", "pomodoro", "cheatsheet"]
 
     // the ordered list of visible segment ids for a zone
     readonly property var leftVisible: root._visible("left")
@@ -196,6 +202,8 @@ Singleton {
             "session": "power",
             "mixer": "mixer",
             "scratchpad": "scratchpad",
+            "pomodoro": "pomodoro",
+            "cheatsheet": "cheatsheet",
             "tray": "",
             "workspaces": "",
             "taskbar": ""
