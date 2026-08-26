@@ -57,7 +57,7 @@ Item {
                         text: ((cell.modelData.title || cell.modelData.id) + " ").charAt(0).toUpperCase()
                         color: Theme.bg
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsMicro
+                        font.pixelSize: Theme.barFsMicro
                         font.weight: Font.ExtraBold
                     }
                 }

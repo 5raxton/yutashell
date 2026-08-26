@@ -105,7 +105,7 @@ Column {
                     anchors.rightMargin: Theme.sp2
                     visible: prow.modelData.type === "bar" && prow.plOn && prow.modelData.barSegment
                     label: prow.modelData.barSegment ? prow.modelData.barSegment.id.toUpperCase() : ""
-                    tone: "accent"
+                    tone: "acid"
                 }
             }
         }

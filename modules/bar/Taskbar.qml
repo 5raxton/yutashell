@@ -90,7 +90,7 @@ Item {
                         text: item.modelData.name.charAt(0).toUpperCase()
                         color: Theme.bg
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fsLabel
+                        font.pixelSize: Theme.barFsLabel
                         font.weight: Font.ExtraBold
                     }
                 }

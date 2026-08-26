@@ -134,7 +134,7 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
                     label: root.daemon && root.daemon.checking ? "CHECKING…" : root.daemon ? root.daemon.updateCount + " UPDATE" + (root.daemon.updateCount !== 1 ? "S" : "") : "—"
-                    tone: root.daemon && root.daemon.updateCount > 0 ? "accent" : "neutral"
+                    tone: root.daemon && root.daemon.updateCount > 0 ? "acid" : "outline"
                 }
             }
 
