@@ -6,640 +6,18 @@
 > Every new surface composes `YSurface`; every new button is `YButton`; every
 > color comes from `Theme.*`.
 
----
-
-## Phase 1 — Native API Adoption ✅
-
-> Replace subprocess shelling with Quickshell-native APIs. Unlocks every later
-> phase by making the shell reactive instead of poll-based.
-
-### 1.1 Clipboard Singleton (replace cliphist polling) ✅
-
-**File:** `modules/widgets/Clipboard.qml`, `modules/widgets/ClipboardPanel.qml`
-
-Quickshell exports a `Clipboard` singleton with reactive `text` property and
-change events via `wlr-data-control-unstable-v1`. Today we spawn `cliphist`
-subprocesses for every copy/paste.
-
-**Plan:**
-- Create `ClipboardService.qml` singleton wrapping `Quickshell.Clipboard` +
-  `cliphist` for history (cliphist still owns the ring buffer; the singleton
-  watches clipboard changes reactively and only calls `cliphist add` on new
-  entries).
-- `Clipboard.qml` drops its `copyProc`/`delProc` polling; the panel becomes
-  a live view over `ClipboardService.history`.
-- Add search field (`YField`) at the top of `ClipboardPanel.qml` — filter
-  `history` by substring.
-- Add image preview for `Clipboard.image` entries (small `Image` thumbnail in
-  `ToastCard`-style entries).
-
-**Touches:** `ClipboardService.qml` (new), `Clipboard.qml`, `ClipboardPanel.qml`,
-`qmldir`.
-
-### 1.2 Idle Inhibitor ✅
-
-**File:** `modules/audio/NightLight.qml` area + new `modules/session/IdleInhibitor.qml`
-
-Quickshell ships `Quickshell.Wayland.IdleInhibitor` which talks
-`idle-inhibit-unstable-v1`. Today the shell has no way to prevent idle during
-video playback or screen recording.
-
-**Plan:**
-- New singleton `IdleInhibitor.qml` exposing `active: bool` and `reason: string`.
-- Auto-inhibit when `Mpris.players` has `isPlaying === true` (configurable
-  in SETTINGS > POWER).
-- Auto-inhibit when `Recording.active === true`.
-- Manual toggle via IPC `idle inhibit`, bar chip in `session` segment, or
-  a CC POWER tab toggle.
-- Persist `ShellState.idleInhibitAuto` (default true).
-
-**Touches:** `IdleInhibitor.qml` (new), `Session.qml` (IPC), `BarSegments` (chip),
-`ControlCenter.qml` (POWER tab), `settings/PowerPage.qml`.
-
-### 1.3 PipeWire Peak Monitor (Audio Visualizer) ✅
-
-**File:** `modules/audio/AudioService.qml`, `modules/control/ControlCenter.qml`
-
-`PwNodePeakMonitor` gives real-time per-channel peak levels (0.0–1.0) from
-any PipeWire node. Today the MEDIA tab has a static fake cava.
-
-**Plan:**
-- Add `peakMonitor` to `AudioService.qml`: a `PwNodePeakMonitor` bound to the
-  default audio sink. Expose `peaks: var` (array of float) and `peakCount: int`.
-- Replace the 48 static bars in the CC MEDIA tab with a reactive `Repeater`
-  over `peaks`, each bar's `height` bound to `peaks[index] * maxHeight` with a
-  fast `NumberAnimation` for smooth decay.
-- Add an optional bar segment `audiobars` showing 5–8 tiny peak bars inline.
-- Gate on `AudioService.available` (hide chip/bars when no PipeWire).
-
-**Touches:** `AudioService.qml`, `ControlCenter.qml` MEDIA tab,
-`BarSegments.qml` + new `AudioBars.qml` segment.
-
-### 1.4 Hyprland Global Shortcuts ✅
-
-**Files:** `shell.qml`, new `modules/common/GlobalKeys.qml`
-
-Today keybinds live in hyprland.conf and call `qs ipc`. `GlobalShortcut` from
-`Quickshell.Hyprland` binds directly — no subprocess, lower latency, works
-even when IPC is flooded.
-
-**Plan:**
-- New singleton `GlobalKeys.qml` declaring `HyprlandFocusGrab` +
-  `GlobalShortcut` entries for shell-internal actions (toggle launcher, toggle
-  CC, toggle picker, etc.).
-- Keep external Hyprland keybinds as the user-facing default (familiar);
-  `GlobalKeys` provides the low-level fast path that IPC can also reach.
-- Document both paths in README.
-
-**Touches:** `GlobalKeys.qml` (new), `shell.qml` (import), `README.md`.
+Phases 1–10 are complete — see `AGENTS.md` for implementation details and
+`README.md` for the feature list.
 
 ---
 
-## Phase 2 — Per-App Audio Mixer ✅
-
-> The single most-requested feature in every Wayland shell survey. PipeWire
-> makes this trivial; the UX is the hard part.
-
-### 2.1 Mixer Service ✅
-
-**File:** New `modules/audio/MixerService.qml`
-
-**Plan:**
-- Singleton reading `Pipewire.nodes.values`.
-- Filter nodes where `isStream === true` (these are per-app streams).
-- For each stream: expose `name`, `icon`, `volume` (linear), `muted`, `sink`
-  (target device), and write-back functions `setVolume(v)`, `setMuted(m)`,
-  `setSink(sinkId)`.
-- Derived `streams` property re-evaluates on `Pipewire.nodes.values` change.
-- Each stream icon resolved via `DesktopEntries.heuristicLookup(node.name)`.
-
-### 2.2 Mixer Panel UI ✅
-
-**File:** New `modules/audio/MixerPanel.qml`, registered in `BarActions.qml`
-
-**Plan:**
-- `YSurface` panel (spawn from bar via `audiomixer` action or IPC `mixer`).
-- Vertical list of stream cards: icon + name + `YSlider` + mute `YButton`.
-- Output device selector at top (current sink + switch button).
-- Input streams section (microphone apps) below a divider.
-- Per-stream app icon from desktop entries; fallback to speaker icon.
-- IPC target `mixer` (toggle/open/close).
-
-### 2.3 Bar Segment + OSD ✅
-
-**Plan:**
-- New bar segment `mixer` showing the current output device icon + volume.
-- Click action opens `MixerPanel`.
-- Scroll wheel adjusts master volume (like `audio` segment does today).
-- OSD shows which app changed when per-app volume differs from master.
-
-**Touches:** `MixerService.qml` (new), `MixerPanel.qml` (new),
-`AudioService.qml` (merge peak monitor), `BarSegments.qml`,
-`BarActions.qml`, `ShellState.qml`, `qmldir`.
-
----
-
-## Phase 3 — Notification Intelligence ✅
-
-> Notifications are the most interactive surface. Today they're flat history
-> with replay. Make them smart.
-
-### 3.1 Smart Stacking & Grouping ✅
-
-**File:** `modules/notify/Notify.qml`, `modules/notify/NotificationCenter.qml`
-
-**Plan:**
-- Group by `appName` in the notification center. Each group is an expandable
-  card: collapsed shows latest + count badge; expanded shows all with timestamps.
-- `ToastStack.qml` deduplicates: if a new toast has the same `appName` as an
-  existing visible toast, update the existing card in-place (fade the text) rather
-  than spawning a second card. This is how COSMIC and GNOME handle chat floods.
-- Persist `ShellState.notifyGrouped` (default true).
-
-### 3.2 Inline Reply ✅
-
-**File:** `modules/notify/Notify.qml`, `modules/notify/ui/ToastCard.qml`
-
-Quickshell's `NotificationServer` already supports `inlineReply`. The card UI
-just doesn't expose it.
-
-**Plan:**
-- When `notification.hasReply`, show a small `YField` + send button at the
-  bottom of the toast card and in the expanded center view.
-- On submit: call `notification.sendInlineReply(text)`.
-- Add a 2-second delay before auto-dismiss after reply (let the user see their
-  message land).
-- Gate on `ShellState.notifyActions` (existing toggle).
-
-### 3.3 Notification Snooze ✅
-
-**File:** `modules/notify/Notify.qml`
-
-**Plan:**
-- New IPC: `dnd snooze <minutes>` — temporarily suppresses non-critical
-  toasts for N minutes while keeping DND off.
-- Snooze state stored as `property real _snoozeUntil: 0` (timestamp); a
-  Timer fires at expiry.
-- Bar chip shows "Zzz" icon when snoozed, with remaining time on hover.
-
-### 3.4 Notification History Search ✅
-
-**File:** `modules/notify/NotificationCenter.qml`
-
-**Plan:**
-- Add `YField` search input at the top of the notifications tab.
-- Filter the history list by body/app substring match.
-- Clear button resets filter.
-
-**Touches:** `Notify.qml`, `NotificationCenter.qml`, `ToastCard.qml`,
-`ToastStack.qml`, `BarActions.qml` (DND snooze), `ShellState.qml`.
-
----
-
-## Phase 4 — Workspace Intelligence ✅
-
-> Make workspaces visual, not just numbered. Users think in spatial terms.
-
-### 4.1 Workspace Thumbnail Strip ✅
-
-**File:** `modules/bar/Workspaces.qml`
-
-**Plan:**
-- New mode `thumbnails` alongside default/numbers/pills/active.
-- Uses `ScreencopyView` from `Quickshell.Wayland._Screencopy` to capture
-  each workspace as a live mini-preview.
-- Each workspace slot shows a scaled thumbnail (40×24 px) with the workspace
-  number overlaid. Focused workspace has an acid border.
-- Performance: only capture visible workspaces (bar viewport); throttle to
-  1 fps for non-focused; instant for focused.
-- Persist `ShellState.wsMode` extended with `"thumbnails"`.
-
-### 4.2 Scratchpad Manager ✅
-
-**File:** New `modules/overview/Scratchpad.qml`
-
-**Plan:**
-- Reads `Hyprland.workspaces.values` for `special:magic` (the scratchpad
-  workspace used by `Dock.qml`).
-- Lists each window in the scratchpad with app icon + title.
-- Click to restore (dispatch `window.move({ workspace = "previous" })`).
-- Right-click to close.
-- Accessible via IPC `overview scratchpad`, bar segment `scratchpad`, or
-  keybind.
-- Visual: `YSurface` popup with a compact list, same style as AltTab.
-
-### 4.3 Window Pin to All Workspaces ✅
-
-**File:** `modules/dock/Dock.qml`, `modules/bar/Taskbar.qml`
-
-**Plan:**
-- Right-click context menu on dock icon or taskbar entry adds "Pin to All
-  Workspaces" option.
-- Dispatch: `hl.dsp.window.move({ workspace = "special:pinned" })` then
-  toggle `pinned` state in a local map.
-- Pinned windows show a small pin icon overlay in the taskbar.
-- Persist pinned window app IDs in `ShellState.pinnedApps`.
-
-### 4.4 Overview Improvements ✅
-
-**File:** `modules/overview/OverviewGrid.qml`
-
-**Plan:**
-- Live window thumbnails via `ScreencopyView` (same API as 4.1).
-- Drag windows between workspaces in the grid.
-- Hover preview: enlarge the window thumbnail on mouse-over.
-- Search field to filter windows by app name.
-
-**Touches:** `Workspaces.qml`, `Scratchpad.qml` (new), `Dock.qml`,
-`Taskbar.qml`, `OverviewGrid.qml`, `ShellState.qml`, `BarSegments.qml`,
-`qmldir`.
-
----
-
-## Phase 5 — Secure Session & Bluetooth ✅
-
-> Lock screen is a security surface. Make it crash-safe. Bluetooth pairing
-> should be native, not `bluetoothctl`.
-
-### 5.1 Wayland Session Lock ✅
-
-**File:** `modules/session/LockScreen.qml`
-
-Implemented (pre-Roadmap). The lock screen uses `WlSessionLock` with
-`WlSessionLockSurface` per screen, PAM bridge (`PamContext`), and multi-monitor
-support. On crash the compositor kills the session (secure by default).
-
-### 5.2 Bluetooth Pairing Agent ✅
-
-**File:** `modules/net/BluetoothPanel.qml`
-
-Pairing UX implemented with pulsing border and cancel button during active
-pairing. `device.pair()` / `cancelPair()` wired into device cards. Status
-indicator (paired / trusted / battery) via `Bluetooth.defaultAdapter`.
-
-Note: `Bluetooth.agent` API does not exist in Quickshell 0.3.1 — authenticated
-pairing (PIN/passkey dialog) is not available through the native API. Only
-Just Works pairing via `device.pair()` is supported. A PIN/passkey entry
-dialog cannot be built until upstream exposes the agent API.
-
-### 5.3 Caffeine Toggle (Idle Inhibitor Manual) ✅
-
-**File:** `modules/session/Session.qml`, bar `session` segment
-
-Implemented. The session bar segment toggles manual idle inhibit on click.
-Shows "CAFFEINE" label when active, "INHIBIT" with logind count otherwise.
-
-**IPC:** `qs ipc call session idle-inhibit`
-
-**Touches:** `LockScreen.qml`, `BluetoothPanel.qml`, `Session.qml`,
-`IdleInhibitor.qml`, `BarSegments.qml`.
-
-> Phase 6 is next.
-
----
-
-## Phase 6 — Information Density Widgets [DONE]
-
-> Give power users the data they need at a glance, without leaving the shell.
-
-### 6.1 Network Details Widget — DONE
-
-Shipped `modules/net/NetDetails.qml`: `YSurface` panel sourcing data from
-nmcli (one-shot `Process`, 5 s refresh). Shows active interface, SSID,
-IP4/IP6, gateway, DNS, signal strength (dBm + %), link speed, VPN status.
-IPC `network details` and `network copy-ip` (copies IP to clipboard).
-CC NETWORK tab "Details" button opens the panel.
-
-### 6.2 Storage Monitor — DONE
-
-Shipped `modules/widgets/StorageMonitor.qml`: singleton reading `df -h` every
-5 s. Exposes per-mount device, mount point, used/total, percent, fs type.
-Warn at 85%, critical at 95% per mount. CC SYSTEM tab storage section shows
-the breakdown.
-
-### 6.3 Process Killer — DONE
-
-Shipped `modules/widgets/ProcessKiller.qml`: `YSurface` panel with `YField`
-search + live process list from `ps aux --sort=-%mem`. Each row shows PID,
-user, CPU%, MEM%, truncated command. Kill button sends SIGTERM; shift+click
-sends SIGKILL with confirmation dialog. IPC `processes open`, `processes close`,
-`processes kill <pid>`. CC NETWORK tab shortcut entry.
-
-### 6.4 Battery Health & Time Estimates — DONE
-
-Extended `SystemStats.qml` to read `energy_full`, `energy_full_design`, and
-`power_now` from sysfs. Computes `batWearPct`, `batTimeLeft`,
-`batTimeToFull`. Added `fmtDuration()` formatter. CC POWER tab shows battery
-health ring + wear percentage + time estimates.
-
-### 6.5 Fan Speed / Thermal OSD — DONE
-
-Extended `SystemStats` to extract `fan*_input` from `sensors -j`, exposing a
-`fans[]` array. Added `Osd.qml` "thermal" kind for threshold-crossing
-warnings. New `thermalWarning` / `thermalCritical` signals on SystemStats.
-Auto-dismiss after 4 s. Gated by `ShellState.osdThermal` toggle.
-
-**Touches:** `NetDetails.qml` (new), `StorageMonitor.qml` (new),
-`ProcessKiller.qml` (new), `SystemStats.qml`, `Osd.qml`,
-`ControlCenter.qml` (SYSTEM + POWER tabs), `BarSegments.qml`,
-`ShellState.qml`.
-
----
-
-## Phase 7 — Customization Power [DONE]
-
-> Let users reshape the shell without touching QML.
-
-### 7.1 Layout Presets — DONE
-
-Shipped `modules/settings/PresetsPage.qml` with 7 built-in presets
-(Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) plus
-custom preset support. One-click apply sets `barSegments`, `barScale`,
-`barPosition`, `wsMode`, `dockEnabled`, `dockMode`. Custom presets save
-to `ShellState.customPresets`. IPC `bar preset <id>`. Preset data
-centralized in `BarSegments.layoutPresets`.
-
-### 7.2 Per-Monitor Bar Configuration — DEFERRED
-
-Skipped. Per-monitor bar overrides are too invasive for the current
-architecture; deferred to a later phase.
-
-### 7.3 Compact/Full Bar Toggle — DONE
-
-Shipped `ShellState.barCompact` toggle. Compact mode filters to
-identity + workspaces + clock via `BarSegments.present()`. Bar height
-scales to 0.7x via `Theme.qml`. Settings toggle in BAR page. IPC
-`bar compact`, `bar compactset on|off`.
-
-### 7.4 Custom Bar Click Actions (Enhanced) — DONE
-
-Extended `BarActions` with compound array support, `shell:<cmd>`, and
-`theme:<scheme>` action types. Added click profiles in settings
-(Productivity, Media-First, Developer). Click cycle expanded with
-mixer, scratchpad, networkdetails, and processes actions.
-
-**Touches:** `PresetsPage.qml` (new), `theme/presets/*.json` (new),
-`Bar.qml`, `BarSegments.qml`, `BarActions.qml`, `ShellState.qml`,
-`SettingsPanel.qml`, `qmldir`.
-
----
-
-**Phase 9 is next.**
-
-## Phase 8 — Smart Launcher & Command Palette [DONE]
-
-> The launcher is the primary interaction point. Make it think.
-
-### 8.1 Frecency Ranking [DONE]
-
-`ShellState.launchStats` tracks `{appId: {count, lastLaunch}}`. On app
-launch, `trackLaunch()` increments count and updates timestamp. Empty query
-sorts: pins, then recents, then frecency-weighted alphabetical. Search
-results use fuzzy score with up to 30% frecency boost. Decay factor drops
-unlaunched apps below never-launched after 30+ days.
-
-### 8.2 Multi-Mode Launcher (Command Palette) [DONE]
-
-Extended the launcher with prefix-based modes: `=` safe calculator (no
-eval), `>` shell command execution (output via notify), `@` notification
-history search, `#` color converter (#hex to RGB to HSL), `~` recent files
-browser. Mode indicator shown in placeholder text. New result kinds:
-`shellcmd`, `notifyitem`, `recentfile`. Each mode renders in a unified card
-format with distinct icon.
-
-### 8.3 Recent Files Integration [DONE]
-
-Shipped `modules/launcher/RecentFiles.qml` singleton reading
-`~/.local/state/recently-used.xbel`. Exposes top 20 most recent files.
-Typing `~` in the launcher shows them; clicking opens with `xdg-open`.
-
-### 8.4 Safe Calculator [DONE]
-
-Replaced `Function()` eval with a recursive descent parser supporting
-`+`, `-`, `*`, `/`, `%`, `^`, `sqrt`, `abs`, `sin`, `cos`, `tan`,
-`log`, `ln`, `floor`, `ceil`, `round`, and constants `pi`, `e`, `phi`.
-Parentheses supported. Result displays in a large card; Enter copies
-to clipboard.
-
-**Touches:** `AppLauncher.qml`, `RecentFiles.qml` (new),
-`fuzzy.js` (extend), `ShellState.qml`.
-
-> Phase 9 is next.
-
----
-
-## Phase 9 — Power User Tools
-
-> Small, focused tools that power users reach for daily.
-
-### 9.1 Pomodoro Timer
-
-**File:** New `modules/widgets/Pomodoro.qml`
-
-**Plan:**
-- Singleton with `workMin` (default 25), `breakMin` (default 5),
-  `longBreakMin` (default 15), `roundsBeforeLong` (default 4).
-- State machine: idle → work → break → work → ... → longBreak → idle.
-- Timer drives a bar chip showing remaining time (MM:SS countdown).
-- On phase change: `Notify.announce("POMODORO", "Time for a break!", 3)` or
-  "Back to work!".
-- IPC: `pomodoro start/pause/reset/status`.
-- Visual: bar chip color toggles acid (work) vs faint (break).
-- Settings: configurable durations in SETTINGS > SYSTEM > Misc.
-
-### 9.2 Keybind Cheatsheet
-
-**File:** New `modules/widgets/Cheatsheet.qml`
-
-**Plan:**
-- Parse Hyprland keybinds from `hl.config` or `hyprctl -j binds` (one-shot
-  Process).
-- Display in a `YSurface` panel: grouped by category (general, windows,
-  workspaces, media, session, custom).
-- Search field filters by key combo or description.
-- Accessible via IPC `compositor binds` or bar chip in `session` segment.
-- Falls back to a static embedded list if parsing fails.
-
-### 9.3 World Clock
-
-**File:** New `modules/widgets/WorldClock.qml`
-
-**Plan:**
-- Configurable list of timezones in `ShellState.worldClockZones`:
-  `["America/New_York", "Europe/London", "Asia/Tokyo"]`.
-- Each timezone shows in a `YSurface` card: city name + analog/digital clock
-  + offset from local.
-- Bar segment `worldclock` shows the next timezone's time with city label.
-- Click cycles through timezones; scroll adjusts.
-- Add timezone via a search field (fuzzy match against IANA timezone list).
-
-### 9.4 Screen Time Tracker
-
-**File:** New `modules/widgets/ScreenTime.qml`
-
-**Plan:**
-- Singleton tracking active window changes via `Hyprland.toplevels.values`
-  activation events.
-- For each app: accumulate time-in-foreground (seconds).
-- Reset daily at midnight (persist today's data in
-  `~/.local/state/yutashell/screentime.json`).
-- `YSurface` panel with a bar chart of top 10 apps by time.
-- Bar chip showing total active time today.
-- IPC `screentime status/list/reset`.
-- Privacy: all data local, never uploaded. Opt-in via `ShellState.screentimeEnabled`.
-
-### 9.5 Night Light Schedule
-
-**File:** `modules/audio/NightLight.qml`
-
-**Plan:**
-- Extend `NightLight` with scheduling: `ShellState.nlSchedule` holds
-  `{ on: "21:00", off: "07:00", enabled: false }`.
-- Timer checks every 60s; auto-enables/disables based on current time.
-- Handles midnight wrap (on > off means overnight).
-- 3 presets in settings: "Sunset–Sunrise" (manual), "21:00–07:00",
-  "Custom".
-- Gate on `NightLight.available`.
-
-**Touches:** `Pomodoro.qml` (new), `Cheatsheet.qml` (new),
-`WorldClock.qml` (new), `ScreenTime.qml` (new), `NightLight.qml`,
-`BarSegments.qml`, `ShellState.qml`, `SettingsPanel.qml`.
-
----
-
-## Phase 10 — Polish, Accessibility & Performance
-
-> The difference between "cool project" and "daily driver." Every animation
-> smooth, every interaction keyboard-accessible, every pixel intentional.
-
-### 10.1 Reduced Motion Support
-
-**File:** `theme/Theme.qml`, all animated surfaces
-
-**Plan:**
-- Add `Theme.reducedMotion: bool` (persisted in `ShellState.reducedMotion`,
-  default auto-detect from `Quickshell.env("prefers-reduced-motion")` or
-  manual toggle).
-- When true: all `NumberAnimation` durations snap to 0 (except toast entrance
-  which fades at 80ms). `Behavior on` blocks use `enabled: !Theme.reducedMotion`.
-- `YButton` press shadow collapse → instant opacity toggle.
-- Scanline sweep → instant.
-- `YPulse` breathing → static.
-- Boot entrance → instant.
-- Settings: Accessibility page with reduced motion toggle + preview.
-
-### 10.2 High Contrast Mode
-
-**File:** `theme/Theme.qml`, `theme/schemes/`
-
-**Plan:**
-- Add `Theme.highContrast: bool` (persisted).
-- When true: override `Theme.ink` → `#000000` (light) or `#ffffff` (dark),
-  `Theme.bg` → `#ffffff` (light) or `#000000` (dark), `Theme.line` → full
-  opacity, `Theme.faint` → `Theme.ink`.
-- Acid color stays the same (user's accent).
-- Add a `high-contrast.json` scheme that auto-enables this mode.
-- All UI primitives already use `Theme.*` tokens — this "just works."
-
-### 10.3 Keyboard Navigation
-
-**File:** All panel surfaces
-
-**Plan:**
-- Every `YSurface` panel gets `Keys.onEscapePressed: root.close()` (most
-  already have this).
-- `FocusScope` on panel open: first interactive element grabs focus.
-- `Keys.onTabPressed` / `Keys.onBacktabPressed` cycle through interactive
-  elements (`YButton`, `YField`, `YSwitch`) within the panel.
-- Visible focus ring: `Rectangle` border on `activeFocus` for all
-  interactive elements (add `focusVisible: true` styling to UI kit).
-- `Keys.onLeftPressed` / `Keys.onRightPressed` for slider adjustments.
-- Settings panel already mostly keyboard-nav; extend to CC and launcher.
-
-### 10.4 Performance Audit & Optimization
-
-**Plan:**
-- Profile RSS after opening each panel (target: <500 MB steady state).
-- Audit all `readonly property var` bindings that recreate objects per
-  evaluation — convert to imperative updates where list size > 20 items.
-- Gate `ScreencopyView` (Phase 4.1) captures behind `visible` to avoid
-  offscreen rendering.
-- Ensure all `Image` elements gate `source` on `visible` (OOM guardrail
-  from AGENTS.md lesson #1).
-- Audit `FileView` instances: consolidate where possible (one FileView per
-  file, not per consumer).
-- `Timer` audit: ensure no timer runs when its consumer is invisible.
-- Use `Component.onDestruction` to clean up process handles.
-
-### 10.5 Documentation & Onboarding
-
-**Files:** `README.md`, `AGENTS.md`, new `docs/`
-
-**Plan:**
-- Update README.md with all new features, updated IPC table, new keybinds.
-- Add `docs/ARCHITECTURE.md`: module map, singleton graph, data flow diagram.
-- Add `docs/IPC.md`: complete IPC reference (every target, every function,
-  every parameter, return value).
-- Add `docs/THEMING.md`: how to create custom schemes, how matugen integration
-  works, how to add custom templates.
-- Add `docs/PLUGINS.md`: how to write a plugin (manifest format, available
-  APIs, examples).
-- Add `docs/KEYBINDS.md`: recommended Hyprland keybinds for every action.
-- Settings > About page: link to docs, show version, state dump.
-
-**Touches:** `Theme.qml`, `Theme.qml` high-contrast scheme, all panel
-surfaces (keyboard nav), `README.md`, `docs/*`.
-
----
-
-## Dependency Graph
-
-```
-Phase 1  (Native APIs)
-  ├── 2  (Audio Mixer)         ← needs PwNodePeakMonitor
-  ├── 4  (Workspace Intel)     ← needs ScreencopyView
-  ├── 5  (Session Security)    ← needs IdleInhibitor
-  └── 10 (Polish)              ← needs ReducedMotion from Theme
-
-Phase 3  (Notifications)       ← independent
-Phase 6  (Info Widgets)        ← independent
-Phase 7  (Customization)       ← independent
-Phase 8  (Smart Launcher)      ← DONE
-Phase 9  (Power User Tools)    ← independent
-```
-
-Phases 3, 6, 7, 8, 9 are fully independent and can be developed in any order
-or in parallel. Phase 1 is the foundation for 2, 4, 5, and parts of 10.
-Phase 8 is complete.
-Phase 9 is complete.
-Phase 10 is complete.
-
----
-
-## Estimate Summary
-
-| Phase | New Files | Modified Files | Effort |
-|-------|-----------|----------------|--------|
-| 1 — Native APIs | 3 | 6 | Medium |
-| 2 — Audio Mixer | 2 | 4 | Medium |
-| 3 — Notifications | 0 | 4 | Low |
-| 4 — Workspace Intel | 1 | 5 | High |
-| 5 — Secure Session | 0 | 3 | Medium |
-| 6 — Info Widgets | 3 | 3 | Medium |
-| 7 — Customization | 2 | 5 | Medium |
-| 8 — Smart Launcher | 1 | 2 | Medium | DONE |
-| 9 — Power User Tools | 4 | 2 | Medium |
-| 10 — Polish & A11y | 0 | All | Low (per file) |
-
----
-
-## Phase 11 — AI Desktop Agent
+## Phase 1 — AI Desktop Agent
 
 > The single biggest differentiator. No Quickshell shell has deep AI
 > integration. YUTA already knows everything about the desktop state —
 > pipe that context to an LLM and the shell becomes genuinely intelligent.
 
-### 11.1 AiService Core
+### 1.1 AiService Core
 
 **File:** New `modules/ai/AiService.qml` (singleton)
 
@@ -658,7 +36,7 @@ Phase 10 is complete.
 - Expose: `chat(messages, systemPrompt)`, `complete(prompt)`,
   `isRunning: bool`, `responseBuffer: string`, `onCompleted(response)`.
 
-### 11.2 Context Engine
+### 1.2 Context Engine
 
 **File:** New `modules/ai/AiContext.qml`
 
@@ -678,7 +56,7 @@ Phase 10 is complete.
   only included for local models — gate on `aiProvider === "ollama"`.
 - `buildContext()` returns the full system string.
 
-### 11.3 Command Palette (AI-Powered)
+### 1.3 Command Palette (AI-Powered)
 
 **File:** New `modules/ai/CommandPalette.qml`
 
@@ -709,7 +87,7 @@ Phase 10 is complete.
 - Learning: log accepted commands to `ShellState.aiHistory` for few-shot
   examples in future queries.
 
-### 11.4 Chat Sidebar
+### 1.4 Chat Sidebar
 
 **File:** New `modules/ai/ChatSidebar.qml`
 
@@ -724,7 +102,7 @@ Phase 10 is complete.
 - Clear history button.
 - IPC `ai chat` (toggle/open/close).
 
-### 11.5 Voice Input
+### 1.5 Voice Input
 
 **File:** New `modules/ai/VoiceInput.qml`
 
@@ -737,7 +115,7 @@ Phase 10 is complete.
 - Visual: pulsing mic icon in the command palette during recording.
 - Gate on `available`: probe `which faster-whisper` at boot.
 
-### 11.6 Screenshot-to-Action
+### 1.6 Screenshot-to-Action
 
 **File:** New `modules/ai/ScreenshotAction.qml`
 
@@ -755,12 +133,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 12 — Project Profiles
+## Phase 2 — Project Profiles
 
 > One-switch workspace contexts. The desktop equivalent of "workspaces" but
 > at a higher level: apps, wallpaper, power, DND, and layout — all bundled.
 
-### 12.1 Profile Service
+### 2.1 Profile Service
 
 **File:** New `modules/profiles/ProfileService.qml` (singleton)
 
@@ -781,7 +159,7 @@ Phase 10 is complete.
 - `stop(profileId)`: close apps launched by this profile, restore
   previous state.
 
-### 12.2 Profile Picker
+### 2.2 Profile Picker
 
 **File:** New `modules/profiles/ProfilePicker.qml`
 
@@ -793,7 +171,7 @@ Phase 10 is complete.
 - Drag-to-reorder (reuses the Kanban pattern from Bar settings).
 - IPC `profiles list/apply/save`.
 
-### 12.3 Bar Segment + Auto-Switch
+### 2.3 Bar Segment + Auto-Switch
 
 **Plan:**
 - New bar segment `profiles` showing the active profile name as a chip.
@@ -809,12 +187,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 13 — Automation Rules Engine
+## Phase 3 — Automation Rules Engine
 
 > Declarative triggers + actions. "When X happens, do Y." Power user
 > superpowers without writing scripts.
 
-### 13.1 Rules Service
+### 3.1 Rules Service
 
 **File:** New `modules/automation/RuleService.qml` (singleton)
 
@@ -845,7 +223,7 @@ Phase 10 is complete.
   subscribe to existing signals (battery level changes, network events,
   MPRIS state changes, temperature thresholds).
 
-### 13.2 Rules Editor
+### 3.2 Rules Editor
 
 **File:** New `modules/automation/RuleEditor.qml`
 
@@ -861,7 +239,7 @@ Phase 10 is complete.
 - "Test" button runs the rule's actions immediately.
 - IPC `automation list/enable/disable`.
 
-### 13.3 Built-in Rule Templates
+### 3.3 Built-in Rule Templates
 
 **Plan:**
 - Ship 8 starter rules (all disabled by default):
@@ -881,12 +259,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 14 — Developer Command Center
+## Phase 4 — Developer Command Center
 
 > Everything a developer needs in one surface: git, Docker, CI/CD, logs,
 > tmux. No more alt-tabbing between terminal windows.
 
-### 14.1 Git Status Bar Widget
+### 4.1 Git Status Bar Widget
 
 **File:** New `modules/dev/GitService.qml`
 
@@ -900,7 +278,7 @@ Phase 10 is complete.
 - Click opens mini-diff popup; right-click shows status details.
 - Notifications on upstream divergence (ahead > 0 after pull).
 
-### 14.2 Docker Compose Monitor
+### 4.2 Docker Compose Monitor
 
 **File:** New `modules/dev/DockerService.qml`
 
@@ -914,7 +292,7 @@ Phase 10 is complete.
     stop/start individual containers.
 - IPC `docker status/restart/logs`.
 
-### 14.3 CI/CD Pipeline Status
+### 4.3 CI/CD Pipeline Status
 
 **File:** New `modules/dev/CIService.qml`
 
@@ -926,7 +304,7 @@ Phase 10 is complete.
 - Configurable repos in `ShellState.cicdRepos`: `["owner/repo1", ...]`.
 - Auto-detect repos from focused terminal's git remote.
 
-### 14.4 Log Tailer
+### 4.4 Log Tailer
 
 **File:** New `modules/dev/LogTailer.qml`
 
@@ -939,7 +317,7 @@ Phase 10 is complete.
 - Auto-scroll with pause on manual scroll-up.
 - IPC `dev logs`.
 
-### 14.5 Tmux/Zellij Dashboard
+### 4.5 Tmux/Zellij Dashboard
 
 **File:** New `modules/dev/TmuxService.qml`
 
@@ -954,7 +332,7 @@ Phase 10 is complete.
 - Bar segment `tmux` showing active session name + window count.
 - Auto-detect which is installed at boot.
 
-### 14.6 Port Scanner & Tunnel Manager
+### 4.6 Port Scanner & Tunnel Manager
 
 **File:** New `modules/dev/PortService.qml`
 
@@ -974,12 +352,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 15 — Focus & Wellness
+## Phase 5 — Focus & Wellness
 
 > Productivity isn't just about features — it's about healthy computer use.
 > Deep focus mode, break reminders, screen time awareness.
 
-### 15.1 Deep Focus Mode
+### 5.1 Deep Focus Mode
 
 **File:** New `modules/focus/FocusMode.qml` (singleton)
 
@@ -999,7 +377,7 @@ Phase 10 is complete.
   to `~/.local/state/yutashell/focus-history.json`.
 - IPC `focus start/pause/resume/reset/status`.
 
-### 15.2 Focus Calendar & Heatmap
+### 5.2 Focus Calendar & Heatmap
 
 **File:** New `modules/focus/FocusCalendar.qml`
 
@@ -1012,7 +390,7 @@ Phase 10 is complete.
 - CC CALENDAR tab extension: "Focus" sub-tab showing the heatmap.
 - Stats summary: total this week, current streak, best streak.
 
-### 15.3 Break Overlay
+### 5.3 Break Overlay
 
 **File:** New `modules/focus/BreakOverlay.qml`
 
@@ -1026,7 +404,7 @@ Phase 10 is complete.
 - Dismissible after minimum break time (10s).
 - Blocks input (exclusion mode) to enforce the break.
 
-### 15.4 Caffeine Toggle (Deep)
+### 5.4 Caffeine Toggle (Deep)
 
 **File:** Extend `modules/session/Session.qml`
 
@@ -1042,12 +420,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 16 — Smart System Monitor
+## Phase 6 — Smart System Monitor
 
 > Go beyond basic stats. Battery health, thermal intelligence, power
 > budgets, network diagnostics, workspace memory visualization.
 
-### 16.1 Battery Intelligence
+### 6.1 Battery Intelligence
 
 **File:** New `modules/system/BatteryService.qml`
 
@@ -1061,7 +439,7 @@ Phase 10 is complete.
 - `StatCell bat` enhanced: show time remaining instead of just %.
 - CC POWER tab: battery health ring + charge curve sparkline.
 
-### 16.2 Thermal Monitor & Auto-Throttle
+### 6.2 Thermal Monitor & Auto-Throttle
 
 **File:** Extend `modules/common/SystemStats.qml`
 
@@ -1075,7 +453,7 @@ Phase 10 is complete.
   threshold.
 - OSD: show temperature warning overlay when throttling activates.
 
-### 16.3 Power Budget Visualizer
+### 6.3 Power Budget Visualizer
 
 **File:** New `modules/system/PowerBudget.qml`
 
@@ -1089,7 +467,7 @@ Phase 10 is complete.
   - Highlight "power hogs" (> 5% CPU) with app name.
   - Show estimated battery time based on current draw.
 
-### 16.4 Network Health Monitor
+### 6.4 Network Health Monitor
 
 **File:** New `modules/net/NetHealth.qml`
 
@@ -1104,7 +482,7 @@ Phase 10 is complete.
   < 100ms yellow, > 100ms red).
 - Alerts: notify on VPN disconnect, latency spike > 500ms.
 
-### 16.5 Workspace Memory Heatmap
+### 6.5 Workspace Memory Heatmap
 
 **File:** New `modules/system/WsHeatmap.qml`
 
@@ -1123,12 +501,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 17 — Session Snapshots & Restore
+## Phase 7 — Session Snapshots & Restore
 
 > Save and restore entire desktop states. Disaster recovery meets workflow
 > portability.
 
-### 17.1 Snapshot Service
+### 7.1 Snapshot Service
 
 **File:** New `modules/session/SnapshotService.qml` (singleton)
 
@@ -1159,7 +537,7 @@ Phase 10 is complete.
 - `delete(name)`: remove a snapshot.
 - Storage: `~/.local/state/yutashell/snapshots/<name>.json`.
 
-### 17.2 Snapshot Picker
+### 7.2 Snapshot Picker
 
 **File:** New `modules/session/SnapshotPicker.qml`
 
@@ -1174,7 +552,7 @@ Phase 10 is complete.
   `ShellState.snapshotAuto` slot. Only keep last 3.
 - IPC `snapshots list/save/restore/delete`.
 
-### 17.3 Bar Segment
+### 7.3 Bar Segment
 
 **Plan:**
 - New bar segment `snapshots` showing a save icon + count.
@@ -1188,12 +566,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 18 — Visual Workspace Intelligence
+## Phase 8 — Visual Workspace Intelligence
 
 > Make workspaces visual, spatial, and informative. Users think in spatial
 > terms, not numbered lists.
 
-### 18.1 Workspace Heatmap Overlay
+### 8.1 Workspace Heatmap Overlay
 
 **File:** New `modules/overview/WsHeatmap.qml`
 
@@ -1209,7 +587,7 @@ Phase 10 is complete.
 - Keyboard: arrow keys navigate workspaces, Enter zooms in, Escape zooms
   out.
 
-### 18.2 Named Workspaces
+### 8.2 Named Workspaces
 
 **File:** Extend `modules/bar/Workspaces.qml`
 
@@ -1220,7 +598,7 @@ Phase 10 is complete.
 - Overview shows workspace names in the grid cells.
 - IPC `bar wsname <id> <name>` to assign names.
 
-### 18.3 Cross-Monitor Workspace Awareness
+### 8.3 Cross-Monitor Workspace Awareness
 
 **File:** New `modules/overview/MonitorAwareness.qml`
 
@@ -1234,7 +612,7 @@ Phase 10 is complete.
 - CC MONITORS tab enhancement: replace the bare DDC slider with a
   visual layout.
 
-### 18.4 Workspace Memory Usage Bars
+### 8.4 Workspace Memory Usage Bars
 
 **File:** Extend `modules/overview/OverviewGrid.qml`
 
@@ -1250,11 +628,11 @@ Phase 10 is complete.
 
 ---
 
-## Phase 19 — Plugin Marketplace & Theme Store
+## Phase 9 — Plugin Marketplace & Theme Store
 
 > Build the ecosystem. Community plugins and themes drive adoption.
 
-### 19.1 Plugin Registry
+### 9.1 Plugin Registry
 
 **File:** New `modules/plugins/PluginRegistry.qml`
 
@@ -1289,7 +667,7 @@ Phase 10 is complete.
   (Process, FileView, Hyprland dispatch, network). Shown to user on
   install. Enforced by PluginService at load time.
 
-### 19.2 Theme Store
+### 9.2 Theme Store
 
 **File:** New `modules/themes/ThemeStore.qml`
 
@@ -1304,7 +682,7 @@ Phase 10 is complete.
 - "Set as Default" applies immediately via `Theme.setScheme(id)`.
 - Community contributions via PRs to the themes repo.
 
-### 19.3 In-Shell Auto-Update
+### 9.3 In-Shell Auto-Update
 
 **Plan:**
 - On boot (after warm-up), check if the shell itself has a new version:
@@ -1321,12 +699,12 @@ Phase 10 is complete.
 
 ---
 
-## Phase 20 — Context Engine & Ambient Intelligence
+## Phase 10 — Context Engine & Ambient Intelligence
 
 > The shell should adapt to the user, not the other way around. Time,
 > location, activity, patterns — the shell should "just know."
 
-### 20.1 Context Service
+### 10.1 Context Service
 
 **File:** New `modules/context/ContextService.qml` (singleton)
 
@@ -1346,7 +724,7 @@ Phase 10 is complete.
   MPRIS state, active window type.
 - Time: from system clock.
 
-### 20.2 Adaptive Behaviors
+### 10.2 Adaptive Behaviors
 
 **File:** New `modules/context/AdaptiveEngine.qml`
 
@@ -1363,7 +741,7 @@ Phase 10 is complete.
 - Rules stored in `ShellState.adaptiveRules` (user-editable).
 - Engine evaluates on every context change (debounced 5s).
 
-### 20.3 Proactive Suggestions
+### 10.3 Proactive Suggestions
 
 **File:** Extend `modules/context/AdaptiveEngine.qml`
 
@@ -1379,7 +757,7 @@ Phase 10 is complete.
 - Persist in `ShellState.contextPatterns`: `{time → lastApps}`,
   `{location → profiles}`, etc.
 
-### 20.4 Pattern Learning
+### 10.4 Pattern Learning
 
 **File:** Extend `modules/context/ContextService.qml`
 
@@ -1396,7 +774,7 @@ Phase 10 is complete.
 - If the same wallpaper is used during "focused" activity → suggest
   as the focus wallpaper.
 
-### 20.5 Ambient Display
+### 10.5 Ambient Display
 
 **File:** New `modules/context/AmbientDisplay.qml`
 
@@ -1418,51 +796,12 @@ Phase 10 is complete.
 
 ---
 
-## Updated Dependency Graph
-
-```
-Phase 1  (Native APIs)
-  ├── 2  (Audio Mixer)              ← PwPeakMonitor
-  ├── 4  (Workspace Intel)          ← ScreencopyView
-  ├── 5  (Session Security)         ← IdleInhibitor
-  └── 10 (Polish & A11y)            ← ReducedMotion
-
-Phase 3  (Notifications)            ← independent
-Phase 6  (Info Widgets)             ← independent
-Phase 7  (Customization)            ← independent
-Phase 8  (Smart Launcher)           ← independent
-Phase 9  (Power User Tools)         ← independent
-
-Phase 11 (AI Agent)                 ← independent (uses existing APIs)
-Phase 12 (Project Profiles)         ← independent
-Phase 13 (Automation Rules)         ← benefits from Phase 12 profiles
-Phase 14 (Dev Command Center)       ← independent
-Phase 15 (Focus & Wellness)         ← benefits from Phase 1 idle inhibitor
-Phase 16 (Smart System Monitor)     ← benefits from Phase 6 info widgets
-Phase 17 (Session Snapshots)        ← independent
-Phase 18 (Visual Workspace Intel)   ← benefits from Phase 4 workspace thumbnails
-Phase 19 (Plugin/Theme Store)       ← independent
-Phase 20 (Context Engine)           ← benefits from Phase 12 profiles + Phase 13 rules
-Phase 21 (Gaming & Streaming)       ← independent
-Phase 22 (Smart Home)               ← independent
-Phase 23 (Phone Companion)          ← independent
-Phase 24 (Security Dashboard)       ← independent
-Phase 25 (File Intelligence)        ← independent
-Phase 26 (Hardware Control)         ← independent
-Phase 27 (Ergonomics & Health)      ← benefits from Phase 15 focus
-Phase 28 (Cross-Device Sync)        ← independent
-Phase 29 (Notification Intelligence)← benefits from Phase 3 notifications
-Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
-```
-
----
-
-## Phase 21 — Gaming & Streaming
+## Phase 11 — Gaming & Streaming
 
 > Game detection, auto-configuration, OBS integration, replay buffer,
 > streaming controls. The shell adapts to gaming, not the other way around.
 
-### 21.1 Game Detector & GameMode
+### 11.1 Game Detector & GameMode
 
 **File:** New `modules/gaming/GameDetector.qml` (singleton)
 
@@ -1474,14 +813,14 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   - Apply Hyprland rules: `render_unfocused` (fixes UE4/5 disconnect
     bug), disable blur, optionally move to dedicated workspace.
   - Switch RGB profile via OpenRGB (if available).
-  - Pause break reminders (Phase 15).
+  - Pause break reminders (Phase 5).
   - Hold Performance power profile.
   - Increase GPU polling rate.
 - On game exit: restore all defaults.
 - Expose: `gameRunning: bool`, `activeGame: string`, `gameModeActive: bool`.
 - Gate GameMode on `busctl call org.feralinteractive.GameMode` probe.
 
-### 21.2 OBS WebSocket Controller
+### 11.2 OBS WebSocket Controller
 
 **File:** New `modules/gaming/ObsController.qml` (singleton)
 
@@ -1497,7 +836,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   scene picker.
 - CC extension: streaming tab with scene grid, audio mixer, status.
 
-### 21.3 Replay Buffer
+### 11.3 Replay Buffer
 
 **File:** New `modules/gaming/ReplayBuffer.qml`
 
@@ -1508,7 +847,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Gate on `Recording.active` (don't run alongside manual recording).
 - Configurable buffer length in `ShellState.replayBufferSec` (30–300).
 
-### 21.4 Game Session Analytics
+### 11.4 Game Session Analytics
 
 **File:** Extend `modules/focus/FocusMode.qml`
 
@@ -1518,10 +857,10 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Stats: total time per game, daily gaming time, weekly summary.
 - Bar chip in `session` segment shows today's gaming time when a game
   was played.
-- Integrate with Focus heatmap (Phase 15.2): gaming sessions shown in
+- Integrate with Focus heatmap (Phase 5.2): gaming sessions shown in
   a different color.
 
-### 21.5 MangoHud Integration
+### 11.5 MangoHud Integration
 
 **File:** New `modules/gaming/MangoHud.qml`
 
@@ -1539,12 +878,12 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 ---
 
-## Phase 22 — Smart Home Control
+## Phase 12 — Smart Home Control
 
 > Home Assistant, MQTT, Zigbee/Z-Wave — control your physical environment
 > from the same shell that controls your digital one.
 
-### 22.1 Home Assistant Service
+### 12.1 Home Assistant Service
 
 **File:** New `modules/smarthome/HomeAssistant.qml` (singleton)
 
@@ -1559,7 +898,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Polling: 30s Timer for state updates; WebSocket subscription for
   real-time (if `QtWebSockets` available).
 
-### 22.2 Device Control UI
+### 12.2 Device Control UI
 
 **File:** New `modules/smarthome/DevicePanel.qml`
 
@@ -1576,7 +915,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   `{"entity_id": "light.living_room", "brightness": 128}`.
 - IPC `smarthome toggle/dim/set`.
 
-### 22.3 Bar Segment + Quick Controls
+### 12.3 Bar Segment + Quick Controls
 
 **Plan:**
 - New bar segment `smarthome` showing:
@@ -1587,7 +926,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Quick toggles: pin favorite devices to bar as micro-chips
   (e.g., "Living Room Light" toggle).
 
-### 22.4 MQTT Bridge (Optional)
+### 12.4 MQTT Bridge (Optional)
 
 **File:** New `modules/smarthome/MqttBridge.qml`
 
@@ -1600,10 +939,10 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Discovery: subscribe to `homeassistant/+/config` for auto-discovered
   devices (HA MQTT discovery format).
 
-### 22.5 Automation Triggers (Phase 13 Extension)
+### 12.5 Automation Triggers (Phase 3 Extension)
 
 **Plan:**
-- New trigger type for Phase 13 rules engine: `smarthome`.
+- New trigger type for Phase 3 rules engine: `smarthome`.
   - Condition: entity state equals/contains value.
   - Action: call HA service.
 - Example: "When motion sensor triggers after 11 PM, turn on hallway
@@ -1613,16 +952,16 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 **Touches:** `HomeAssistant.qml`, `DevicePanel.qml`, `MqttBridge.qml`
 (all new), `BarSegments.qml`, `BarActions.qml`, `ShellState.qml`,
-`RuleService.qml` (Phase 13 extension), `qmldir`.
+`RuleService.qml` (Phase 3 extension), `qmldir`.
 
 ---
 
-## Phase 23 — Phone Companion
+## Phase 13 — Phone Companion
 
 > KDE Connect integration: phone notifications, battery, clipboard sync,
 > remote commands, find-my-phone. Your phone and desktop, unified.
 
-### 23.1 KDE Connect Service
+### 13.1 KDE Connect Service
 
 **File:** New `modules/companion/PhoneService.qml` (singleton)
 
@@ -1635,7 +974,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   battery changes, notification received, clipboard received, ringer
   triggered.
 
-### 23.2 Phone Status Bar
+### 13.2 Phone Status Bar
 
 **Plan:**
 - New bar segment `phone` showing:
@@ -1644,7 +983,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   - Missed notification count badge.
   - Click opens `PhonePanel`.
 
-### 23.3 Notification Relay
+### 13.3 Notification Relay
 
 **Plan:**
 - Mirror phone notifications to YUTA's notification server.
@@ -1655,7 +994,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Action buttons: "Open on Phone" (sends URL), "Dismiss" (dismisses
   on phone).
 
-### 23.4 Clipboard Sync
+### 13.4 Clipboard Sync
 
 **Plan:**
 - Bidirectional clipboard sync between phone and desktop.
@@ -1665,7 +1004,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   -d <id> --receive-text)"`.
 - Gate: `ShellState.phoneClipSync` toggle (default false for privacy).
 
-### 23.5 Remote Commands & Find My Phone
+### 13.5 Remote Commands & Find My Phone
 
 **Plan:**
 - Remote commands: `ShellState.phoneCommands` stores
@@ -1676,7 +1015,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Remote input: optional mouse/keyboard forwarding (KDE Connect's
   remote input plugin).
 
-### 23.6 Device Panel
+### 13.6 Device Panel
 
 **File:** New `modules/companion/PhonePanel.qml`
 
@@ -1692,17 +1031,17 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - IPC `phone toggle/open/close`.
 
 **Touches:** `PhoneService.qml`, `PhonePanel.qml` (new),
-`ClipboardService.qml` (Phase 1 extension), `BarSegments.qml`,
+`ClipboardService.qml` (extension), `BarSegments.qml`,
 `BarActions.qml`, `ShellState.qml`, `qmldir`.
 
 ---
 
-## Phase 24 — Security Dashboard
+## Phase 14 — Security Dashboard
 
 > Privacy auditing, firewall management, open port visibility, VPN
 > health — know your system's security posture at a glance.
 
-### 24.1 Security Service
+### 14.1 Security Service
 
 **File:** New `modules/security/SecurityService.qml` (singleton)
 
@@ -1716,7 +1055,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   `securityScore: int` (0-100 from lynis), `vpnActive: bool`,
   `vpnPeers[]`, `openPorts[]`.
 
-### 24.2 Firewall Manager
+### 14.2 Firewall Manager
 
 **File:** New `modules/security/FirewallPanel.qml`
 
@@ -1731,12 +1070,12 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   PolkitDialog).
 - History of recent changes (persisted in `ShellState.firewallLog`).
 
-### 24.3 Open Port Monitor
+### 14.3 Open Port Monitor
 
 **File:** New `modules/security/PortMonitor.qml`
 
 **Plan:**
-- Read `ss -tlnp` + `ss -ulnp` (15s refresh, reuses Phase 14.6 pattern).
+- Read `ss -tlnp` + `ss -ulnp` (15s refresh, reuses Phase 4.6 pattern).
 - Filter: show only non-localhost listeners (external exposure).
 - Color-coded: green (expected service), yellow (unknown), red
   (dangerous port open).
@@ -1745,7 +1084,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Click to add firewall rule to block an exposed port.
 - Integrate with CC SECURITY tab.
 
-### 24.4 VPN Health Monitor
+### 14.4 VPN Health Monitor
 
 **File:** Extend `modules/net/Connectivity.qml`
 
@@ -1758,7 +1097,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Auto-reconnect: `wg-quick up wg0` if interface drops (configurable
   via `ShellState.vpnAutoReconnect`).
 
-### 24.5 Security Score Display
+### 14.5 Security Score Display
 
 **Plan:**
 - Lynis security score (0-100) displayed in CC SECURITY tab as a
@@ -1769,7 +1108,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Bar chip: shield icon with score number (color: green > 80,
   yellow > 60, red ≤ 60).
 
-### 24.6 Login Audit Log
+### 14.6 Login Audit Log
 
 **Plan:**
 - Read `last -n 20` via Process for recent logins.
@@ -1784,12 +1123,12 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 ---
 
-## Phase 25 — File Intelligence
+## Phase 15 — File Intelligence
 
 > Beyond file browsing: intelligent search, duplicate detection,
 > sync status, quick actions on the filesystem.
 
-### 25.1 File Search Service
+### 15.1 File Search Service
 
 **File:** New `modules/files/FileSearch.qml` (singleton)
 
@@ -1801,7 +1140,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Search: fuzzy match on filename + path.
 - IPC `files search <query>`.
 
-### 25.2 File Picker Panel
+### 15.2 File Picker Panel
 
 **File:** New `modules/files/FilePicker.qml`
 
@@ -1818,7 +1157,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Recent files section at top (from xdg-recent).
 - Pinned/starred files (persisted in `ShellState.pinnedFiles`).
 
-### 25.3 Duplicate Finder
+### 15.3 Duplicate Finder
 
 **File:** New `modules/files/DuplicateFinder.qml`
 
@@ -1832,7 +1171,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Gate: opt-in scan (CPU-intensive for large directories).
 - Store last scan results in `~/.local/state/yutashell/duplicates.json`.
 
-### 25.4 Storage Visualizer
+### 15.4 Storage Visualizer
 
 **File:** New `modules/files/StorageViz.qml`
 
@@ -1846,27 +1185,27 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Hover shows: path, size, file count.
 - Gate on `Theme.reducedMotion` (instant render if true).
 
-### 25.5 Quick File Actions
+### 15.5 Quick File Actions
 
 **Plan:**
 - Global shortcut or launcher prefix (`/`): show recent files + pinned.
 - Type a filename to search.
 - Enter on a file opens it; Shift+Enter copies the path.
-- Integration with Phase 8 launcher: `/path/to/file` in launcher
+- Integration with launcher: `/path/to/file` in launcher
   opens the file directly.
 
 **Touches:** `FileSearch.qml`, `FilePicker.qml`, `DuplicateFinder.qml`,
-`StorageViz.qml` (all new), `AppLauncher.qml` (Phase 8 extension),
+`StorageViz.qml` (all new), `AppLauncher.qml` (extension),
 `ShellState.qml`, `qmldir`.
 
 ---
 
-## Phase 26 — Hardware Control
+## Phase 16 — Hardware Control
 
 > Fan curves, RGB lighting, keyboard backlight, GPU clocks — direct
 > hardware control from the shell. Power user territory.
 
-### 26.1 GPU Service
+### 16.1 GPU Service
 
 **File:** New `modules/hardware/GpuService.qml` (singleton)
 
@@ -1882,7 +1221,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   (NVIDIA, requires root).
 - Bar segment `gpu` showing temp + utilization + fan %.
 
-### 26.2 Fan Curve Editor
+### 16.2 Fan Curve Editor
 
 **File:** New `modules/hardware/FanCurveEditor.qml`
 
@@ -1896,7 +1235,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Live preview: show current temp as a dot on the curve.
 - Gate: only shown when `GpuService.fanControlAvailable`.
 
-### 26.3 OpenRGB Controller
+### 16.3 OpenRGB Controller
 
 **File:** New `modules/hardware/RgbService.qml` (singleton)
 
@@ -1911,7 +1250,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   map to keyboard LED colors.
 - Bar chip `rgb`: shows current profile name. Click cycles profiles.
 
-### 26.4 Keyboard Backlight Control
+### 16.4 Keyboard Backlight Control
 
 **File:** New `modules/hardware/KeyboardBacklight.qml`
 
@@ -1922,7 +1261,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Bar chip: keyboard icon with brightness indicator.
 - Auto-dim on idle (configurable delay).
 
-### 26.5 Hardware Monitor Panel
+### 16.5 Hardware Monitor Panel
 
 **File:** New `modules/hardware/HardwarePanel.qml`
 
@@ -1942,17 +1281,17 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 ---
 
-## Phase 27 — Ergonomics & Health
+## Phase 17 — Ergonomics & Health
 
 > Beyond break reminders: posture tracking, eye care, work-life balance,
 > screen time analytics. The shell cares about the human using it.
 
-### 27.1 Break Reminder (Enhanced)
+### 17.1 Break Reminder (Enhanced)
 
 **File:** New `modules/health/BreakReminder.qml` (singleton)
 
 **Plan:**
-- Extends Phase 15 with ergonomic-specific features:
+- Extends Phase 5 with ergonomic-specific features:
   - **20-20-20 rule**: every 20 minutes, look at something 20 feet
     away for 20 seconds. Overlay shows a distant landscape image.
   - **Posture alert**: after 45 minutes of sitting, prompt to stand.
@@ -1964,7 +1303,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Defer during: games, meetings (mic active), DND mode.
 - Persist all break data for analytics.
 
-### 27.2 Screen Time Analytics
+### 17.2 Screen Time Analytics
 
 **File:** New `modules/health/ScreenTimeAnalytics.qml`
 
@@ -1981,7 +1320,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Insights: "You spent 3h on Discord yesterday, up 40% from last week."
 - Gate: `ShellState.screenTimeEnabled` (opt-in, privacy-first).
 
-### 27.3 Work-Life Balance Indicator
+### 17.3 Work-Life Balance Indicator
 
 **File:** New `modules/health/WorkLifeIndicator.qml`
 
@@ -1996,7 +1335,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Click shows today's summary: work time, break time, focus score.
 - Optional: notification at end of workday ("Time to log off?").
 
-### 27.4 Ergonomic Settings Page
+### 17.4 Ergonomic Settings Page
 
 **File:** New `modules/settings/ErgonomicsPage.qml`
 
@@ -2011,7 +1350,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   - Break overlay customization (text tips vs images vs minimal).
   - Gaming/meeting defer toggles.
 
-### 27.5 Health Dashboard
+### 17.5 Health Dashboard
 
 **File:** New `modules/health/HealthDashboard.qml`
 
@@ -2032,12 +1371,12 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 ---
 
-## Phase 28 — Cross-Device Sync
+## Phase 18 — Cross-Device Sync
 
 > Syncthing integration, clipboard sharing, file transfer between
 > desktop and other devices. One unified file ecosystem.
 
-### 28.1 Syncthing Service
+### 18.1 Syncthing Service
 
 **File:** New `modules/sync/SyncthingService.qml` (singleton)
 
@@ -2052,7 +1391,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Model per device: `{id, name, type, paused, connected,
   lastSeen}`.
 
-### 28.2 Sync Status Bar
+### 18.2 Sync Status Bar
 
 **Plan:**
 - New bar segment `sync` showing:
@@ -2062,7 +1401,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Notifications on: new device request, folder sync error, completed
   large sync.
 
-### 28.3 Sync Panel
+### 18.3 Sync Panel
 
 **File:** New `modules/sync/SyncPanel.qml`
 
@@ -2076,7 +1415,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - "Pause All" global toggle.
 - Error display with retry button.
 
-### 28.4 LocalSend Integration
+### 18.4 LocalSend Integration
 
 **File:** New `modules/sync/LocalSend.qml`
 
@@ -2089,26 +1428,26 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Send file: `POST http://<device>:53317/api/v2/upload` with multipart.
 - Simple send UI: select device from discovered list → send.
 
-### 28.5 Sync Automation
+### 18.5 Sync Automation
 
 **Plan:**
-- Trigger: Phase 13 automation rules can use Syncthing state as a
+- Trigger: Phase 3 automation rules can use Syncthing state as a
   condition (folder paused, device disconnected).
 - Auto-pause sync during gaming (save bandwidth).
 - Auto-resume on work profile activation.
 
 **Touches:** `SyncthingService.qml`, `SyncPanel.qml`, `LocalSend.qml`
 (all new), `BarSegments.qml`, `BarActions.qml`, `ShellState.qml`,
-`RuleService.qml` (Phase 13 extension), `qmldir`.
+`RuleService.qml` (Phase 3 extension), `qmldir`.
 
 ---
 
-## Phase 29 — Notification Intelligence
+## Phase 19 — Notification Intelligence (Advanced)
 
-> Beyond Phase 3: smart triage, VIP contacts, digest batching,
-> notification analytics, per-channel rules.
+> Beyond early notification features: smart triage, VIP contacts, digest
+> batching, notification analytics, per-channel rules.
 
-### 29.1 Smart Triage
+### 19.1 Smart Triage
 
 **File:** New `modules/notify/NotificationTriage.qml`
 
@@ -2126,7 +1465,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - VIP detection: match notification body against
   `ShellState.vipContacts[]` (names/numbers).
 
-### 29.2 Digest Batching
+### 19.2 Digest Batching
 
 **File:** Extend `modules/notify/Notify.qml`
 
@@ -2139,7 +1478,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Gate: `ShellState.notifyDigest` toggle, per-app override.
 - Critical notifications bypass the digest entirely.
 
-### 29.3 Notification Analytics
+### 19.3 Notification Analytics
 
 **File:** New `modules/notify/NotifyAnalytics.qml`
 
@@ -2157,7 +1496,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Data: `~/.local/state/yutashell/notify-log.json` (rolling 7-day
   window, auto-pruned).
 
-### 29.4 Per-Channel Rules
+### 19.4 Per-Channel Rules
 
 **Plan:**
 - For messaging apps (Signal, Telegram, Slack): parse notification
@@ -2167,7 +1506,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Channel detection: first line of notification body often contains
   the channel name.
 
-### 29.5 Notification Summary Card
+### 19.5 Notification Summary Card
 
 **Plan:**
 - At end of day (configurable time): send a self-notification with
@@ -2183,14 +1522,14 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 ---
 
-## Phase 30 — Desktop Blueprint (Capstone)
+## Phase 20 — Desktop Blueprint (Capstone)
 
 > The final phase ties everything together: a complete configuration
 > export/import system, first-run experience, recovery mode, and
 > documentation generator. YUTA becomes a portable, reproducible
 > desktop environment.
 
-### 30.1 Blueprint Export
+### 20.1 Blueprint Export
 
 **File:** New `modules/blueprint/BlueprintService.qml` (singleton)
 
@@ -2202,17 +1541,17 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
     "version": "1.0",
     "name": "my-setup",
     "exported": "2026-08-27T12:00:00Z",
-    "shellState": { ... },           // all ShellState keys
-    "wallpaper": "path/to/image",     // current wallpaper
-    "schemes": ["acid", "tokyonight"],// installed custom schemes
-    "profiles": [...],                // project profiles (Phase 12)
-    "rules": [...],                   // automation rules (Phase 13)
-    "plugins": ["arch-updater"],      // enabled plugins
-    "barLayout": {...},               // bar segments + config
-    "keybinds": {...},                // recommended Hyprland binds
-    "templates": {...},               // matugen template state
-    "focusSettings": {...},           // focus mode config
-    "smartHome": {...},               // HA entity mappings
+    "shellState": { ... },
+    "wallpaper": "path/to/image",
+    "schemes": ["acid", "tokyonight"],
+    "profiles": [...],
+    "rules": [...],
+    "plugins": ["arch-updater"],
+    "barLayout": {...},
+    "keybinds": {...},
+    "templates": {...},
+    "focusSettings": {...},
+    "smartHome": {...}
   }
   ```
 - Also exports: `theme.json`, current matugen templates state,
@@ -2220,7 +1559,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Saves to `~/.local/state/yutashell/blueprints/<name>.json`.
 - "Export to clipboard" for sharing.
 
-### 30.2 Blueprint Import
+### 20.2 Blueprint Import
 
 **Plan:**
 - `import(name)`: read blueprint JSON, validate version, apply:
@@ -2235,7 +1574,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Conflict resolution: "Keep mine" / "Use blueprint" per key.
 - Dry-run mode: show what would change without applying.
 
-### 30.3 Blueprint Picker
+### 20.3 Blueprint Picker
 
 **File:** New `modules/blueprint/BlueprintPicker.qml`
 
@@ -2247,9 +1586,9 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - "Share" button: copy blueprint JSON to clipboard for pasting into
   another machine's picker.
 - Community blueprints: link to a GitHub repo of shared blueprints
-  (Phase 19 marketplace integration).
+  (Phase 9 marketplace integration).
 
-### 30.4 First-Run Experience
+### 20.4 First-Run Experience
 
 **File:** New `modules/blueprint/FirstRun.qml`
 
@@ -2265,7 +1604,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Persists `ShellState.firstRun = true` on completion.
 - Skip button for advanced users.
 
-### 30.5 Recovery Mode
+### 20.5 Recovery Mode
 
 **Plan:**
 - If the shell fails to load (detected by a watchdog timer outside the
@@ -2278,7 +1617,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 - Triggered by: `YUTA_RECOVERY=1` env var, or detecting 3 consecutive
   boot failures (track in `ShellState.bootFailures`).
 
-### 30.6 Documentation Generator
+### 20.6 Documentation Generator
 
 **Plan:**
 - Auto-generate personalized documentation from current config:
@@ -2293,7 +1632,7 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
   - Save to `~/.local/state/yutashell/DOCS.md`.
   - Share button copies to clipboard.
 
-### 30.7 Version Migration
+### 20.7 Version Migration
 
 **Plan:**
 - Each blueprint export includes a `version` field.
@@ -2309,78 +1648,56 @@ Phase 30 (Desktop Blueprint)        ← capstone: ties all phases together
 
 ---
 
-## Final Dependency Graph
+## Dependency Graph
 
 ```
-Phase 1  (Native APIs)
-  ├── 2  (Audio Mixer)
-  ├── 4  (Workspace Intel)
-  ├── 5  (Session Security)
-  └── 10 (Polish & A11y)
-
-Phase 3  (Notifications) ──────────────┐
-Phase 6  (Info Widgets)                │
-Phase 7  (Customization)               │
-Phase 8  (Smart Launcher)              │
-Phase 9  (Power User Tools)            │
-Phase 11 (AI Agent)                    │
-Phase 12 (Project Profiles) ───────────┤── Phase 30 (Blueprint)
-Phase 13 (Automation Rules) ───────────┤    ties everything together
-Phase 14 (Dev Command Center)          │
-Phase 15 (Focus & Wellness) ────┐      │
-Phase 16 (Smart System Monitor) │      │
-Phase 17 (Session Snapshots)    │      │
-Phase 18 (Visual Workspace Intel)      │
-Phase 19 (Plugin/Theme Store)   │      │
-Phase 20 (Context Engine) ──────┘      │
-Phase 21 (Gaming & Streaming) ──┐      │
-Phase 22 (Smart Home)           │      │
-Phase 23 (Phone Companion)      │      │
-Phase 24 (Security Dashboard)   │      │
-Phase 25 (File Intelligence)    │      │
-Phase 26 (Hardware Control)     │      │
-Phase 27 (Ergonomics & Health) ─┤      │
-Phase 28 (Cross-Device Sync)    │      │
-Phase 29 (Notification Intel) ──┘      │
-                                       │
-              All export ──────────────┘
+Phase 1  (AI Agent)                ← independent (uses existing APIs)
+Phase 2  (Project Profiles)        ← independent
+Phase 3  (Automation Rules)        ← benefits from Phase 2 profiles
+Phase 4  (Dev Command Center)      ← independent
+Phase 5  (Focus & Wellness)        ← benefits from IdleInhibitor (complete)
+Phase 6  (Smart System Monitor)    ← benefits from info widgets (complete)
+Phase 7  (Session Snapshots)       ← independent
+Phase 8  (Visual Workspace Intel)  ← benefits from workspace thumbnails (complete)
+Phase 9  (Plugin/Theme Store)      ← independent
+Phase 10 (Context Engine)          ← benefits from Phase 2 profiles + Phase 3 rules
+Phase 11 (Gaming & Streaming)      ← independent
+Phase 12 (Smart Home)              ← independent
+Phase 13 (Phone Companion)         ← independent
+Phase 14 (Security Dashboard)      ← independent
+Phase 15 (File Intelligence)       ← independent
+Phase 16 (Hardware Control)        ← independent
+Phase 17 (Ergonomics & Health)     ← benefits from Phase 5 focus
+Phase 18 (Cross-Device Sync)       ← independent
+Phase 19 (Notification Intel)      ← benefits from early notification work (complete)
+Phase 20 (Desktop Blueprint)       ← capstone: ties all phases together
 ```
 
 ---
 
-## Full Estimate Summary (All 30 Phases)
+## Estimate Summary
 
 | Phase | New Files | Modified Files | Effort |
 |-------|-----------|----------------|--------|
-| 1 — Native APIs | 3 | 6 | Medium |
-| 2 — Audio Mixer | 2 | 4 | Medium |
-| 3 — Notifications | 0 | 4 | Low |
-| 4 — Workspace Intel | 1 | 5 | High |
-| 5 — Secure Session | 0 | 3 | Medium |
-| 6 — Info Widgets | 3 | 3 | Medium |
-| 7 — Customization | 2 | 5 | Medium |
-| 8 — Smart Launcher | 1 | 2 | Medium | DONE |
-| 9 — Power User Tools | 4 | 2 | Medium |
-| 10 — Polish & A11y | 0 | All | Low (per file) |
-| 11 — AI Desktop Agent | 6 | 3 | High |
-| 12 — Project Profiles | 2 | 3 | Medium |
-| 13 — Automation Rules | 2 | 2 | Medium |
-| 14 — Dev Command Center | 6 | 3 | High |
-| 15 — Focus & Wellness | 3 | 3 | Medium |
-| 16 — Smart System Monitor | 4 | 3 | Medium |
-| 17 — Session Snapshots | 2 | 2 | Medium |
-| 18 — Visual Workspace Intel | 2 | 3 | Medium |
-| 19 — Plugin/Theme Store | 2 | 3 | Medium |
-| 20 — Context Engine | 3 | 2 | High |
-| 21 — Gaming & Streaming | 4 | 3 | Medium |
-| 22 — Smart Home | 3 | 2 | Medium |
-| 23 — Phone Companion | 2 | 2 | Medium |
-| 24 — Security Dashboard | 3 | 2 | Medium |
-| 25 — File Intelligence | 4 | 1 | Medium |
-| 26 — Hardware Control | 5 | 2 | High |
-| 27 — Ergonomics & Health | 5 | 2 | Medium |
-| 28 — Cross-Device Sync | 3 | 2 | Medium |
-| 29 — Notification Intel | 2 | 3 | Medium |
-| 30 — Desktop Blueprint | 3 | 3 | Medium |
+| 1 — AI Desktop Agent | 6 | 3 | High |
+| 2 — Project Profiles | 2 | 3 | Medium |
+| 3 — Automation Rules | 2 | 2 | Medium |
+| 4 — Dev Command Center | 6 | 3 | High |
+| 5 — Focus & Wellness | 3 | 3 | Medium |
+| 6 — Smart System Monitor | 4 | 3 | Medium |
+| 7 — Session Snapshots | 2 | 2 | Medium |
+| 8 — Visual Workspace Intel | 2 | 3 | Medium |
+| 9 — Plugin/Theme Store | 2 | 3 | Medium |
+| 10 — Context Engine | 3 | 2 | High |
+| 11 — Gaming & Streaming | 4 | 3 | Medium |
+| 12 — Smart Home | 3 | 2 | Medium |
+| 13 — Phone Companion | 2 | 2 | Medium |
+| 14 — Security Dashboard | 3 | 2 | Medium |
+| 15 — File Intelligence | 4 | 1 | Medium |
+| 16 — Hardware Control | 5 | 2 | High |
+| 17 — Ergonomics & Health | 5 | 2 | Medium |
+| 18 — Cross-Device Sync | 3 | 2 | Medium |
+| 19 — Notification Intel | 2 | 3 | Medium |
+| 20 — Desktop Blueprint | 3 | 3 | Medium |
 
-**Total: ~78 new files, ~72 modified files across all 30 phases.**
+**Total: ~64 new files, ~48 modified files across all 20 remaining phases.**
