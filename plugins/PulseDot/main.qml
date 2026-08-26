@@ -12,7 +12,7 @@ Item {
     property string pluginId: ""
 
     implicitWidth: 14
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     YPulse {
         anchors.centerIn: parent

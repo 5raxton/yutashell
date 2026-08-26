@@ -10,7 +10,7 @@ Item {
     id: root
 
     implicitWidth: netRow.width
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property var tip
 
@@ -57,7 +57,7 @@ Item {
             text: "NET"
             color: root.tiers > 0 || root.wiredUp ? Theme.ink : Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
         }
@@ -141,7 +141,7 @@ Item {
             text: "×"
             color: Theme.alert
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.barFsLabel
             font.weight: Font.Bold
         }
     }

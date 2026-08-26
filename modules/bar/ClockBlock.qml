@@ -7,7 +7,7 @@ Item {
     id: root
 
     implicitWidth: timeBlock.width + 14 + dateCol.width
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property var now: new Date()
     property bool colonOn: true
@@ -67,7 +67,7 @@ Item {
             text: ShellState.clock24h ? String(root.now.getHours()).padStart(2, "0") : String(root.hour12)
             color: Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsTitle
+            font.pixelSize: Theme.barFsTitle
             font.weight: Font.Bold
         }
 
@@ -79,7 +79,7 @@ Item {
             opacity: root.colonOn ? 1 : 0.2
             color: root.colonOn ? Theme.acid : Theme.faint
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsTitle
+            font.pixelSize: Theme.barFsTitle
             font.weight: Font.Bold
 
             // breathe, don't strobe
@@ -105,7 +105,7 @@ Item {
             text: String(root.now.getMinutes()).padStart(2, "0")
             color: Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsTitle
+            font.pixelSize: Theme.barFsTitle
             font.weight: Font.Bold
         }
 
@@ -117,7 +117,7 @@ Item {
             text: ShellState.clock24h ? ":" + String(root.now.getSeconds()).padStart(2, "0") : " " + root.ampm
             color: Theme.acid
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsLabel
+            font.pixelSize: Theme.barFsLabel
         }
     }
 
@@ -132,7 +132,7 @@ Item {
             text: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][root.now.getDay()] + " " + Qt.formatDate(root.now, "MM.dd")
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.letterSpacing: 1
         }
 
@@ -145,7 +145,7 @@ Item {
             }
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.letterSpacing: 1
         }
     }

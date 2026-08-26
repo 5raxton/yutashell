@@ -62,6 +62,21 @@ Singleton {
     readonly property int outerPad: 14
     readonly property int sectionGap: 16
 
+    // bar-proportional tokens — respond to the persisted scale factor so the
+    // bar resizes by ADJUSTING sizes, not by stretching pixels.  Bar
+    // components use these instead of the base type ramp.
+    readonly property real barScale: Math.max(0.8, Math.min(1.4, ShellState.barScale))
+    readonly property int scaledBarHeight: Math.round(barHeight * barScale)
+    readonly property int barFsDisplay: Math.round(fsDisplay * barScale)
+    readonly property int barFsTitle: Math.round(fsTitle * barScale)
+    readonly property int barFsBody: Math.round(fsBody * barScale)
+    readonly property int barFsLabel: Math.round(fsLabel * barScale)
+    readonly property int barFsMicro: Math.round(fsMicro * barScale)
+    readonly property int barOuterPad: Math.round(outerPad * barScale)
+    readonly property int barSp2: Math.round(sp2 * barScale)
+    readonly property int barSp3: Math.round(sp3 * barScale)
+    readonly property int barSp4: Math.round(sp4 * barScale)
+
     readonly property string version: "1.0.0"
 
     // ======== SCHEME ENGINE ========

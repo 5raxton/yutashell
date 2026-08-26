@@ -114,7 +114,7 @@ Item {
     }
 
     implicitWidth: ids.length * slotW + Math.max(0, ids.length - 1) * gap
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     Timer {
         interval: 400
@@ -188,7 +188,7 @@ Item {
                         visible: !root.pillOnly
                         text: String(btn.modelData).padStart(2, "0")
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: Math.round(10 * Theme.barScale)
                         font.weight: Font.DemiBold
                         font.letterSpacing: 1
                         color: {

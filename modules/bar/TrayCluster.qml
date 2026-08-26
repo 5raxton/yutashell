@@ -8,7 +8,7 @@ Item {
     id: root
 
     implicitWidth: trayRow.width
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property var tip
 

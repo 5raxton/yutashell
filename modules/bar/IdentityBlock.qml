@@ -7,7 +7,7 @@ Item {
     id: root
 
     implicitWidth: contentRow.width
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     readonly property string hostname: (Quickshell.env("HOSTNAME") ?? "yuta").toUpperCase()
 
@@ -57,15 +57,15 @@ Item {
                     text: root.hostname + " // " + (Theme.jpEnabled ? "因果" : "INGA")
                     color: hoverArea.containsMouse ? Theme.acid : Theme.ink
                     font.family: Theme.fontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * Theme.barScale)
                     font.weight: Font.ExtraBold
                     font.letterSpacing: 1.5
                 }
 
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 4
-                    height: 11
+                    width: Math.round(4 * Theme.barScale)
+                    height: Math.round(11 * Theme.barScale)
                     color: Theme.acid
 
                     SequentialAnimation on opacity {
@@ -92,7 +92,7 @@ Item {
                 text: "YUTA.SHELL // v" + Theme.version
                 color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsMicro
+                font.pixelSize: Theme.barFsMicro
                 font.letterSpacing: 2
             }
         }

@@ -8,7 +8,7 @@ import qs.modules.common
 Item {
     id: root
 
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property var tip
 
@@ -55,7 +55,7 @@ Item {
             text: "BT"
             color: Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
         }
@@ -65,7 +65,7 @@ Item {
             text: root.adapter && root.adapter.discovering ? "◦◦" : "◆"
             color: Theme.acid
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.barFsLabel
 
             // scanning: the glyph hunts — blinks while the radio sweeps
             SequentialAnimation on opacity {

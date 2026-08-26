@@ -7,7 +7,7 @@ Item {
     id: root
 
     implicitWidth: 17
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter

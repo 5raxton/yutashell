@@ -16,7 +16,7 @@ Item {
     property var tip
 
     implicitWidth: Math.max(0, row.width)
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     readonly property int maxVisible: 10
 

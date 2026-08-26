@@ -619,7 +619,7 @@ Singleton {
     Timer {
         id: paintTimer
         property string imagePath: ""
-        interval: 2000
+        interval: 3000
         property bool _daemonStarted: false
         onTriggered: {
             // start the daemon detached if missing, then retry the paint until
@@ -628,13 +628,32 @@ Singleton {
             if (!paintTimer._daemonStarted) {
                 paintTimer._daemonStarted = true;
                 daemonProc.command = ["sh", "-c",
-                    "pgrep -x awww-daemon >/dev/null || setsid awww-daemon >/dev/null 2>&1 &\n" +
-                    "for i in 1 2 3 4 5 6 7 8; do awww img '" + img + "' " + root._transitionArgs() + " && exit 0; sleep 0.25; done\n" +
-                    "echo 'awww img failed after retries' >&2; exit 1"];
+                    "pgrep -x awww-daemon >/dev/null 2>&1 || setsid /usr/sbin/awww-daemon >/dev/null 2>&1 &\n" +
+                    "sleep 0.5\n" +
+                    "for i in 1 2 3 4 5 6 7 8 9 10 11 12; do /usr/sbin/awww img '" + img + "' " + root._transitionArgs() + " && exit 0; sleep 0.5; done\n" +
+                    "echo '[wallpaper] awww img failed after retries' >&2; exit 1"];
                 daemonProc.running = true;
             } else {
-                daemonProc.command = ["awww", "img", img].concat(root._transitionArgs().split(" "));
+                daemonProc.command = ["/usr/sbin/awww", "img", img].concat(root._transitionArgs().split(" "));
                 daemonProc.running = true;
+            }
+        }
+    }
+
+    // second-chance restore: if the first paintTimer fired but awww-daemon
+    // wasn't ready yet, try once more after a longer delay
+    Timer {
+        id: bootRetryTimer
+        interval: 8000
+        running: false
+        repeat: false
+        onTriggered: {
+            const saved = String(ShellState.wallpaperPath ?? "");
+            if (saved.length > 0 && root.current !== saved) {
+                root.current = saved;
+                paintTimer.imagePath = saved;
+                paintTimer._daemonStarted = false;
+                paintTimer.restart();
             }
         }
     }
@@ -677,9 +696,11 @@ Singleton {
         // back on for users who switched to a manual scheme after applying
         const saved = String(ShellState.wallpaperPath ?? "");
         if (saved.length > 0) {
+            console.warn("[wallpaper] boot restore:", saved);
             root.current = saved;
             paintTimer.imagePath = saved;
             paintTimer.restart();
+            bootRetryTimer.start();
         }
     }
 }

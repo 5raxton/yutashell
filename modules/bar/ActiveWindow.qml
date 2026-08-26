@@ -7,7 +7,7 @@ import qs.theme
 Item {
     id: root
 
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property string appClass: ""
     property string winTitle: ""
@@ -60,7 +60,7 @@ Item {
         text: "+"
         color: Theme.acid
         font.family: Theme.fontFamily
-        font.pixelSize: 11
+        font.pixelSize: Math.round(11 * Theme.barScale)
     }
 
     Text {
@@ -72,7 +72,7 @@ Item {
         text: "//"
         color: Theme.acid
         font.family: Theme.fontFamily
-        font.pixelSize: 10
+        font.pixelSize: Theme.barFsLabel
         font.weight: Font.Bold
     }
 
@@ -85,7 +85,7 @@ Item {
         text: root.appClass.toUpperCase()
         color: Theme.ink
         font.family: Theme.fontFamily
-        font.pixelSize: 10
+        font.pixelSize: Theme.barFsLabel
         font.weight: Font.DemiBold
         font.letterSpacing: 1
         opacity: 1
@@ -112,7 +112,7 @@ Item {
         text: "\u2014"
         color: Theme.faint
         font.family: Theme.fontFamily
-        font.pixelSize: 10
+        font.pixelSize: Theme.barFsLabel
     }
 
     Text {
@@ -126,7 +126,7 @@ Item {
         text: root.winTitle
         color: Theme.muted
         font.family: Theme.fontFamily
-        font.pixelSize: 10
+        font.pixelSize: Theme.barFsLabel
     }
 
     Item {
@@ -143,7 +143,7 @@ Item {
             text: Theme.jpEnabled ? "NO SIGNAL // 待機中" : "NO SIGNAL // TAIKI"
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.barFsLabel
             font.letterSpacing: 1
         }
 

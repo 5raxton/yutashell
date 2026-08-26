@@ -112,7 +112,7 @@ Item {
     }
 
     implicitWidth: valueText.width + 2
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     MouseArea {
         id: area
@@ -151,7 +151,7 @@ Item {
             text: root.label
             color: root.kind === "bat" && SystemStats.batCharging ? Theme.acid : Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
         }
@@ -165,7 +165,7 @@ Item {
                 text: "\uF0E7"
                 color: Theme.acid
                 font.family: Theme.fontFamily
-                font.pixelSize: 9
+                font.pixelSize: Math.round(9 * Theme.barScale)
             }
 
             Text {
@@ -174,7 +174,7 @@ Item {
                 text: root.value
                 color: root.hot ? Theme.alert : Theme.ink
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fsLabel
+                font.pixelSize: Theme.barFsLabel
                 font.weight: Font.DemiBold
                 scale: root.hot ? 1.06 : 1
 

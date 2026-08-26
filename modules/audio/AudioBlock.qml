@@ -10,7 +10,7 @@ Item {
     id: root
 
     implicitWidth: audRow.width
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property var tip
 
@@ -70,7 +70,7 @@ Item {
             text: "VOL"
             color: root.muted ? Theme.alert : root.overdriven ? Theme.acid : Theme.ink
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
 

@@ -10,7 +10,7 @@ Item {
     id: root
 
     implicitWidth: col.width
-    implicitHeight: Theme.barHeight
+    implicitHeight: Theme.scaledBarHeight
 
     property var tip
 
@@ -74,7 +74,7 @@ Item {
             text: "MEDIA"
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fsMicro
+            font.pixelSize: Theme.barFsMicro
             font.weight: Font.Bold
             font.letterSpacing: 1.5
         }
@@ -146,7 +146,7 @@ Item {
                 text: root.playing ? "\uF04C" : "\uF04B"
                 color: root.playing ? Theme.acid : Theme.faint
                 font.family: Theme.fontFamily
-                font.pixelSize: 9
+                font.pixelSize: Math.round(9 * Theme.barScale)
 
                 SequentialAnimation {
                     id: ppBounce
@@ -179,7 +179,7 @@ Item {
                 text: "\uF051"
                 color: Theme.faint
                 font.family: Theme.fontFamily
-                font.pixelSize: 9
+                font.pixelSize: Math.round(9 * Theme.barScale)
             }
 
             Item {
@@ -195,7 +195,7 @@ Item {
                     text: root.trackLine
                     color: Theme.ink
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.barFsLabel
                     onWidthChanged: root.syncAnim()
                 }
 

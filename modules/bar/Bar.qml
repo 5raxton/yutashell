@@ -27,7 +27,6 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
 
     readonly property bool topBar: ShellState.barPosition !== "bottom"
-    readonly property real scaleFactor: Math.max(0.8, Math.min(1.4, ShellState.barScale))
 
     anchors {
         top: root.topBar
@@ -36,7 +35,7 @@ PanelWindow {
         right: true
     }
 
-    implicitHeight: Math.round(Theme.barHeight * root.scaleFactor)
+    implicitHeight: Theme.scaledBarHeight
     color: "transparent"
 
     Rectangle {
@@ -78,17 +77,16 @@ PanelWindow {
             lo: 0.55
         }
 
-        // content — sized to the natural bar height, Y-scaled to the pref
+        // content — sized to the scaled bar height, no transform needed;
+        // fonts/spacing/padding all use Theme.barFs* tokens for proportional
+        // sizing instead of geometric stretch
         Item {
             id: content
 
             x: 0
             y: 0
             width: parent.width
-            height: Theme.barHeight
-            transform: Scale {
-                yScale: root.scaleFactor
-            }
+            height: Theme.scaledBarHeight
 
             // ---- LEFT ZONE ----
             Row {
@@ -212,10 +210,13 @@ PanelWindow {
             Loader {
                 id: segLoader
                 property string segId: modelData.id
-                sourceComponent: root.segComponent(modelData.id)
+                sourceComponent: {
+                    PluginService._barPluginMap;
+                    return root.segComponent(modelData.id);
+                }
                 // Prevent Loader from stretching the loaded item
                 width: segLoader.item ? segLoader.item.implicitWidth : 0
-                height: segLoader.item ? segLoader.item.implicitHeight : Theme.barHeight
+                height: segLoader.item ? segLoader.item.implicitHeight : Theme.scaledBarHeight
                 opacity: 0
                 onLoaded: {
                     if (item) {
@@ -407,7 +408,7 @@ PanelWindow {
         // a bare Text inside the zone Row would top-align and ride high
         Item {
             implicitWidth: moonText.width
-            implicitHeight: Theme.barHeight
+            implicitHeight: Theme.scaledBarHeight
 
             Text {
                 id: moonText
@@ -416,7 +417,7 @@ PanelWindow {
                 text: "☾"
                 color: Theme.acid
                 font.family: Theme.fontFamily
-                font.pixelSize: 13
+                font.pixelSize: Theme.barFsBody
             }
 
             MouseArea {
@@ -435,7 +436,7 @@ PanelWindow {
         // from common installs and rendered as a dead box
         Item {
             implicitWidth: sessRow.width
-            implicitHeight: Theme.barHeight
+            implicitHeight: Theme.scaledBarHeight
 
             Row {
                 id: sessRow
@@ -448,7 +449,7 @@ PanelWindow {
                     text: "INHIBIT"
                     color: Theme.muted
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsMicro
+                    font.pixelSize: Theme.barFsMicro
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -458,7 +459,7 @@ PanelWindow {
                     text: String(Session.inhibitCount)
                     color: Theme.ink
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsLabel
+                    font.pixelSize: Theme.barFsLabel
                     font.weight: Font.DemiBold
                 }
             }
@@ -477,7 +478,7 @@ PanelWindow {
 
         Item {
             implicitWidth: recRow.width
-            implicitHeight: Theme.barHeight
+            implicitHeight: Theme.scaledBarHeight
 
             Row {
                 id: recRow
@@ -487,8 +488,8 @@ PanelWindow {
 
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 7
-                    height: 7
+                    width: Math.round(7 * Theme.barScale)
+                    height: Math.round(7 * Theme.barScale)
                     color: Theme.alert
 
                     SequentialAnimation on opacity {
@@ -515,7 +516,7 @@ PanelWindow {
                     text: "REC"
                     color: Theme.alert
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fsMicro
+                    font.pixelSize: Theme.barFsMicro
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -539,8 +540,8 @@ PanelWindow {
         id: spacerComp
 
         Item {
-            implicitWidth: Theme.sp4
-            implicitHeight: Theme.barHeight
+            implicitWidth: Theme.barSp4
+            implicitHeight: Theme.scaledBarHeight
         }
     }
 
@@ -630,7 +631,7 @@ PanelWindow {
 
         Item {
             implicitWidth: plugRow.width
-            implicitHeight: Theme.barHeight
+            implicitHeight: Theme.scaledBarHeight
 
             Row {
                 id: plugRow
@@ -661,14 +662,15 @@ PanelWindow {
             property string segId: parent ? parent.segId : ""
 
             implicitWidth: barLoader.item ? barLoader.item.implicitWidth : 0
-            implicitHeight: Theme.barHeight
+            implicitHeight: Theme.scaledBarHeight
 
             Loader {
                 id: barLoader
-
-                anchors.fill: parent
+                width: item ? item.implicitWidth : 0
+                height: item ? item.implicitHeight : Theme.scaledBarHeight
                 source: {
-                    const mf = PluginService._barPluginMap[plugBar.segId];
+                    var _ = PluginService._barPluginMap;
+                    const mf = _[plugBar.segId];
                     return mf ? PluginService.barComponentUrl(mf) : "";
                 }
                 asynchronous: true
