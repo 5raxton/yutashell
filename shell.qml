@@ -1002,7 +1002,23 @@ ShellRoot {
         }
 
         function status(): string {
-            return "scale " + ShellState.barScale + " · " + ShellState.barPosition + " · ws " + ShellState.wsMode + " · " + BarSegments.leftVisible.length + "/" + BarSegments.rightVisible.length + " visible";
+            return "scale " + ShellState.barScale + " · " + ShellState.barPosition + (ShellState.barCompact ? " · compact" : "") + " · ws " + ShellState.wsMode + " · " + BarSegments.leftVisible.length + "/" + BarSegments.rightVisible.length + " visible";
+        }
+
+        function compact(): void {
+            ShellState.toggleCompact();
+        }
+
+        function compactset(v: string): string {
+            const on = String(v).toLowerCase() === "on";
+            ShellState.set("barCompact", on);
+            return "compact " + (on ? "on" : "off");
+        }
+
+        function preset(id: string): string {
+            const pid = String(id);
+            const ok = BarSegments.applyPreset(pid);
+            return ok ? "applied: " + pid : "unknown preset: " + pid;
         }
     }
 

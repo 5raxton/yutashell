@@ -90,6 +90,12 @@ PanelWindow {
             group: "LOOK",
             keywords: "bar segment taskbar scale position click action tray stats clock"
         }, {
+            id: "presets",
+            label: "PRESETS",
+            jp: "形",
+            group: "LOOK",
+            keywords: "presets layout minimal classic macos gnome developer gaming bar segments"
+        }, {
             id: "dock",
             label: "DOCK",
             jp: "埠",
@@ -723,9 +729,11 @@ PanelWindow {
                             return notificationsPage;
                         case "osd":
                             return osdPage;
-                        case "bar":
-                            return barPage;
-                        case "shell":
+                    case "bar":
+                        return barPage;
+                    case "presets":
+                        return presetsPage;
+                    case "shell":
                             return shellPage;
                         case "security":
                             return securityPage;
@@ -2524,6 +2532,55 @@ PanelWindow {
                         }
                     }
 
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "COMPACT"
+                            color: Theme.ink
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsLabel
+                            font.weight: Font.Bold
+                        }
+
+                        Item { width: 1; height: 1 }
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 36
+                            height: 20
+                            radius: 10
+                            color: ShellState.barCompact ? Theme.acid : Theme.faint
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                x: ShellState.barCompact ? parent.width - width - 2 : 2
+                                width: 16
+                                height: 16
+                                radius: 8
+                                color: ShellState.barCompact ? Theme.bg : Theme.muted
+
+                                Behavior on x { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: ShellState.toggleCompact()
+                            }
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ShellState.barCompact ? "ON" : "OFF"
+                            color: ShellState.barCompact ? Theme.acid : Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fsMicro
+                        }
+                    }
+
                     // ═══ 03  WORKSPACES ═══
                     YSection {
                         width: parent.width
@@ -2881,6 +2938,43 @@ PanelWindow {
                         }
                     }
 
+                    // ═══ 05  CLICK PROFILES ═══
+                    YSection {
+                        width: parent.width
+                        index: "05"
+                        label: "Click profiles"
+                        chip: "preset actions"
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.sp2
+
+                        Repeater {
+                            model: [
+                                { id: "productivity", label: "PRODUCTIVITY" },
+                                { id: "media-first", label: "MEDIA-FIRST" },
+                                { id: "dev", label: "DEVELOPER" }
+                            ]
+
+                            delegate: YButton {
+                                required property var modelData
+
+                                label: modelData.label
+                                onClicked: BarActions.applyClickProfile(modelData.id)
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "Profiles set per-segment click actions. Click actions can also be shell:cmd or theme:scheme."
+                        color: Theme.faint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        wrapMode: Text.WordWrap
+                    }
+
                     Item {
                         width: 1
                         height: Theme.sp2
@@ -3034,7 +3128,7 @@ PanelWindow {
                                     }
                                 }
                                 readonly property string effective: BarSegments.clickFor(segCard.segId)
-                                readonly property var cycle: ["", "calendar", "network", "bluetooth", "audio", "media", "controlcenter", "launcher", "settings", "nightlight", "power", "notifications"]
+                                readonly property var cycle: ["", "calendar", "network", "bluetooth", "audio", "media", "controlcenter", "launcher", "settings", "nightlight", "power", "notifications", "mixer", "scratchpad", "networkdetails", "processes"]
 
                                 function bump() {
                                     let idx = cycle.indexOf(effective);
@@ -3169,6 +3263,16 @@ PanelWindow {
                             }
                         }
                     }
+                }
+            }
+
+            Component {
+                id: presetsPage
+
+                Column {
+                    width: root.contentW
+
+                    PresetsPage {}
                 }
             }
 

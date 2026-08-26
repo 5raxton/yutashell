@@ -133,8 +133,11 @@ Singleton {
     }
 
     // runtime visibility: enabled AND the underlying condition holds
+    // compact mode restricts to identity + workspaces + clock
     function present(id) {
         if (!root.enabled(id))
+            return false;
+        if (ShellState.barCompact && root.compactIds.indexOf(id) < 0)
             return false;
         // bar plugin segments are always present when enabled
         if (PluginService._barPluginMap[id])
@@ -162,6 +165,9 @@ Singleton {
             return true;
         }
     }
+
+    // compact mode: only identity, workspaces, clock
+    readonly property var compactIds: ["identity", "workspaces", "clock"]
 
     // the ordered list of visible segment ids for a zone
     readonly property var leftVisible: root._visible("left")
@@ -291,6 +297,41 @@ Singleton {
         if (id.startsWith("spacer-"))
             return "Spacer";
         return (root.meta[id] ?? {}).label ?? id;
+    }
+
+    // ---- layout presets (PH.07) ----
+    readonly property var layoutPresets: [
+        { id: "minimal", label: "MINIMAL", desc: "Identity + workspaces + clock", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "classic", label: "CLASSIC", desc: "Full bar: all widgets visible", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":true},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":true},{"id":"audio","zone":"right","enabled":true},{"id":"cpu","zone":"right","enabled":true},{"id":"mem","zone":"right","enabled":true},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":true},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":true},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "macos", label: "MACOS", desc: "Centered dock-style layout", barScale: 1.0, barPosition: "top", wsMode: "pills", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"center","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"center","enabled":true}] },
+        { id: "gnome", label: "GNOME", desc: "Workspaces + clock, right tray", barScale: 1.0, barPosition: "top", wsMode: "numbers", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":true},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "developer", label: "DEVELOPER", desc: "Stats: CPU, mem, net, disk, temp", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":true},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":true},{"id":"mem","zone":"right","enabled":true},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":true},{"id":"gpu","zone":"right","enabled":true},{"id":"disk","zone":"right","enabled":true},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "gaming", label: "GAMING", desc: "Workspaces + media + session + clock", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":true},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "ultraminimal", label: "ULTRA-MINIMAL", desc: "Clock only", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":false},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"center","enabled":true}] }
+    ]
+
+    function applyPreset(id) {
+        const p = root.layoutPresets.find(x => x.id === id);
+        if (!p) {
+            let customs = [];
+            try { customs = JSON.parse(ShellState.customPresets); if (!Array.isArray(customs)) customs = []; } catch (e) {}
+            const c = customs.find(x => x.id === id);
+            if (!c) return false;
+            ShellState.set("barSegments", JSON.stringify(c.segments));
+            ShellState.set("barScale", c.barScale);
+            ShellState.set("barPosition", c.barPosition);
+            ShellState.set("wsMode", c.wsMode);
+            return true;
+        }
+        ShellState.set("barSegments", JSON.stringify(p.segments));
+        ShellState.set("barScale", p.barScale);
+        ShellState.set("barPosition", p.barPosition);
+        ShellState.set("wsMode", p.wsMode);
+        return true;
+    }
+
+    function presetIds() {
+        return root.layoutPresets.map(p => p.id);
     }
 
     function abbrFor(id) {

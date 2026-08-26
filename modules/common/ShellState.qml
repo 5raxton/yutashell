@@ -267,6 +267,10 @@ Singleton {
         root.processesOpen = false;
     }
 
+    function toggleCompact() {
+        root.set("barCompact", !root.barCompact);
+    }
+
     // ---- persisted prefs (auto-written on change) ----
     readonly property alias scheme: adapter.scheme
     readonly property alias followWallpaper: adapter.followWallpaper
@@ -349,6 +353,8 @@ Singleton {
     readonly property alias barSegments: adapter.barSegments
     readonly property alias barScale: adapter.barScale
     readonly property alias barPosition: adapter.barPosition
+    readonly property alias barCompact: adapter.barCompact
+    readonly property alias customPresets: adapter.customPresets
     // workspace segment rendering: default | numbers | pills | active
     readonly property alias wsMode: adapter.wsMode
     // plugins (PH.05): namespaced per-plugin state
@@ -508,6 +514,8 @@ Singleton {
     property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cpu\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"mem\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bat\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
     property real barScale: 1.0
     property string barPosition: "top"
+    property bool barCompact: false
+    property string customPresets: "[]"
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"

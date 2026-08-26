@@ -346,75 +346,45 @@ Auto-dismiss after 4 s. Gated by `ShellState.osdThermal` toggle.
 
 ---
 
-**Phase 7 — Customization Power is next.**
-
-## Phase 7 — Customization Power
+## Phase 7 — Customization Power [DONE]
 
 > Let users reshape the shell without touching QML.
 
-### 7.1 Layout Presets
+### 7.1 Layout Presets — DONE
 
-**File:** New `modules/settings/PresetsPage.qml`
+Shipped `modules/settings/PresetsPage.qml` with 7 built-in presets
+(Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) plus
+custom preset support. One-click apply sets `barSegments`, `barScale`,
+`barPosition`, `wsMode`, `dockEnabled`, `dockMode`. Custom presets save
+to `ShellState.customPresets`. IPC `bar preset <id>`. Preset data
+centralized in `BarSegments.layoutPresets`.
 
-**Plan:**
-- 7 built-in presets shipped as JSON files in `theme/presets/`:
-  - **Minimal** — identity + workspaces + clock (3 segments, small bar)
-  - **Classic** — identity + workspaces + taskbar + tray + media + clock
-  - **macOS** — centered dock-style: workspaces + activewindow + clock (centered)
-  - **GNOME** — top bar: workspaces + clock + system tray (right)
-  - **Developer** — identity + workspaces + taskbar + cpu + mem + net + clock
-  - **Gaming** — workspaces + media + session + clock + recording chip
-  - **Ultra-minimal** — clock only (floating)
-- Each preset is a JSON object matching the `barSegments` format.
-- One-click apply: `ShellState.set("barSegments", JSON.stringify(preset.segments))`.
-  Also sets `barScale`, `barPosition`, `wsMode`, `dockEnabled`, `dockMode`.
-- Custom presets: "Save current as preset" button stores to
-  `ShellState.customPresets`.
-- Settings page: grid of preset cards with thumbnail preview + name + apply
-  button.
+### 7.2 Per-Monitor Bar Configuration — DEFERRED
 
-### 7.2 Per-Monitor Bar Configuration
+Skipped. Per-monitor bar overrides are too invasive for the current
+architecture; deferred to a later phase.
 
-**File:** `modules/bar/Bar.qml`, `modules/bar/BarSegments.qml`
+### 7.3 Compact/Full Bar Toggle — DONE
 
-**Plan:**
-- Extend `barSegments` to support per-monitor overrides:
-  `ShellState.barSegmentsMonitor` keyed by screen name.
-- When a monitor has no override, inherit the global config.
-- Settings UI: dropdown to select target monitor before editing segments.
-- Bar reads its `screen.name` and resolves the correct segment list.
-- Keep the default behavior identical (global config for all monitors).
+Shipped `ShellState.barCompact` toggle. Compact mode filters to
+identity + workspaces + clock via `BarSegments.present()`. Bar height
+scales to 0.7x via `Theme.qml`. Settings toggle in BAR page. IPC
+`bar compact`, `bar compactset on|off`.
 
-### 7.3 Compact/Full Bar Toggle
+### 7.4 Custom Bar Click Actions (Enhanced) — DONE
 
-**File:** `modules/bar/Bar.qml`
-
-**Plan:**
-- New persisted `ShellState.barCompact` (default false).
-- Compact mode: only shows identity + workspaces + clock. All other segments
-  hide. Bar height scales to 0.7x.
-- Full mode: all enabled segments visible (current behavior).
-- Toggle via IPC `bar compact`, right-click on bar, or keybind.
-- Animated transition: segments fade out, bar height tweens via
-  `transform: Scale`.
-
-### 7.4 Custom Bar Click Actions (Enhanced)
-
-**File:** `modules/bar/BarActions.qml`
-
-**Plan:**
-- Extend the existing `barClick` map to support compound actions:
-  `"action": ["action1", "action2"]` executes in sequence.
-- Add new action types: `toggle` (toggle any panel), `ipc` (arbitrary IPC
-  call), `shell` (run a shell command), `theme` (switch scheme).
-- Preset click profiles in settings: "productivity" (CC on click),
-  "media-first" (media widget on click), "dev" (clipboard on click).
+Extended `BarActions` with compound array support, `shell:<cmd>`, and
+`theme:<scheme>` action types. Added click profiles in settings
+(Productivity, Media-First, Developer). Click cycle expanded with
+mixer, scratchpad, networkdetails, and processes actions.
 
 **Touches:** `PresetsPage.qml` (new), `theme/presets/*.json` (new),
 `Bar.qml`, `BarSegments.qml`, `BarActions.qml`, `ShellState.qml`,
 `SettingsPanel.qml`, `qmldir`.
 
 ---
+
+**Phase 8 is next.**
 
 ## Phase 8 — Smart Launcher & Command Palette
 

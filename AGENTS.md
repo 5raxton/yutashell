@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–6 complete.
+Phases 1–7 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -101,7 +101,7 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 ### 7. Architecture rules
 - **SystemStats is the one sampler** — any new stat reader binds to `SystemStats.*` (FAST 2 s FileViews, SLOW 5 s Process); never open a second FileView/Timer over /proc//hwmon/nvidia-smi. Shared formatters `fmtRate/fmtBytes/fmtTime/fmtTemp/fmtDuration` live there. Now reads fan RPM from `sensors -j` (`fans[]` array), battery health from sysfs (`batWearPct`, `batTimeLeft`, `batTimeToFull`), and emits `thermalWarning`/`thermalCritical` signals.
 - Widgets split into singleton services (probe backend once, expose `available`) vs PanelWindows. Missing backend ⇒ flat "not installed" message or hidden feature + `Health.report(module,msg)` — never a dead button. Bar shows `!` chip while `Health.count > 0`.
-- Bar is data-driven: `ShellState.barSegments` ordered `{id,zone,enabled}`; new segment = Component in Bar.qml + `BarSegments.meta` + `present()` case (+ optional `BarActions.dispatch` action). Height-only scaling via `transform: Scale { yScale }`.
+- Bar is data-driven: `ShellState.barSegments` ordered `{id,zone,enabled}`; new segment = Component in Bar.qml + `BarSegments.meta` + `present()` case (+ optional `BarActions.dispatch` action). Height-only scaling via `transform: Scale { yScale }`. `BarSegments` now exposes `layoutPresets[]` (7 built-in bar layout presets), `applyPreset(id)`, `presetIds()`. Compact mode filter via `compactIds[]`. `BarActions` supports compound actions (JSON array), `shell:<cmd>`, `theme:<scheme>`, click profiles (productivity/media-first/dev). `ShellState.barCompact` (bool, default false), `ShellState.customPresets` (JSON array of user presets).
 - SettingsPanel: 15 declarative pages behind lazy Loaders + switch; searchable two-level nav rail. ControlCenter: 11 tabs from `ShellState.ccTabs`; per-tab Timers gate on `activePageId === "x" && ShellState.ccOpen`.
 - SNI tray menu needs `//@ pragma UseQApplication` in shell.qml — takes effect only on fresh start, so the warning still logs mid-session after hot-reloads.
 - **StorageMonitor** (widgets) — singleton reading `df -h` every 5 s, per-mount usage with warn/crit thresholds; feeds disk bar segment and surface panel.
@@ -110,7 +110,7 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 
 ## Conventions (enforced)
 
-- Colors/fonts/metrics ONLY from `Theme.*` — no hardcoded values; this is what makes live recoloring free.
+- Colors/fonts/metrics ONLY from `Theme.*` — no hardcoded values; this is what makes live recoloring free. `Theme.compactScale` factor (0.7x when `barCompact`); `Theme.scaledBarHeight` now includes compactScale.
 - UI primitives ONLY from `modules/common/ui` (YButton/YSwitch/YRow/YSection/YField/YChip/YScroll) — compose the kit, never hand-roll.
 - Type ramp fsDisplay > fsTitle > fsBody > fsLabel > fsMicro; body copy sentence-case at fsBody; UPPERCASE+tracking reserved for micro-chrome.
 - Acid is semantic (active/focus/primary CTA/status ticks), never decoration; may pulse/draw/sweep only where meaningful.

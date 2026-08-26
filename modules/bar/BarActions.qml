@@ -2,17 +2,54 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.theme
 import qs.modules.common
 import "../widgets"
 
-// BarActions — the single dispatcher for segment click-actions (PH.14). Maps an
-// action string to the shell's open/toggle functions; `ipc:<target>/<fn>`
-// forwards to the shell's own IPC surface (same code the CLI/keybinds use).
+// BarActions — the single dispatcher for segment click-actions (PH.14 + PH.07).
+// Maps an action string to the shell's open/toggle functions. Supports compound
+// actions (JSON array of strings), shell commands, theme switching, and arbitrary
+// IPC forwarding via `ipc:<target>/<fn>`.
 Singleton {
     id: root
 
-    // returns true when the action was recognized — callers may fall back
+    readonly property var clickProfiles: ({
+            "productivity": {
+                label: "Productivity",
+                actions: { "clock": "calendar", "identity": "controlcenter", "net": "networkdetails" }
+            },
+            "media-first": {
+                label: "Media First",
+                actions: { "clock": "media", "identity": "media", "net": "network" }
+            },
+            "dev": {
+                label: "Developer",
+                actions: { "clock": "calendar", "identity": "settings", "net": "controlcenter", "cpu": "controlcenter" }
+            }
+        })
+
+    function applyClickProfile(profileId) {
+        const p = root.clickProfiles[profileId];
+        if (!p) return;
+        let map = {};
+        try { map = JSON.parse(ShellState.barClick); } catch (e) {}
+        for (const [segId, action] of Object.entries(p.actions))
+            map[segId] = action;
+        ShellState.set("barClick", JSON.stringify(map));
+    }
+
     function dispatch(action) {
+        // compound: JSON array of actions executed in sequence
+        if (typeof action === "string" && action.startsWith("[")) {
+            try {
+                const arr = JSON.parse(action);
+                if (Array.isArray(arr)) {
+                    for (const a of arr)
+                        root.dispatch(a);
+                    return true;
+                }
+            } catch (e) {}
+        }
         const a = String(action ?? "").trim();
         if (a.length === 0 || a === "none")
             return false;
@@ -22,6 +59,14 @@ Singleton {
         }
         if (a.startsWith("plugin:")) {
             PluginService.togglePluginPanel(a.slice(7));
+            return true;
+        }
+        if (a.startsWith("shell:")) {
+            root._dispatchShell(a.slice(6));
+            return true;
+        }
+        if (a.startsWith("theme:")) {
+            root._dispatchTheme(a.slice(6));
             return true;
         }
         switch (a) {
@@ -87,13 +132,28 @@ Singleton {
         const fn = spec.slice(idx + 1).trim();
         if (target.length === 0 || fn.length === 0)
             return;
-        // re-enter the shell's own IPC: `qs ipc call <target> <fn...>`
-        proc.command = ["qs", "ipc", "call", target].concat(fn.split(/\s+/));
-        proc.running = true;
+        ipcProc.command = ["qs", "ipc", "call", target].concat(fn.split(/\s+/));
+        ipcProc.running = true;
+    }
+
+    function _dispatchShell(cmd) {
+        shellProc.command = ["sh", "-c", cmd.trim()];
+        shellProc.running = true;
+    }
+
+    function _dispatchTheme(schemeId) {
+        Theme.applyPreset(schemeId.trim());
     }
 
     Process {
-        id: proc
+        id: ipcProc
+
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+    }
+
+    Process {
+        id: shellProc
 
         stdout: StdioCollector {}
         stderr: StdioCollector {}

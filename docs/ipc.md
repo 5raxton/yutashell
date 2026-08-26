@@ -57,6 +57,9 @@ bar position top|bottom
 bar click <id> <action>                 # per-segment click action
 bar reset                               # restore default layout
 bar wsmode default|numbers|pills|active # workspace render mode
+bar compact                             # toggle compact mode
+bar compactset on|off                   # set compact mode explicitly
+bar preset <id>                         # apply a bar layout preset
 bar status                              # current model as text
 ```
 
