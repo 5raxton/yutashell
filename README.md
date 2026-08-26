@@ -18,7 +18,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
 - **Surfaces** — settings panel (15 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview, AltTab, power menu, lock screen, color picker, recording widget, updates checker; each spawns from the bar, a screen edge, or float, per panel
 - **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, DND, per-app rules, persisted history with replay
-- **Connectivity & audio** — NetworkManager + BlueZ panels, PipeWire console with perceptual volume taper, OSDs, night light, brightness (internal + DDC/CI)
+- **Connectivity & audio** — NetworkManager + BlueZ panels, PipeWire console with perceptual volume taper, per-app audio mixer (MixerPanel), OSDs, night light, brightness (internal + DDC/CI)
 - **Session** — hold-to-confirm power menu, PAM lock screen, inhibitor-aware idle actions, power profiles, polkit dialog
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
 - **IPC** — 30 targets, 130+ functions; keybinds, CLI and settings panel share one implementation
@@ -89,8 +89,8 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-87 QML files · 30+ singletons · 13 UI primitives · 30 IPC targets · 130+ functions
-89 matugen templates · 17 snippet rules · 22 bar segments · 12 color schemes
+95 QML files · 32 singletons · 13 UI primitives · 31 IPC targets · 140+ functions
+89 matugen templates · 17 snippet rules · 23 bar segments · 12 color schemes
 15 settings pages · 11 control center tabs · 4 spawn modes
 ```
 

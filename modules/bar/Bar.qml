@@ -275,6 +275,8 @@ PanelWindow {
             return sessComp;
         case "recording":
             return recComp;
+        case "mixer":
+            return mixerComp;
         case "pluginwidgets":
             return pluginWidgetsComp;
         case "clock":
@@ -528,6 +530,14 @@ PanelWindow {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: Recording.stop()
             }
+        }
+    }
+
+    Component {
+        id: mixerComp
+
+        MixerBar {
+            tip: root.tip
         }
     }
 

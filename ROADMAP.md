@@ -95,12 +95,12 @@ even when IPC is flooded.
 
 ---
 
-## Phase 2 — Per-App Audio Mixer
+## Phase 2 — Per-App Audio Mixer ✅
 
 > The single most-requested feature in every Wayland shell survey. PipeWire
 > makes this trivial; the UX is the hard part.
 
-### 2.1 Mixer Service
+### 2.1 Mixer Service ✅
 
 **File:** New `modules/audio/MixerService.qml`
 
@@ -113,7 +113,7 @@ even when IPC is flooded.
 - Derived `streams` property re-evaluates on `Pipewire.nodes.values` change.
 - Each stream icon resolved via `DesktopEntries.heuristicLookup(node.name)`.
 
-### 2.2 Mixer Panel UI
+### 2.2 Mixer Panel UI ✅
 
 **File:** New `modules/audio/MixerPanel.qml`, registered in `BarActions.qml`
 
@@ -125,7 +125,7 @@ even when IPC is flooded.
 - Per-stream app icon from desktop entries; fallback to speaker icon.
 - IPC target `mixer` (toggle/open/close).
 
-### 2.3 Bar Segment + OSD
+### 2.3 Bar Segment + OSD ✅
 
 **Plan:**
 - New bar segment `mixer` showing the current output device icon + volume.

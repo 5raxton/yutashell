@@ -61,6 +61,9 @@ Singleton {
         case "nightlight":
             NightLight.toggle();
             break;
+        case "mixer":
+            ShellState.toggleMixer();
+            break;
         default:
             return false;
         }

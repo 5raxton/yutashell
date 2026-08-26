@@ -47,6 +47,8 @@ ShellRoot {
             void NightLight.available;
             void Session.ppdAvailable;
             void IdleInhibitor.inhibited;
+            // PH.02: mixer service ready
+            void MixerService.ready;
             // plugin scan starts at singleton boot — force it now (PH.05)
             void PluginService.manifests;
             // compositor capability probe + Health report land early (PH.07)
@@ -84,6 +86,8 @@ ShellRoot {
     BluetoothPanel {}
 
     AudioPanel {}
+
+    MixerPanel {}
 
     MediaWidget {}
 
@@ -984,6 +988,39 @@ ShellRoot {
 
         function list(): string {
             return IdleInhibitor.list();
+        }
+    }
+
+    IpcHandler {
+        target: "mixer"
+
+        function toggle(): void {
+            ShellState.toggleMixer();
+        }
+
+        function open(): void {
+            ShellState.openMixer();
+        }
+
+        function close(): void {
+            ShellState.closeMixer();
+        }
+
+        function status(): string {
+            return MixerService.status();
+        }
+
+        function muteapp(name: string): string {
+            const target = String(name).toLowerCase();
+            const streams = MixerService.outputStreams;
+            for (let i = 0; i < streams.length; i++) {
+                const lbl = MixerService.label(streams[i]).toLowerCase();
+                if (lbl.includes(target)) {
+                    MixerService.toggleMute(streams[i]);
+                    return lbl + " " + (MixerService.isMuted(streams[i]) ? "muted" : "unmuted");
+                }
+            }
+            return "no match for " + target;
         }
     }
 

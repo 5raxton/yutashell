@@ -1,6 +1,8 @@
 singleton AudioService 1.0 AudioService.qml
+singleton MixerService 1.0 MixerService.qml
 AudioBlock 1.0 AudioBlock.qml
 AudioPanel 1.0 AudioPanel.qml
+MixerPanel 1.0 MixerPanel.qml
 MediaWidget 1.0 MediaWidget.qml
 Osd 1.0 Osd.qml
 singleton DisplayService 1.0 DisplayService.qml

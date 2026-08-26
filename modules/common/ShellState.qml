@@ -24,6 +24,9 @@ Singleton {
     property bool emojiOpen: false
     property bool ccOpen: false
 
+    // mixer (PH.02)
+    property bool mixerOpen: false
+
     // one surface at a time — opening any popup closes the others
     function _exclusive(name) {
         // freeze popup placement at the moment something opens (PH.06) — a
@@ -48,6 +51,7 @@ Singleton {
         root.weatherOpen = name === "weather";
         root.emojiOpen = name === "emoji";
         root.ccOpen = name === "cc";
+        root.mixerOpen = name === "mixer";
     }
 
     function togglePanel() {
@@ -208,6 +212,18 @@ Singleton {
 
     function closeCc() {
         root.ccOpen = false;
+    }
+
+    function toggleMixer() {
+        root._exclusive(root.mixerOpen ? "" : "mixer");
+    }
+
+    function openMixer() {
+        root._exclusive("mixer");
+    }
+
+    function closeMixer() {
+        root.mixerOpen = false;
     }
 
     // ---- persisted prefs (auto-written on change) ----

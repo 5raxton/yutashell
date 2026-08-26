@@ -36,6 +36,7 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - `ClipboardService` (widgets) — reactive clipboard monitor, polls `wl-paste` and feeds `cliphist add`.
 - `IdleInhibitor` (session) — prevents idle during media/recording; state singleton, per-Bar `Wayland._IdleInhibitor` instances bind `enabled` + `window`.
 - `GlobalKeys` (common) — shell-internal keybind registry; persists bindings in `ShellState.globalKeybinds`.
+- `MixerService` (audio) — per-app audio mixer over PipeWire; wraps AudioService streams with desktop-entry icon resolution and clean write-back API.
 
 ## Hyprland facts
 
