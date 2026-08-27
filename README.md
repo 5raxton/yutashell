@@ -13,7 +13,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 ## Features
 
-- **Bar** — 23 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp/fan), clock, mixer, scratchpad, chips; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
+- **Bar** — 24 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp/fan), clock, mixer, scratchpad, chips, project profiles; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
 - **Theme engine** — 12 preset schemes, wallpaper-derived palettes via matugen, runtime light mode, any-hex accent override; the whole shell repaints live
 - **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
 - **Launcher / command palette** — frecency-ranked search (launch count × time decay, pinned apps first, recents second), prefix modes: `=` calculator (recursive descent parser, no eval), `>` shell command runner, `@` notification history search, `#` color converter (#hex to rgb to hsl), `~` recent files browser (XDG recently-used.xbel)
@@ -24,7 +24,8 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Session** — Wayland session lock (`WlSessionLock` + PAM auth, multi-monitor), hold-to-confirm power menu, caffeine idle-inhibit toggle, inhibitor-aware idle actions, power profiles, polkit dialog, pomodoro timer (work/break cycles with bar chip and notifications), night light schedule (auto on/off by time of day)
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
 - **AI Desktop Agent** — Ollama/OpenAI-compatible chat via Process+curl with SSE streaming; two panels: Command Palette (natural language → parsed action with `[DISPATCH]`/`[SHELL]`/`[IPC]` directives, EXECUTE/COPY buttons) and Chat Sidebar (conversational bubbles, markdown rendering, model selector); context-aware system prompt built from live desktop state (focused window, workspace, stats, media, weather); voice input via pw-record+faster-whisper transcription; screenshot-to-action via grim+slurp region capture → Ollama vision model analysis; command history; kill button; boot probes endpoint availability and degrades cleanly
-- **IPC** — 36 targets, 170+ functions; keybinds, CLI and settings panel share one implementation
+- **Project Profiles** — one-switch workspace contexts: save and restore bundles of wallpaper, apps, power profile, DND, bar layout, and night light; bar chip cycles profiles, YSurface picker for management; profiles persist across sessions in state.json
+- **IPC** — 37 targets, 180+ functions; keybinds, CLI and settings panel share one implementation
 - **Accessibility** — reduced motion mode (snaps all animations to instant), high contrast mode (maximum contrast palette), keyboard navigation (Tab/Shift+Tab focus cycling, Enter/Space activation, Escape to close panels)
 
 ## Requirements
@@ -94,8 +95,8 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-103 QML files · 38 singletons · 13 UI primitives · 41 IPC targets · 170+ functions
-89 matugen templates · 17 snippet rules · 23 bar segments · 12 color schemes
+105 QML files · 39 singletons · 13 UI primitives · 42 IPC targets · 180+ functions
+89 matugen templates · 17 snippet rules · 24 bar segments · 12 color schemes
 7 layout presets · 17 settings pages · 11 control center tabs · 4 spawn modes
 ```
 

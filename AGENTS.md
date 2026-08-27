@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–11 complete.
+Phases 1–2 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -64,6 +64,19 @@ Six types in `modules/ai/`:
 IPC: `ai toggle/open/close`, `ai chat`, `ai send <text>`, `ai models`, `ai setmodel <name>`, `ai setprovider <ollama|openai>`, `ai setendpoint <url>`, `ai screenshot`, `ai voice`, `ai status`.
 
 ShellState additions: `aiOpen` / `aiChatOpen` (runtime, non-persisted, toggled by IPC), plus persisted config keys.
+
+## Project Profiles (PH.02)
+
+Two types in `modules/profiles/`:
+
+- **`ProfileService`** (singleton) — core profile management. Profile definition: `{id, name, icon, wallpaper, apps[], powerProfile, dnd, barPreset, nlActive}`. Stored in `ShellState.profiles` as a JSON array. `apply(id)` switches wallpaper via `Wallpaper.apply()`, launches apps via `DesktopEntries.heuristicLookup().execute()`, sets power profile via `PowerProfiles.profile`, DND via `Notify.setDnd()`, bar layout via `BarSegments.applyPreset()`, night light via `NightLight.setActive()`. `save(id, name)` snapshots current live state (running apps from `Hyprland.toplevels`, wallpaper, power profile, DND, night light). `deleteProfile(id)` removes a profile. `cycle()` advances to next profile. `activeId` tracks the current profile; `activeName` exposes it for the bar chip.
+- **`ProfilePicker`** (PanelWindow) — YSurface panel showing profile cards in a scrollable list. Each card: active indicator (acid left bar), icon, name, RENAME/APPLY/DEL buttons. "SAVE CURRENT" button at top creates a new profile from live state. RENAME cycles through preset names (Work/Play/Focus/Chill/Dev/Media). Clicking a card applies it.
+
+Bar: new `profiles` segment shows ◆ icon + active profile name. Click cycles profiles; scroll-down opens picker. Only visible when a profile is active. Added to all 7 layout presets (disabled by default). Falls through to `compactIds` when active.
+
+IPC: `profiles toggle/open/close/list/apply <id>/save <id> <name>/deleteprofile <id>/cycle/status`.
+
+ShellState additions: `profilesOpen` (runtime, toggled by IPC), persisted `profiles` (JSON array) key.
 
 ## Accessibility (PH.10)
 

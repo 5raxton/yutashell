@@ -22,6 +22,7 @@ import "modules/overview"
 import "modules/widgets"
 import "modules/control"
 import "modules/ai"
+import "modules/profiles"
 
 ShellRoot {
     Tooltip {
@@ -58,6 +59,8 @@ ShellRoot {
             void GlobalKeys.bindings;
             // PH.11: AI service probe
             void AiService.available;
+            // PH.02: profiles service
+            void ProfileService.profiles;
         }
     }
 
@@ -1272,6 +1275,59 @@ ShellRoot {
 
         function status(): string {
             return "provider=" + ShellState.aiProvider + " model=" + ShellState.aiModel + " endpoint=" + ShellState.aiEndpoint + " available=" + AiService.available + " models=" + AiService.models.length;
+        }
+    }
+
+    IpcHandler {
+        target: "profiles"
+
+        function toggle(): void {
+            ShellState.toggleProfiles();
+        }
+
+        function open(): void {
+            ShellState.openProfiles();
+        }
+
+        function close(): void {
+            ShellState.closeProfiles();
+        }
+
+        function list(): string {
+            const profiles = ProfileService.profiles;
+            if (profiles.length === 0) return "no profiles";
+            let out = "";
+            for (let i = 0; i < profiles.length; i++) {
+                const p = profiles[i];
+                const active = p.id === ProfileService.activeId ? " (active)" : "";
+                out += p.id + "\t" + p.name + active + "\n";
+            }
+            return out.trimEnd();
+        }
+
+        function apply(id: string): string {
+            const ok = ProfileService.apply(String(id));
+            return ok ? "applied profile " + id : "profile not found: " + id;
+        }
+
+        function save(id: string, name: string): string {
+            const p = ProfileService.save(String(id), String(name));
+            return "saved profile " + p.id + " (" + p.name + ")";
+        }
+
+        function deleteprofile(id: string): string {
+            ProfileService.deleteProfile(String(id));
+            return "deleted profile " + id;
+        }
+
+        function cycle(): void {
+            ProfileService.cycle();
+        }
+
+        function status(): string {
+            const n = ProfileService.profiles.length;
+            const active = ProfileService.activeName;
+            return n + " profiles" + (active.length > 0 ? ", active: " + active : "");
         }
     }
 }

@@ -285,6 +285,8 @@ PanelWindow {
             return pomodoroComp;
         case "cheatsheet":
             return cheatsheetComp;
+        case "profiles":
+            return profilesComp;
         case "clock":
             return clockComp;
         case "spacer":
@@ -657,6 +659,54 @@ PanelWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: ShellState.toggleCheatsheet()
+            }
+        }
+    }
+
+    Component {
+        id: profilesComp
+
+        Item {
+            implicitWidth: profRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: profRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "◆"
+                    color: ProfileService.activeName.length > 0 ? Theme.acid : Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                }
+
+                Text {
+                    visible: ProfileService.activeName.length > 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: ProfileService.activeName.toUpperCase()
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ProfileService.cycle()
+                onWheel: function(event) {
+                    if (event.angleDelta.y > 0)
+                        ProfileService.cycle();
+                    else
+                        ShellState.toggleProfiles();
+                }
             }
         }
     }
