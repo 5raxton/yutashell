@@ -53,6 +53,10 @@ Singleton {
     // smart system monitor (PH.06)
     property bool systemMonitorOpen: false
 
+    // session snapshots (PH.07)
+    property bool snapshotsOpen: false
+    property bool snapshotAuto: true
+
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
@@ -90,6 +94,7 @@ Singleton {
         root.devOpen = name === "dev";
         root.focusOpen = name === "focus";
         root.systemMonitorOpen = name === "systemmonitor";
+        root.snapshotsOpen = name === "snapshots";
         root.aiOpen = name === "ai";
         root.aiChatOpen = name === "aichat";
     }
@@ -372,6 +377,19 @@ Singleton {
 
     function closeSystemMonitor() {
         root.systemMonitorOpen = false;
+    }
+
+    // ---- session snapshots (PH.07) ----
+    function toggleSnapshots() {
+        root._exclusive(root.snapshotsOpen ? "" : "snapshots");
+    }
+
+    function openSnapshots() {
+        root._exclusive("snapshots");
+    }
+
+    function closeSnapshots() {
+        root.snapshotsOpen = false;
     }
 
     // AI agent (PH.11)
@@ -676,7 +694,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\",\"systemmonitor\":\"systemmonitor\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\",\"systemmonitor\":\"systemmonitor\",\"snapshots\":\"snapshots\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"

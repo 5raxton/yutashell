@@ -139,6 +139,9 @@ Singleton {
         case "systemmonitor":
             ShellState.toggleSystemMonitor();
             break;
+        case "snapshots":
+            ShellState.toggleSnapshots();
+            break;
         case "ai":
             ShellState.toggleAi();
             break;

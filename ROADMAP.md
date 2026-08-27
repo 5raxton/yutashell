@@ -6,7 +6,7 @@
 > Every new surface composes `YSurface`; every new button is `YButton`; every
 > color comes from `Theme.*`.
 
-Phases 1–6 are complete — see `AGENTS.md` for implementation details and
+Phases 1–7 are complete — see `AGENTS.md` for implementation details and
 `README.md` for the feature list.
 
 ---

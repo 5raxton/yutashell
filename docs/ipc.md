@@ -46,6 +46,7 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `colorpicker` | `pick` | color pick operation (hyprpicker) |
 | `compositor` | `info` / `dsp <lua>` | capability report / warm-client Hyprland dispatch passthrough |
 | `dock` | `toggle` / `enable` / `disable` / `pin <id>` / `unpin <id>` / `hide <mode>` / `mode <mode>` / `status` | bottom dock |
+| `snapshots` | `toggle` / `open` / `close` / `save <name>` / `remove <name>` / `list` / `status` | session snapshots (save/restore desktop state) |
 | `bar` | see below | bar layout |
 | `spawn` | see below | where each popup spawns from |
 
@@ -65,7 +66,7 @@ bar preset <id>                         # apply a bar layout preset
 bar status                              # current model as text
 ```
 
-24 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `pluginwidgets`, `pomodoro`, `cheatsheet`, `clock`, `spacer`
+29 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `pluginwidgets`, `pomodoro`, `cheatsheet`, `profiles`, `automation`, `git`, `docker`, `cicd`, `focus`, `systemmonitor`, `snapshots`, `clock`, `spacer`
 
 ### `spawn`
 

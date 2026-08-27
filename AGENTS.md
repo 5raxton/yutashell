@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–6 complete.
+Phases 1–7 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -39,6 +39,10 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 - `IdleInhibitor` (session) — prevents idle during media/recording; state singleton, per-Bar `Wayland._IdleInhibitor` instances bind `enabled` + `window`.
 - `GlobalKeys` (common) — shell-internal keybind registry; persists bindings in `ShellState.globalKeybinds`.
 - `MixerService` (audio) — per-app audio mixer over PipeWire; wraps AudioService streams with desktop-entry icon resolution and clean write-back API.
+
+## New singletons (PH.07)
+
+- `SnapshotService` (session) — save/restore desktop states: captures open windows (hyprctl -j clients), wallpaper, barSegments, DND, nightLight. Snapshots persist as JSON in `~/.local/state/yutashell/snapshots/<name>.json`. Boot writes a Python helper script via `FileView.setText()` (works only from onCompleted); runtime saves call this helper via `Process` to bypass the FileView async-write limitation. IPC: `snapshots save/remove <name>/list/status`.
 
 ## New singletons (PH.08)
 
@@ -162,7 +166,7 @@ ShellState additions: `systemMonitorOpen` (runtime, toggled by IPC).
 - Runtime config only via `hyprctl eval '<lua>'` — plain `hyprctl keyword` fails ("non-legacy parsers"). Nested Lua tables mirror option paths: `hl.config({general={col={active_border="…"}}})` → `general:col.active_border`.
 - Color formats (hyprctl round-trip verified): `rgba()` hex parses RRGGBBAA (trailing alpha!), bare `"0xAARRGGBB"` strings parse directly; internal form is always AARRGGBB. colors.lua template's `0xff…` values correct as-is; it applies borders via `hl.config` at require time, and the catalog post-hook re-applies through `hyprctl eval` after every matugen run.
 - `WlrLayershell` anchors are ONLY left/right/top/bottom — no horizontalCenter. Centered dock = full-width window (left+right+bottom) + `mask: Region { item: <centered content> }`.
-- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`. PH.08: Launcher features in dedicated section below. PH.09: `Pomodoro` bar chip with ⏱ + countdown, `Cheatsheet` bar chip with ⌨ toggle, 26 total segment types.
+- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`. PH.08: Launcher features in dedicated section below. PH.09: `Pomodoro` bar chip with ⏱ + countdown, `Cheatsheet` bar chip with ⌨ toggle. PH.07: `Snapshots` bar chip with ⌘ + count. 29 total segment types.
 
 ## Hard-won lessons (do not regress)
 
@@ -173,7 +177,7 @@ Full-res decode of 194 wallpapers hit **7–13 GB RSS** and the kernel OOM-kille
 Fixed sleeps race daemon startup and drop paints silently. Spawn detached (`setsid`), retry `awww img` up to 8× with 0.25 s gaps (Wallpaper.qml).
 
 ### 3. FileView drops overlapping operations
-Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms silently drop (warning: `got operation finished from dropped operation`). Fixes shipped: `ShellState.set()` coalesces via 80 ms flush timer; Wallpaper.writeGenConfig 100 ms; startup seeding writes only if file absent AND empty. Keep ≥0.5 s between mutating IPC calls in scripts. state.json is not watched for external edits — inject prefs via IPC or restart.
+Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms silently drop (warning: `got operation finished from dropped operation`). **Critical: `setText()` and `writeAdapter()` also silently fail when called from async callback contexts (StdioCollector.onStreamFinished, Timer triggered from callbacks) — they only work reliably from `Component.onCompleted` or other synchronous init paths.** Fixes shipped: `ShellState.set()` coalesces via 80 ms flush timer; Wallpaper.writeGenConfig 100 ms; startup seeding writes only if file absent AND empty. **SnapshotService workaround**: writes a Python helper script to disk at boot via `setText()` (onCompleted), then calls it via `Process` at runtime for all file writes. Keep ≥0.5 s between mutating IPC calls in scripts. state.json is not watched for external edits — inject prefs via IPC or restart.
 
 ### 4. QML gotchas (one line each, all bit us)
 - Flickable/GridView/ListView reparent declared children into contentItem — scroll indicators/fades/overlays MUST be siblings over the scroll area (`YScroll { target }`).

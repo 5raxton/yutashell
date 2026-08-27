@@ -79,6 +79,8 @@ ShellRoot {
             void BatteryService.present;
             void NetHealth.available;
             void WsHeatmap.available;
+            // PH.07: session snapshots
+            void SnapshotService.snapshots;
         }
     }
 
@@ -1591,6 +1593,54 @@ ShellRoot {
                 + " latency=" + (NetHealth.latencyMs >= 0 ? NetHealth.latencyMs + "ms" : "timeout")
                 + " vpn=" + (NetHealth.vpnActive ? "up" : "down")
                 + " ws=" + WsHeatmap.workspaces.length;
+        }
+    }
+
+    IpcHandler {
+        target: "snapshots"
+
+        function toggle(): void {
+            ShellState.toggleSnapshots();
+        }
+
+        function open(): void {
+            ShellState.openSnapshots();
+        }
+
+        function close(): void {
+            ShellState.closeSnapshots();
+        }
+
+        function save(name: string): string {
+            SnapshotService.save(name);
+            return "saving snapshot: " + name;
+        }
+
+        function restore(name: string): string {
+            SnapshotService.restore(name);
+            return "restoring snapshot: " + name;
+        }
+
+        function remove(name: string): string {
+            SnapshotService.deleteSnapshot(name);
+            return "deleted snapshot: " + name;
+        }
+
+        function list(): string {
+            const snaps = SnapshotService.list();
+            if (snaps.length === 0) return "no snapshots";
+            let out = "";
+            for (let i = 0; i < snaps.length; i++) {
+                if (i > 0) out += "\n";
+                const d = new Date(snaps[i].timestamp);
+                const pad = function(n) { return n < 10 ? "0" + n : "" + n; };
+                out += snaps[i].name + " (" + (d.getMonth()+1) + "/" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ", " + snaps[i].windowCount + " windows)";
+            }
+            return out;
+        }
+
+        function status(): string {
+            return "count=" + SnapshotService.snapshots.length;
         }
     }
 }

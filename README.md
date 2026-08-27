@@ -13,7 +13,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 ## Features
 
-- **Bar** — 24 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp/fan), clock, mixer, scratchpad, chips, project profiles; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
+- **Bar** — 29 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp/fan), clock, mixer, scratchpad, chips, project profiles; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
 - **Theme engine** — 12 preset schemes, wallpaper-derived palettes via matugen, runtime light mode, any-hex accent override; the whole shell repaints live
 - **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
 - **Launcher / command palette** — frecency-ranked search (launch count × time decay, pinned apps first, recents second), prefix modes: `=` calculator (recursive descent parser, no eval), `>` shell command runner, `@` notification history search, `#` color converter (#hex to rgb to hsl), `~` recent files browser (XDG recently-used.xbel)
@@ -29,7 +29,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Developer Command Center** — unified dev surface with 6 tool tabs: git status (branch + dirty/staged/untracked counts, CWD from focused terminal), Docker Compose monitor (project cards with restart/stop), CI/CD pipeline status (GitHub Actions via `gh`, configurable repos, failure notifications), live log tailer (journalctl + hyprland + custom sources with regex filter), tmux/zellij dashboard (session list, attach/kill), port scanner (listening ports with exposed-port warnings); 3 bar segments (git, docker, cicd) with click-to-open
 - **Focus & Wellness** — deep focus mode with Pomodoro-style work/break cycles: configurable durations (25/5/15 min defaults), DND + idle inhibit auto-enabled during focus, fullscreen break overlay with countdown + rotating health tips (9 prompts, 8s rotation), session stats logged to disk (30-day rolling window), YSurface panel with today/week/streak stats + 7-day history; bar segment shows ◉ countdown when focusing, "FOCUS" when idle; 4 configurable prefs in settings
 - **Smart System Monitor** — battery intelligence (health/wear ring gauge, time remaining, charge threshold write for ThinkPad/Lenovo), network health (30s ping probes with latency grade, VPN status, IP/DNS display), power budget (top CPU apps with bar chart, screen brightness, discharge rate + estimated time), workspace memory heatmap (color-coded grid by window count, click to switch); unified YSurface panel with 4 tabs (BATTERY/NETWORK/POWER/WORKSPACES); bar segment shows ⚙ + battery % + latency
-- **IPC** — 56 targets, 230+ functions; keybinds, CLI and settings panel share one implementation
+- **IPC** — 57 targets, 230+ functions; keybinds, CLI and settings panel share one implementation
 - **Accessibility** — reduced motion mode (snaps all animations to instant), high contrast mode (maximum contrast palette), keyboard navigation (Tab/Shift+Tab focus cycling, Enter/Space activation, Escape to close panels)
 
 ## Requirements
@@ -99,7 +99,7 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-129 QML files · 51 singletons · 13 UI primitives · 56 IPC targets · 230+ functions
+130 QML files · 52 singletons · 13 UI primitives · 57 IPC targets · 230+ functions
 89 matugen templates · 17 snippet rules · 33 bar segments · 12 color schemes
 7 layout presets · 17 settings pages · 11 control center tabs · 4 spawn modes
 ```

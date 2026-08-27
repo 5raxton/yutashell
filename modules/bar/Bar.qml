@@ -304,6 +304,8 @@ PanelWindow {
             return focusComp;
         case "systemmonitor":
             return sysMonComp;
+        case "snapshots":
+            return snapComp;
         case "clock":
             return clockComp;
         case "spacer":
@@ -1013,6 +1015,48 @@ PanelWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: ShellState.toggleSystemMonitor()
+            }
+        }
+    }
+
+    Component {
+        id: snapComp
+
+        Item {
+            implicitWidth: snapRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: snapRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "\u2036"
+                    color: Theme.acid
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                    font.weight: Font.Bold
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: SnapshotService.snapshots.length + " snaps"
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleSnapshots()
             }
         }
     }
