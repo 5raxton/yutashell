@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–2 complete.
+Phases 1–3 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -77,6 +77,19 @@ Bar: new `profiles` segment shows ◆ icon + active profile name. Click cycles p
 IPC: `profiles toggle/open/close/list/apply <id>/save <id> <name>/deleteprofile <id>/cycle/status`.
 
 ShellState additions: `profilesOpen` (runtime, toggled by IPC), persisted `profiles` (JSON array) key.
+
+## Automation Rules Engine (PH.03)
+
+Two types in `modules/automation/`:
+
+- **`RuleService`** (singleton) — declarative trigger-action engine. Rules stored in `ShellState.automationRules` as JSON array of `{id, name, trigger:{type,config}, actions:[{type,config}], enabled}`. 8 trigger types: `time` (hour/minute/days-of-week), `battery` (above/below threshold %), `network` (connected/disconnected), `recording` (started/stopped), `temperature` (above/below °C), `focusedApp` (app gained/lost focus via `Hyprland.onRawEvent`), `mpris` (playback started/stopped), `idle` (user idle N seconds). 8 action types: `setProfile`, `setPowerProfile`, `toggleDnd`, `runCommand`, `notify`, `setWallpaper`, `setNightLight`, `setBarPreset`. Time-based rules evaluated by 30 s Timer; event-driven triggers subscribe to existing singleton signals (`SystemStats.warnRaised`/`thermalWarning`, `Connectivity.onWifiOnChanged`, `Recording.onActiveChanged`, etc.) via `Connections`. 60 s cooldown per rule prevents re-fire. CRUD: `create()`, `update(id, patch)`, `remove(id)`, `toggleEnabled(id)`, `setEnabled(id, bool)`, `testRule(id)`. 8 starter rules ship disabled by default (Low Battery Saver, Work Hours, Night Mode, Gaming Mode, Recording Focus, Thermal Throttle, Morning Wake, Mute on Media Stop).
+- **`RuleEditor`** (PanelWindow) — YSurface panel with two-column layout: scrollable rule list (left) with enabled dot + name + trigger summary, detail editor (right) with trigger type selector chips, type-specific config fields (hour/minute/day picker for time, op+threshold chips for battery/temperature, event chips for network/recording/mpris, text input for focusedApp app ID, duration chips for idle), action chips (existing actions with remove buttons + add-action chips from a palette), enable/disable toggle, TEST button, DEL button.
+
+Bar: new `automation` segment shows ⚡ + enabled rule count. Click opens RuleEditor. Added to all 7 layout presets (disabled by default). `present()` returns true when any rule is enabled.
+
+IPC: `automation toggle/open/close/list/enable <id>/disable <id>/test <id>/status`.
+
+ShellState additions: `automationOpen` (runtime, toggled by IPC), persisted `automationRules` (JSON array) key.
 
 ## Accessibility (PH.10)
 

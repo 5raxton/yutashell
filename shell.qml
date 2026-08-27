@@ -23,6 +23,7 @@ import "modules/widgets"
 import "modules/control"
 import "modules/ai"
 import "modules/profiles"
+import "modules/automation"
 
 ShellRoot {
     Tooltip {
@@ -61,6 +62,8 @@ ShellRoot {
             void AiService.available;
             // PH.02: profiles service
             void ProfileService.profiles;
+            // PH.03: automation rules service
+            void RuleService.rules;
         }
     }
 
@@ -1302,7 +1305,7 @@ ShellRoot {
                 const active = p.id === ProfileService.activeId ? " (active)" : "";
                 out += p.id + "\t" + p.name + active + "\n";
             }
-            return out.trimEnd();
+            return out.replace(/\s+$/, "");
         }
 
         function apply(id: string): string {
@@ -1328,6 +1331,55 @@ ShellRoot {
             const n = ProfileService.profiles.length;
             const active = ProfileService.activeName;
             return n + " profiles" + (active.length > 0 ? ", active: " + active : "");
+        }
+    }
+
+    IpcHandler {
+        target: "automation"
+
+        function toggle(): void {
+            ShellState.toggleAutomation();
+        }
+
+        function open(): void {
+            ShellState.openAutomation();
+        }
+
+        function close(): void {
+            ShellState.closeAutomation();
+        }
+
+        function list(): string {
+            const rules = RuleService.rules;
+            if (rules.length === 0) return "no rules";
+            let out = "";
+            for (let i = 0; i < rules.length; i++) {
+                const r = rules[i];
+                const state = r.enabled ? "enabled" : "disabled";
+                out += r.id + "\t" + r.name + "\t" + state + "\n";
+            }
+            return out.replace(/\s+$/, "");
+        }
+
+        function enable(id: string): string {
+            RuleService.setEnabled(String(id), true);
+            return "enabled rule " + id;
+        }
+
+        function disable(id: string): string {
+            RuleService.setEnabled(String(id), false);
+            return "disabled rule " + id;
+        }
+
+        function test(id: string): string {
+            const ok = RuleService.testRule(String(id));
+            return ok ? "tested rule " + id : "rule not found: " + id;
+        }
+
+        function status(): string {
+            const rules = RuleService.rules;
+            const enabled = rules.filter(r => r.enabled).length;
+            return rules.length + " rules (" + enabled + " enabled)";
         }
     }
 }

@@ -1,0 +1,2 @@
+singleton RuleService 1.0 RuleService.qml
+RuleEditor 1.0 RuleEditor.qml

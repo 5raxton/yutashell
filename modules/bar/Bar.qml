@@ -10,6 +10,8 @@ import "../audio"
 import "../session"
 import "../widgets"
 import "../common/ui"
+import "../profiles"
+import "../automation"
 import "."
 
 // Bar v2 (PH.14) — a data-driven organism. The layout (which segments, in
@@ -287,6 +289,8 @@ PanelWindow {
             return cheatsheetComp;
         case "profiles":
             return profilesComp;
+        case "automation":
+            return automationComp;
         case "clock":
             return clockComp;
         case "spacer":
@@ -707,6 +711,47 @@ PanelWindow {
                     else
                         ShellState.toggleProfiles();
                 }
+            }
+        }
+    }
+
+    Component {
+        id: automationComp
+
+        Item {
+            implicitWidth: autoRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: autoRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "⚡"
+                    color: RuleService.rules.some(r => r.enabled) ? Theme.acid : Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: RuleService.rules.filter(r => r.enabled).length + " ACTIVE"
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleAutomation()
             }
         }
     }

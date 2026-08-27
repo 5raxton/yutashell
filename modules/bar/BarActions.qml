@@ -127,6 +127,9 @@ Singleton {
         case "profiles":
             ProfileService.cycle();
             break;
+        case "automation":
+            ShellState.toggleAutomation();
+            break;
         case "ai":
             ShellState.toggleAi();
             break;
