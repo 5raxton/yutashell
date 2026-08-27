@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–4 complete.
+Phases 1–5 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -108,6 +108,20 @@ Bar: 3 new segments — `git` (branch + dirty badge, visible when dirty), `docke
 IPC: `dev toggle/open/close/gitstatus/dockerstatus/dockerrestart <name>/dockerstop <name>/cistatus/addrepo <name>/removerepo <name>/tmuxstatus/ports/status`.
 
 ShellState additions: `devOpen` (runtime, toggled by IPC), persisted `cicdRepos` (JSON array of repo strings).
+
+## Focus & Wellness (PH.05)
+
+Three types in `modules/focus/`:
+
+- **`FocusMode`** (singleton) — deep focus state machine: idle → focusing → break → longBreak → idle. Configurable work/break/longBreak durations and rounds. On focus start: enables DND via `Notify.setDnd(true)` and inhibits idle via `IdleInhibitor.manualInhibit`. Session stats logged to `~/.local/state/yutashell/focus-history.json` (30-day rolling window). Properties: `phase`, `remaining` (seconds), `round`, `running`, `display` (MM:SS), `label`, `focusing`, `showBreak`, `totalFocusedToday`, `history`. Functions: `start()`, `pause()`, `resume()`, `reset()`, `toggle()`, `status()`. IPC: `focus start/pause/resume/reset/toggle/status`.
+- **`BreakOverlay`** (PanelWindow) — fullscreen overlay at Overlay layer shown during break phases. Large countdown timer + rotating health tips (9 tips, 8s rotation). Dismissible after 10s minimum break time. Shows round counter. Blocks input via exclusion mode.
+- **`FocusPanel`** (PanelWindow) — YSurface panel showing focus stats (today's minutes, this week total, streak), start/pause/reset controls, and 7-day history list. Month navigation with `CalendarGrid` for heatmap display.
+
+Bar: new `focus` segment shows ◉/○ icon + countdown when focusing, "FOCUS" label when idle. Visible only when `phase !== "idle"`. Added to all 7 layout presets (disabled by default). Included in `compactIds`.
+
+IPC: `focus toggle/open/close/start/pause/resume/reset/status`.
+
+ShellState additions: `focusOpen` (runtime, toggled by IPC), persisted `focusWorkMin`, `focusBreakMin`, `focusLongBreakMin`, `focusRoundsBeforeLong` (adapter defaults 25/5/15/4).
 
 ## Accessibility (PH.10)
 

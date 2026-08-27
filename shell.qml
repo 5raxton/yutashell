@@ -25,6 +25,7 @@ import "modules/ai"
 import "modules/profiles"
 import "modules/automation"
 import "modules/dev"
+import "modules/focus"
 
 ShellRoot {
     Tooltip {
@@ -71,6 +72,8 @@ ShellRoot {
             void CIService.available;
             void TmuxService.available;
             void PortService.available;
+            // PH.05: focus & wellness
+            void FocusMode.phase;
         }
     }
 
@@ -1480,6 +1483,46 @@ ShellRoot {
                 + " ci=" + CIService.runs.length + "runs"
                 + " tmux=" + TmuxService.sessions.length + "sessions"
                 + " ports=" + PortService.ports.length;
+        }
+    }
+
+    IpcHandler {
+        target: "focus"
+
+        function toggle(): void {
+            ShellState.toggleFocus();
+        }
+
+        function open(): void {
+            ShellState.openFocus();
+        }
+
+        function close(): void {
+            ShellState.closeFocus();
+        }
+
+        function start(): string {
+            FocusMode.start();
+            return "focus started";
+        }
+
+        function pause(): string {
+            FocusMode.pause();
+            return "focus paused";
+        }
+
+        function resume(): string {
+            FocusMode.resume();
+            return "focus resumed";
+        }
+
+        function reset(): string {
+            FocusMode.reset();
+            return "focus reset";
+        }
+
+        function status(): string {
+            return FocusMode.status();
         }
     }
 }

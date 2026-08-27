@@ -47,6 +47,9 @@ Singleton {
     // developer command center (PH.04)
     property bool devOpen: false
 
+    // focus & wellness (PH.05)
+    property bool focusOpen: false
+
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
@@ -82,6 +85,7 @@ Singleton {
         root.profilesOpen = name === "profiles";
         root.automationOpen = name === "automation";
         root.devOpen = name === "dev";
+        root.focusOpen = name === "focus";
         root.aiOpen = name === "ai";
         root.aiChatOpen = name === "aichat";
     }
@@ -340,6 +344,19 @@ Singleton {
         root.devOpen = false;
     }
 
+    // ---- focus & wellness (PH.05) ----
+    function toggleFocus() {
+        root._exclusive(root.focusOpen ? "" : "focus");
+    }
+
+    function openFocus() {
+        root._exclusive("focus");
+    }
+
+    function closeFocus() {
+        root.focusOpen = false;
+    }
+
     // AI agent (PH.11)
     function toggleAi() {
         root._exclusive(root.aiOpen ? "" : "ai");
@@ -446,6 +463,12 @@ Singleton {
 
     // developer command center (PH.04)
     readonly property alias cicdRepos: adapter.cicdRepos
+
+    // focus & wellness (PH.05)
+    readonly property alias focusWorkMin: adapter.focusWorkMin
+    readonly property alias focusBreakMin: adapter.focusBreakMin
+    readonly property alias focusLongBreakMin: adapter.focusLongBreakMin
+    readonly property alias focusRoundsBeforeLong: adapter.focusRoundsBeforeLong
 
     // system / widgets (PH.11 + PH.13)
     readonly property alias clock24h: adapter.clock24h
@@ -636,7 +659,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"
@@ -664,6 +687,12 @@ Singleton {
 
     // developer command center (PH.04): CI/CD repos JSON array of strings
     property string cicdRepos: "[]"
+
+    // focus & wellness (PH.05): focus/break durations, rounds
+    property int focusWorkMin: 25
+    property int focusBreakMin: 5
+    property int focusLongBreakMin: 15
+    property int focusRoundsBeforeLong: 4
         }
     }
 

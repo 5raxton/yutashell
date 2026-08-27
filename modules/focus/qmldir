@@ -1,0 +1,3 @@
+singleton FocusMode 1.0 FocusMode.qml
+BreakOverlay 1.0 BreakOverlay.qml
+FocusPanel 1.0 FocusPanel.qml

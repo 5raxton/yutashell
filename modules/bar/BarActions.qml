@@ -133,6 +133,9 @@ Singleton {
         case "dev":
             ShellState.toggleDev();
             break;
+        case "focus":
+            ShellState.toggleFocus();
+            break;
         case "ai":
             ShellState.toggleAi();
             break;
