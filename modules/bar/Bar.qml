@@ -14,6 +14,7 @@ import "../profiles"
 import "../automation"
 import "../dev"
 import "../focus"
+import "../system"
 import "."
 
 // Bar v2 (PH.14) — a data-driven organism. The layout (which segments, in
@@ -301,6 +302,8 @@ PanelWindow {
             return cicdComp;
         case "focus":
             return focusComp;
+        case "systemmonitor":
+            return sysMonComp;
         case "clock":
             return clockComp;
         case "spacer":
@@ -959,6 +962,57 @@ PanelWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: ShellState.toggleFocus()
+            }
+        }
+    }
+
+    Component {
+        id: sysMonComp
+
+        Item {
+            implicitWidth: sysRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: sysRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: BatteryService.warn ? "\u26A0" : BatteryService.crit ? "\u2620" : "\u2699"
+                    color: BatteryService.warn || BatteryService.crit ? Theme.alert : Theme.acid
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                    font.weight: Font.Bold
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: BatteryService.present ? BatteryService.pct + "%" : "SYS"
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+
+                Text {
+                    visible: NetHealth.latencyMs >= 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: NetHealth.latencyMs + "ms"
+                    color: NetHealth.latencyMs < 50 ? Theme.acid : NetHealth.latencyMs < 100 ? Theme.ink : Theme.alert
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fsMicro
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleSystemMonitor()
             }
         }
     }

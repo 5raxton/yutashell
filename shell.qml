@@ -26,6 +26,7 @@ import "modules/profiles"
 import "modules/automation"
 import "modules/dev"
 import "modules/focus"
+import "modules/system"
 
 ShellRoot {
     Tooltip {
@@ -74,6 +75,10 @@ ShellRoot {
             void PortService.available;
             // PH.05: focus & wellness
             void FocusMode.phase;
+            // PH.06: smart system monitor
+            void BatteryService.present;
+            void NetHealth.available;
+            void WsHeatmap.available;
         }
     }
 
@@ -1523,6 +1528,69 @@ ShellRoot {
 
         function status(): string {
             return FocusMode.status();
+        }
+    }
+
+    IpcHandler {
+        target: "systemmonitor"
+
+        function toggle(): void {
+            ShellState.toggleSystemMonitor();
+        }
+
+        function open(): void {
+            ShellState.openSystemMonitor();
+        }
+
+        function close(): void {
+            ShellState.closeSystemMonitor();
+        }
+
+        function battery(): string {
+            if (!BatteryService.present) return "no battery";
+            return "pct=" + BatteryService.pct + " health=" + BatteryService.healthPct.toFixed(1) + "% wear=" + BatteryService.wearPct.toFixed(1) + "%"
+                + (BatteryService.charging ? " CHARGING" : " DISCHARGING")
+                + (BatteryService.timeLeft > 0 ? " " + Math.floor(BatteryService.timeLeft) + "min left" : "")
+                + (BatteryService.chargeThreshold >= 0 ? " threshold=" + BatteryService.chargeThreshold + "%" : "");
+        }
+
+        function network(): string {
+            return "latency=" + (NetHealth.latencyMs >= 0 ? NetHealth.latencyMs + "ms" : "timeout")
+                + " grade=" + NetHealth.latencyGrade
+                + " ip=" + (NetHealth.ip4 || "unknown")
+                + " vpn=" + (NetHealth.vpnActive ? "up" : "down")
+                + " dns=" + (NetHealth.dnsServer || "unknown");
+        }
+
+        function power(): string {
+            let out = "top_cpu=";
+            const apps = PowerBudget.topApps;
+            for (let i = 0; i < Math.min(3, apps.length); i++) {
+                if (i > 0) out += ",";
+                out += apps[i].name + "(" + apps[i].cpu.toFixed(1) + "%)";
+            }
+            if (PowerBudget.dischargeRate > 0)
+                out += " discharge=" + (PowerBudget.dischargeRate / 1000).toFixed(2) + "W";
+            return out;
+        }
+
+        function workspaces(): string {
+            const ws = WsHeatmap.workspaces;
+            if (ws.length === 0) return "no workspaces";
+            let out = "";
+            for (let i = 0; i < ws.length; i++) {
+                if (i > 0) out += " ";
+                out += (ws[i].name || ws[i].id) + ":" + ws[i].windows + "win";
+                if (ws[i].focused) out += "(*)";
+            }
+            return out;
+        }
+
+        function status(): string {
+            return "battery=" + (BatteryService.present ? BatteryService.pct + "%" : "none")
+                + " latency=" + (NetHealth.latencyMs >= 0 ? NetHealth.latencyMs + "ms" : "timeout")
+                + " vpn=" + (NetHealth.vpnActive ? "up" : "down")
+                + " ws=" + WsHeatmap.workspaces.length;
         }
     }
 }

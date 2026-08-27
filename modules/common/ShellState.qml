@@ -50,6 +50,9 @@ Singleton {
     // focus & wellness (PH.05)
     property bool focusOpen: false
 
+    // smart system monitor (PH.06)
+    property bool systemMonitorOpen: false
+
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
@@ -86,6 +89,7 @@ Singleton {
         root.automationOpen = name === "automation";
         root.devOpen = name === "dev";
         root.focusOpen = name === "focus";
+        root.systemMonitorOpen = name === "systemmonitor";
         root.aiOpen = name === "ai";
         root.aiChatOpen = name === "aichat";
     }
@@ -355,6 +359,19 @@ Singleton {
 
     function closeFocus() {
         root.focusOpen = false;
+    }
+
+    // ---- smart system monitor (PH.06) ----
+    function toggleSystemMonitor() {
+        root._exclusive(root.systemMonitorOpen ? "" : "systemmonitor");
+    }
+
+    function openSystemMonitor() {
+        root._exclusive("systemmonitor");
+    }
+
+    function closeSystemMonitor() {
+        root.systemMonitorOpen = false;
     }
 
     // AI agent (PH.11)
@@ -659,7 +676,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\",\"systemmonitor\":\"systemmonitor\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"

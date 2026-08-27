@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–5 complete.
+Phases 1–6 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -122,6 +122,22 @@ Bar: new `focus` segment shows ◉/○ icon + countdown when focusing, "FOCUS" l
 IPC: `focus toggle/open/close/start/pause/resume/reset/status`.
 
 ShellState additions: `focusOpen` (runtime, toggled by IPC), persisted `focusWorkMin`, `focusBreakMin`, `focusLongBreakMin`, `focusRoundsBeforeLong` (adapter defaults 25/5/15/4).
+
+## Smart System Monitor (PH.06)
+
+Five singletons + one PanelWindow in `modules/system/` (plus `NetHealth` in `modules/system/`):
+
+- **`BatteryService`** (singleton) — battery intelligence: wraps SystemStats battery data with derived health/wear/time metrics. Reads charge threshold from sysfs on boot. Supports writing threshold via `setChargeThreshold(pct)` (sudo tee). Exposes `healthPct`, `wearPct`, `timeLeft`, `timeToFull`, `chargeRate`, `warn`, `crit`.
+- **`NetHealth`** (singleton) — network health monitor: periodic 30s probes for ping latency (1.1.1.1), IP address, VPN status (`ip link show wg0`), DNS resolution. Exposes `latencyMs`, `latencyGrade` (excellent/good/fair/poor/bad), `ip4`, `vpnActive`, `dnsServer`. Signals: `latencySpike(ms)`, `vpnChanged(active)`. Health reports on VPN disconnect.
+- **`PowerBudget`** (singleton) — power budget aggregator: reads top CPU apps from `ps aux`, screen brightness from sysfs, battery discharge rate. Exposes `topApps[]` (name, cpu%, mem%), `screenBrightness`, `dischargeRate` (mW), `estimatedMinutes`. 5s refresh.
+- **`WsHeatmap`** (singleton) — workspace memory visualization: queries `hyprctl -j workspaces` and `activeworkspace` on 3s timer + Hyprland raw events. Exposes `workspaces[]` (id, name, windows, focused). `switchTo(wsId)` dispatches focus.
+- **`SystemMonitor`** (PanelWindow) — unified YSurface panel with 4 tab chips (BATTERY/NETWORK/POWER/WORKSPACES). Battery tab: ring gauge + health/wear/energy/threshold. Network tab: latency/grade/IP/VPN/DNS rows. Power tab: discharge rate, brightness bar, top CPU apps with bar chart. Workspaces tab: color-coded grid (green→red by window count), click to switch.
+
+Bar: new `systemmonitor` segment shows ⚙ + battery % + latency. Click opens SystemMonitor. Added to all 7 layout presets (disabled by default).
+
+IPC: `systemmonitor toggle/open/close/battery/network/power/workspaces/status`.
+
+ShellState additions: `systemMonitorOpen` (runtime, toggled by IPC).
 
 ## Accessibility (PH.10)
 
