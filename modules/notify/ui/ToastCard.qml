@@ -170,7 +170,7 @@ Rectangle {
                     anchors.fill: parent
                     implicitSize: 22
                     visible: Notify.fields.icon && status === Image.Ready
-                    source: Notify.fields.icon && root.entry.icon.length > 0 ? Quickshell.iconPath(root.entry.icon) : ""
+                    source: Notify.fields.icon && root.entry.icon.length > 0 ? ShellState.safeIcon(root.entry.icon) : ""
                 }
 
                 Text {

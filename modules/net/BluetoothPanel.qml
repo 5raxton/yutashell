@@ -269,7 +269,7 @@ PanelWindow {
                                 x: Theme.sp1
                                 anchors.verticalCenter: parent.verticalCenter
                                 implicitSize: 20
-                                source: devRow.modelData !== undefined && devRow.modelData.icon !== undefined && devRow.modelData.icon.length > 0 ? Quickshell.iconPath(devRow.modelData.icon) : ""
+                                source: devRow.modelData !== undefined && devRow.modelData.icon !== undefined && devRow.modelData.icon.length > 0 ? ShellState.safeIcon(devRow.modelData.icon) : ""
                                 visible: status === Image.Ready
                             }
 

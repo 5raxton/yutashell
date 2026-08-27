@@ -135,7 +135,7 @@ PanelWindow {
                             required property var modelData
 
                             readonly property bool sel: root.sliceStart + index === Overview.altTabIdx
-                            readonly property string iconUrl: modelData.iconSrc === "" ? "" : Quickshell.iconPath(modelData.iconSrc)
+                            readonly property string iconUrl: modelData.iconSrc === "" ? "" : ShellState.safeIcon(modelData.iconSrc)
 
                             width: 74
                             height: 72

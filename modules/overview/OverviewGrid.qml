@@ -362,7 +362,7 @@ PanelWindow {
                                                 anchors.centerIn: parent
                                                 implicitSize: 14
                                                 visible: modelData.iconSrc !== "" && status !== Image.Error && status !== Image.Null
-                                                source: Quickshell.iconPath(modelData.iconSrc)
+                                                source: ShellState.safeIcon(modelData.iconSrc)
                                                 asynchronous: true
                                             }
                                         }

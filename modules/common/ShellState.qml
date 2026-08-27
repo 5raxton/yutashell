@@ -27,19 +27,23 @@ Singleton {
     // mixer (PH.02)
     property bool mixerOpen: false
 
-    // scratchpad manager (PH.04)
-    property bool scratchpadOpen: false
-
-    // AI agent (PH.11)
-    property bool aiOpen: false
-    property bool aiChatOpen: false
-
-    property bool snapshotAuto: true
-
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
     // one surface at a time — opening any popup closes the others
+    // Qt 6.11.2 QtSvg crashes (CVE-2026-8168) on SVG icon loads through the
+    // icon engine (QPen::~QPen / QSvgHandler::init, see AGENTS.md). Prefer
+    // bitmap icons; return "" for .svg so delegates fall back to their
+    // initial/accent square instead of invoking the buggy plugin.
+    function safeIcon(name): string {
+        const p = Quickshell.iconPath(String(name));
+        if (!p)
+            return "";
+        if (String(p).toLowerCase().endsWith(".svg"))
+            return "";
+        return p;
+    }
+
     function _exclusive(name) {
         // freeze popup placement at the moment something opens (PH.06) — a
         // mid-display focus move must never drag a visible card across screens
@@ -64,9 +68,6 @@ Singleton {
         root.emojiOpen = name === "emoji";
         root.ccOpen = name === "cc";
         root.mixerOpen = name === "mixer";
-        root.scratchpadOpen = name === "scratchpad";
-        root.aiOpen = name === "ai";
-        root.aiChatOpen = name === "aichat";
     }
 
     function togglePanel() {
@@ -241,45 +242,8 @@ Singleton {
         root.mixerOpen = false;
     }
 
-    function toggleScratchpad() {
-        root._exclusive(root.scratchpadOpen ? "" : "scratchpad");
-    }
-
-    function openScratchpad() {
-        root._exclusive("scratchpad");
-    }
-
-    function closeScratchpad() {
-        root.scratchpadOpen = false;
-    }
-
     function toggleCompact() {
         root.set("barCompact", !root.barCompact);
-    }
-
-    // ---- AI agent (PH.11) ----
-    function toggleAi() {
-        root._exclusive(root.aiOpen ? "" : "ai");
-    }
-
-    function openAi() {
-        root._exclusive("ai");
-    }
-
-    function closeAi() {
-        root.aiOpen = false;
-    }
-
-    function toggleAiChat() {
-        root._exclusive(root.aiChatOpen ? "" : "aichat");
-    }
-
-    function openAiChat() {
-        root._exclusive("aichat");
-    }
-
-    function closeAiChat() {
-        root.aiChatOpen = false;
     }
 
     // ---- persisted prefs (auto-written on change) ----
@@ -347,28 +311,6 @@ Singleton {
     readonly property alias dockHide: adapter.dockHide
     readonly property alias dockMonitors: adapter.dockMonitors
     readonly property alias dockPins: adapter.dockPins
-
-    // AI agent (PH.11)
-    readonly property alias aiProvider: adapter.aiProvider
-    readonly property alias aiEndpoint: adapter.aiEndpoint
-    readonly property alias aiModel: adapter.aiModel
-    readonly property alias aiApiKey: adapter.aiApiKey
-    readonly property alias aiHistory: adapter.aiHistory
-
-    // project profiles (PH.02)
-    readonly property alias profiles: adapter.profiles
-
-    // automation rules (PH.03): JSON array of {id, name, trigger, actions[], enabled}
-    readonly property alias automationRules: adapter.automationRules
-
-    // developer command center (PH.04)
-    readonly property alias cicdRepos: adapter.cicdRepos
-
-    // focus & wellness (PH.05)
-    readonly property alias focusWorkMin: adapter.focusWorkMin
-    readonly property alias focusBreakMin: adapter.focusBreakMin
-    readonly property alias focusLongBreakMin: adapter.focusLongBreakMin
-    readonly property alias focusRoundsBeforeLong: adapter.focusRoundsBeforeLong
 
     // system / widgets (PH.11 + PH.13)
     readonly property alias clock24h: adapter.clock24h
@@ -559,7 +501,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\",\"systemmonitor\":\"systemmonitor\",\"snapshots\":\"snapshots\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"
@@ -568,31 +510,6 @@ Singleton {
     // plugins (PH.05): namespaced per-plugin state — JSON map
     // { "<pluginId>": { "enabled": bool, "data": { key: value } } }
     property string pluginData: "{}"
-
-    // AI agent (PH.11): provider ("ollama"|"openai"|"anthropic"), endpoint URL,
-    // selected model name, API key env var reference, command history JSON
-    property string aiProvider: "ollama"
-    property string aiEndpoint: ""
-    property string aiModel: ""
-    property string aiApiKey: ""
-    property string aiHistory: "[]"
-
-    // project profiles (PH.02): JSON array of {id, name, icon, wallpaper,
-    // apps[], powerProfile, dnd, barPreset, nlActive}
-    property string profiles: "[]"
-
-    // automation rules (PH.03): JSON array of {id, name, trigger:{type,config},
-    // actions:[{type,config}], enabled}
-    property string automationRules: "[]"
-
-    // developer command center (PH.04): CI/CD repos JSON array of strings
-    property string cicdRepos: "[]"
-
-    // focus & wellness (PH.05): focus/break durations, rounds
-    property int focusWorkMin: 25
-    property int focusBreakMin: 5
-    property int focusLongBreakMin: 15
-    property int focusRoundsBeforeLong: 4
         }
     }
 

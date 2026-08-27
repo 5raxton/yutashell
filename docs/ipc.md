@@ -15,11 +15,11 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `settings` | `page <id>` / `list` | jump to a settings page; list page ids (`appearance bar dock osd accessibility panels launcher controlcenter notifications power security services system shell plugins about`) |
 | `cc` | `toggle` / `open` / `close` | control center |
 | `picker` | `toggle` / `open` / `close` | wallpaper archive |
-| `overview` | `toggle` / `open` / `close` / `alttab` / `scratchpad` / `scratchsend` / `tile <preset>` / `status` | overview grid, window switcher, scratchpad, quick-tile |
-| `scheme` | `set <name>` / `list` / `wallpaper` | 12 preset schemes; re-follow wallpaper palette |
+| `overview` | `toggle` / `open` / `close` / `alttab` / `tile <preset>` / `status` | overview grid, window switcher, quick-tile |
+| `scheme` | `set <name>` / `list` / `wallpaper` | preset color schemes; re-follow wallpaper palette |
 | `wallpaper` | `set <path>` / `next` / `random` / `list` | set/cycle wallpapers (runs the whole theming pipeline) |
 | `theme` | `dark on\|off\|toggle` / `accent <#hex\|none>` / `generate <image>` | light-dark mode; accent override; apply wallpaper image |
-| `templates` | `list` / `on <id>` / `off <id>` / `add <id> <input> <output>` / `remove <id>` | 89 matugen template registry |
+| `templates` | `list` / `on <id>` / `off <id>` / `add <id> <input> <output>` / `remove <id>` | matugen template registry |
 | `plugins` | `list` / `rescan` / `enable <id>` / `disable <id>` / `panel <id>` | plugin lifecycle; `panel` toggles bar-type plugin panels |
 | `audio` | `toggle` / `open` / `close` / `volup` / `voldown` / `mute` / `micmute` / `status` | PipeWire audio with OSD |
 | `display` | `bright <pct>` | set brightness (0–100) |
@@ -34,7 +34,6 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
 | `media` | `toggle` / `close` / `playpause` / `next` / `previous` | MPRIS media widget |
 | `nightlight` | `toggle` / `on` / `off` / `temp <kelvin>` / `schedule <on> <off> <true/false>` / `schedulestatus` / `status` | night light (hyprsunset) with auto schedule |
-| `pomodoro` | `start` / `pause` / `resume` / `reset` / `toggle` / `status` | pomodoro timer (work/break cycles) |
 | `shot` | `region` / `full` / `window` / `copy` / `dir` | screenshots (grim + slurp) |
 | `clipboard` | `toggle` / `open` / `close` / `status` | clipboard history (cliphist) |
 | `calendar` | `toggle` / `open` / `close` | calendar widget |
@@ -45,7 +44,6 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `colorpicker` | `pick` | color pick operation (hyprpicker) |
 | `compositor` | `info` / `dsp <lua>` | capability report / warm-client Hyprland dispatch passthrough |
 | `dock` | `toggle` / `enable` / `disable` / `pin <id>` / `unpin <id>` / `hide <mode>` / `mode <mode>` / `status` | bottom dock |
-| `snapshots` | `save <name>` / `restore <name>` / `remove <name>` / `list` / `status` | session snapshots (save/restore desktop state) |
 | `bar` | see below | bar layout |
 | `spawn` | see below | where each popup spawns from |
 
@@ -65,7 +63,7 @@ bar preset <id>                         # apply a bar layout preset
 bar status                              # current model as text
 ```
 
-33 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `mixer`, `scratchpad`, `pluginwidgets`, `clock`, `spacer`, `pomodoro`, `profiles`, `automation`, `git`, `docker`, `cicd`, `focus`, `systemmonitor`, `snapshots`
+21 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `mixer`, `pluginwidgets`, `clock`
 
 ### `spawn`
 

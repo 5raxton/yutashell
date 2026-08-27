@@ -4,15 +4,15 @@
 
 ```
 yuta-qs/
-├── shell.qml              entry point, 46 IPC handlers (IPC-driven actions), per-screen instances
+├── shell.qml              entry point, 38 IPC targets (IPC-driven actions), per-screen instances
 ├── theme/                 Theme singleton, 12 preset palettes, matugen setup
 ├── modules/
-│   ├── bar/               33 segment types + Kanban drag-drop editor, BarActions dispatcher
-│   ├── common/            ShellState, Wallpaper/89-template pipeline, SystemStats,
+│   ├── bar/               21 segment types + Kanban drag-drop editor, BarActions dispatcher
+│   ├── common/            ShellState, Wallpaper template pipeline, SystemStats,
 │   │                      PluginService, FocusMonitor, Compositor, Health, 13 UI primitives
 │   ├── settings/          settings panel (17 pages behind searchable nav rail)
 │   ├── control/           control center (11 tabs)
-│   ├── launcher/          app launcher (grid/list/detail + :command mode + calculator)
+│   ├── launcher/          app launcher (grid/list/detail + prefix modes + calculator)
 │   ├── picker/            wallpaper archive
 │   ├── notify/            notification daemon, toasts, history center
 │   ├── net/               network + bluetooth panels, bar chips
@@ -22,8 +22,7 @@ yuta-qs/
 │   ├── dock/              bottom dock
 │   ├── overview/          workspace grid, alt-tab, tile presets
 │   └── widgets/           calendar, weather, clipboard, screenshots,
-│                          emoji, updates, recording, color picker,
-│                          pomodoro timer
+│                          emoji, updates, recording, color picker, storage monitor
 ├── plugins/               reference widget + daemon plugins
 └── docs/                  these pages
 ```
@@ -33,7 +32,7 @@ yuta-qs/
 - **One theme source** — colors/fonts/metrics only via `Theme.*`; that's what makes live recoloring free
 - **One sampler** — `SystemStats` is the single stats reader; widgets bind to it instead of opening their own `/proc` watchers
 - **Shared choreography** — every floating surface composes the `YSurface` primitive: one entrance ceremony, flare shoulders toward its spawn seam (bar / top edge / bottom edge / float), click-outside catcher
-- **Graceful degradation** — optional backends are probed at startup; missing features report through a `Health` singleton shown as a `!` chip in the bar instead of failing silently
+- **Graceful degradation** — optional backends are probed at startup; missing features are hidden or report through the internal `Health` singleton instead of failing silently
 - **Single action path** — keybinds, CLI and panel buttons all route through the same IPC handlers
 - **Accessibility** — `Theme.reducedMotion` snaps all animation durations to 0 (toast entrance excluded at 80 ms); `Theme.highContrast` overrides palette tokens for maximum contrast; all UI primitives support Tab/Shift+Tab focus cycling and Enter/Space activation
 

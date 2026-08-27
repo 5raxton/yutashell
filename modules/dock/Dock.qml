@@ -173,7 +173,7 @@ Singleton {
             e.execute();
     }
 
-    // left-click cycle: launch → focus → minimize-to-scratchpad
+    // left-click cycle: launch → focus → minimize (hide to special:magic)
     function click(appId) {
         const wins = root.windowsOf(appId);
         if (wins.length === 0) {
@@ -184,7 +184,7 @@ Singleton {
             root.focusAddress(wins[0].address);
             return;
         }
-        // active → minimize to the scratchpad (special:magic); with several
+        // active → minimize (hide to the special:magic workspace); with several
         // windows, stash them ALL — otherwise every click just swaps which
         // window is visible in a focus/minimize loop
         if (wins.length > 1) {

@@ -1,6 +1,0 @@
-singleton AiService 1.0 AiService.qml
-singleton AiContext 1.0 AiContext.qml
-CommandPalette 1.0 CommandPalette.qml
-ChatSidebar 1.0 ChatSidebar.qml
-VoiceInput 1.0 VoiceInput.qml
-ScreenshotAction 1.0 ScreenshotAction.qml

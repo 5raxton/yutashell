@@ -36,7 +36,7 @@ Singleton {
         if (appId.length > 0) {
             const e = DesktopEntries.heuristicLookup(appId);
             if (e)
-                return Quickshell.iconPath(e.icon, "");
+                return ShellState.safeIcon(e.icon);
         }
         return "";
     }

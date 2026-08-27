@@ -1078,7 +1078,7 @@ PanelWindow {
                             readonly property bool sel: index === card.selIdx
                             readonly property bool isAction: modelData.kind === "action"
                             readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
-                            readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
+                            readonly property string iconUrl: iconSrc === "" ? "" : ShellState.safeIcon(iconSrc)
                             readonly property string label: isAction ? modelData.action.name : modelData.entry.name
 
                             opacity: 1
@@ -1207,7 +1207,7 @@ PanelWindow {
                             readonly property bool isRecentFile: modelData.kind === "recentfile"
                             readonly property bool isNotify: modelData.kind === "notifyitem"
                             readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : isRecentFile ? "" : isNotify ? "" : (modelData.entry.icon ?? "")
-                            readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
+                            readonly property string iconUrl: iconSrc === "" ? "" : ShellState.safeIcon(iconSrc)
                             readonly property string label: isAction ? modelData.action.name : isRecentFile ? (modelData.recentFile.name ?? modelData.recentFile.uri ?? "") : isNotify ? (modelData.notifyItem.summary ?? modelData.notifyItem.body ?? "") : modelData.entry.name
                             readonly property string sub: isAction ? modelData.entry.name : isRecentFile ? (modelData.recentFile.mimeType ?? "") : isNotify ? (modelData.notifyItem.app ?? "") : (modelData.entry.genericName ?? "")
 
@@ -1327,7 +1327,7 @@ PanelWindow {
                             readonly property bool sel: index === card.selIdx
                             readonly property bool isAction: modelData.kind === "action"
                             readonly property string iconSrc: isAction ? (modelData.action.icon ?? "") : (modelData.entry.icon ?? "")
-                            readonly property string iconUrl: iconSrc === "" ? "" : Quickshell.iconPath(iconSrc)
+                            readonly property string iconUrl: iconSrc === "" ? "" : ShellState.safeIcon(iconSrc)
                             readonly property string label: isAction ? modelData.action.name : modelData.entry.name
                             readonly property string sub: isAction ? modelData.entry.name : (modelData.entry.genericName ?? "")
                             readonly property string catStr: {

@@ -5,9 +5,9 @@ import Quickshell.Hyprland
 import qs.modules.common
 
 // Overview — compositor navigation superpowers (PH.10): workspace grid,
-// alt-tab switcher, scratchpad control and quick-tile presets. Window MRU
-// order is tracked from Hyprland `activewindow` events; the visual surfaces
-// live in OverviewGrid.qml and AltTab.qml.
+// alt-tab switcher and quick-tile presets. Window MRU order is tracked from
+// Hyprland `activewindow` events; the visual surfaces live in OverviewGrid.qml
+// and AltTab.qml.
 Singleton {
     id: root
 
@@ -181,27 +181,6 @@ Singleton {
 
     function cancelAltTab() {
         ShellState.closeAltTab();
-    }
-
-    // ---- scratchpad (special:magic) --------------------------------------
-    // NOTE (PH.07 live verification): hl.dsp.workspace.toggle_special(),
-    // focus({ workspace = "special:*" }) and raw 'togglespecialworkspace'
-    // are ALL inert under this Helmsman build — the ONLY working channel
-    // into/out of special:magic is window.move(). Toggle therefore acts on
-    // the focused window: hide it to magic, or pull it back out.
-    function toggleScratchpad() {
-        const focused = Hyprland.toplevels.values.find(t => t.activated);
-        if (!focused)
-            return;
-        const onMagic = Number(focused.workspace?.id ?? 0) < 0
-                || String(focused.workspace?.name ?? "") === "magic";
-        Hyprland.dispatch(onMagic
-            ? 'hl.dsp.window.move({ workspace = "previous" })'
-            : 'hl.dsp.window.move({ workspace = "special:magic" })');
-    }
-
-    function sendToScratchpad() {
-        Hyprland.dispatch('hl.dsp.window.move({ workspace = "special:magic" })');
     }
 
     // ---- focus helpers ----------------------------------------------------

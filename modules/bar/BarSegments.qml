@@ -9,11 +9,6 @@ import "../net"
 import "../audio"
 import "../session"
 import "../widgets"
-import "../profiles"
-import "../automation"
-import "../dev"
-import "../focus"
-import "../system"
 
 // BarSegments — the bar's segment model (PH.14). Parses the persisted ordered
 // array [{id, zone, enabled}] from ShellState and answers the bar's layout
@@ -45,19 +40,9 @@ Singleton {
             "session": { label: "Inhibit chip", jp: "阻" },
             "recording": { label: "Recording chip", jp: "録" },
             "mixer": { label: "Mixer", jp: "混" },
-            "scratchpad": { label: "Scratchpad", jp: "隠" },
             "pluginwidgets": { label: "Plugin widgets", jp: "拡" },
             "clock": { label: "Clock", jp: "時" },
-            "spacer": { label: "Spacer", jp: "余" },
-            "pomodoro": { label: "Pomodoro timer", jp: "豆" },
-            "profiles": { label: "Project profiles", jp: "継" },
-            "automation": { label: "Automation rules", jp: "働" },
-            "git": { label: "Git status", jp: "変" },
-            "docker": { label: "Docker", jp: "容" },
-            "cicd": { label: "CI/CD", jp: "統" },
-            "focus": { label: "Focus & wellness", jp: "集中" },
-            "systemmonitor": { label: "System monitor", jp: "監" },
-            "snapshots": { label: "Session snapshots", jp: "写" }
+            "spacer": { label: "Spacer", jp: "余" }
         };
         // merge bar plugin segments
         const bps = PluginService.enabledBarPlugins;
@@ -128,14 +113,6 @@ Singleton {
         { id: "recording", zone: "right", enabled: true },
         { id: "mixer", zone: "right", enabled: false },
         { id: "pluginwidgets", zone: "right", enabled: false },
-        { id: "profiles", zone: "right", enabled: false },
-        { id: "automation", zone: "right", enabled: false },
-        { id: "git", zone: "right", enabled: false },
-        { id: "docker", zone: "right", enabled: false },
-        { id: "cicd", zone: "right", enabled: false },
-        { id: "focus", zone: "right", enabled: false },
-        { id: "systemmonitor", zone: "right", enabled: false },
-        { id: "snapshots", zone: "right", enabled: false },
         { id: "clock", zone: "right", enabled: true }
     ]
 
@@ -174,31 +151,15 @@ Singleton {
             return Recording.active;
         case "mixer":
             return MixerService.ready;
-        case "scratchpad":
-            return Overview.scratchWindows.length > 0;
         case "pluginwidgets":
             return PluginService.enabledWidgets.length > 0;
-        case "pomodoro":
-            return Pomodoro.phase !== "idle";
-        case "profiles":
-            return ProfileService.activeName.length > 0;
-        case "automation":
-            return RuleService.rules.some(r => r.enabled);
-        case "git":
-            return GitService.isRepo && GitService.dirty > 0;
-        case "docker":
-            return DockerService.projects.length > 0;
-        case "cicd":
-            return CIService.runs.length > 0;
-        case "focus":
-            return FocusMode.phase !== "idle";
         default:
             return true;
         }
     }
 
     // compact mode: only identity, workspaces, clock
-    readonly property var compactIds: ["identity", "workspaces", "clock", "pomodoro", "focus"]
+    readonly property var compactIds: ["identity", "workspaces", "clock"]
 
     // the ordered list of visible segment ids for a zone
     readonly property var leftVisible: root._visible("left")
@@ -226,16 +187,6 @@ Singleton {
             "nightlight": "nightlight",
             "session": "power",
             "mixer": "mixer",
-            "scratchpad": "scratchpad",
-            "pomodoro": "pomodoro",
-            "profiles": "profiles",
-            "automation": "automation",
-            "git": "dev",
-            "docker": "dev",
-            "cicd": "dev",
-            "focus": "focus",
-            "systemmonitor": "systemmonitor",
-            "snapshots": "snapshots",
             "tray": "",
             "workspaces": "",
             "taskbar": ""
@@ -335,13 +286,13 @@ Singleton {
 
     // ---- layout presets (PH.07) ----
     readonly property var layoutPresets: [
-        { id: "minimal", label: "MINIMAL", desc: "Identity + workspaces + clock", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
-        { id: "classic", label: "CLASSIC", desc: "Full bar: all widgets visible", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":true},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":true},{"id":"audio","zone":"right","enabled":true},{"id":"cpu","zone":"right","enabled":true},{"id":"mem","zone":"right","enabled":true},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":true},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":true},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
-        { id: "macos", label: "MACOS", desc: "Centered dock-style layout", barScale: 1.0, barPosition: "top", wsMode: "pills", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"center","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"center","enabled":true}] },
-        { id: "gnome", label: "GNOME", desc: "Workspaces + clock, right tray", barScale: 1.0, barPosition: "top", wsMode: "numbers", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":true},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
-        { id: "developer", label: "DEVELOPER", desc: "Stats: CPU, mem, net, disk, temp", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":true},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":true},{"id":"mem","zone":"right","enabled":true},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":true},{"id":"gpu","zone":"right","enabled":true},{"id":"disk","zone":"right","enabled":true},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
-        { id: "gaming", label: "GAMING", desc: "Workspaces + media + session + clock", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":true},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
-        { id: "ultraminimal", label: "ULTRA-MINIMAL", desc: "Clock only", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":false},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"center","enabled":true}] }
+        { id: "minimal", label: "MINIMAL", desc: "Identity + workspaces + clock", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "classic", label: "CLASSIC", desc: "Full bar: all widgets visible", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":true},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":true},{"id":"audio","zone":"right","enabled":true},{"id":"cpu","zone":"right","enabled":true},{"id":"mem","zone":"right","enabled":true},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":true},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":true},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "macos", label: "MACOS", desc: "Centered dock-style layout", barScale: 1.0, barPosition: "top", wsMode: "pills", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"center","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"center","enabled":true}] },
+        { id: "gnome", label: "GNOME", desc: "Workspaces + clock, right tray", barScale: 1.0, barPosition: "top", wsMode: "numbers", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":true},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "developer", label: "DEVELOPER", desc: "Stats: CPU, mem, net, disk, temp", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":true},{"id":"activewindow","zone":"center","enabled":true},{"id":"tray","zone":"right","enabled":true},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":true},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":true},{"id":"mem","zone":"right","enabled":true},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":true},{"id":"gpu","zone":"right","enabled":true},{"id":"disk","zone":"right","enabled":true},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "gaming", label: "GAMING", desc: "Workspaces + media + session + clock", barScale: 1.0, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":true},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":true},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":true},{"id":"recording","zone":"right","enabled":true},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
+        { id: "ultraminimal", label: "ULTRA-MINIMAL", desc: "Clock only", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":false},{"id":"workspaces","zone":"left","enabled":false},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"clock","zone":"center","enabled":true}] }
     ]
 
     function applyPreset(id) {
@@ -373,14 +324,6 @@ Singleton {
             "session": "INK",         "recording": "REC",
         "mixer": "MX",
         "pluginwidgets": "PW",
-        "profiles": "PR",
-        "automation": "AU",
-        "git": "GIT",
-        "docker": "DKR",
-        "cicd": "CI",
-        "focus": "FOC",
-        "systemmonitor": "SYS",
-        "snapshots": "SNP",
             "clock": "CK"
         };
         if (id.startsWith("spacer-"))

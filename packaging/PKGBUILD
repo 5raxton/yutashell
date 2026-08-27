@@ -6,9 +6,9 @@
 # and autostart `qs -c yuta-qs` from Hyprland.
 
 pkgname=yutashell-git
-pkgver=r1.0.0.5c15cc0
+pkgver=1.5.0
 pkgrel=1
-pkgdesc="Quickshell desktop shell config for Hyprland — 89 matugen templates, 22 bar segments, 30 IPC targets"
+pkgdesc="Quickshell desktop shell config for Hyprland — 90 matugen templates, 21 bar segments, 39 IPC targets"
 arch=(any)
 url="https://github.com/braxtonculver/yuta-qs"
 license=(GPL-3.0-only)
@@ -45,7 +45,7 @@ sha256sums=('SKIP')
 
 pkgver() {
     cd yuta-qs
-    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    printf "1.5.0.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 package() {

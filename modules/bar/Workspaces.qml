@@ -301,7 +301,7 @@ Item {
                                         anchors.fill: parent
                                         implicitSize: 8
                                         visible: modelData.length > 0 && status !== Image.Error
-                                        source: modelData.length > 0 ? Quickshell.iconPath(modelData) : ""
+                                        source: modelData.length > 0 ? ShellState.safeIcon(modelData) : ""
                                     }
 
                                     // fallback dot

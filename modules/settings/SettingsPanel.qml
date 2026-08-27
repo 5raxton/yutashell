@@ -142,7 +142,7 @@ PanelWindow {
             label: "POWER",
             jp: "電",
             group: "SYSTEM",
-            keywords: "power plan session menu hold idle battery ppd profile pomodoro timer"
+            keywords: "power plan session menu hold idle battery ppd"
         }, {
             id: "security",
             label: "SECURITY",
@@ -3224,7 +3224,7 @@ PanelWindow {
                                     }
                                 }
                                 readonly property string effective: BarSegments.clickFor(segCard.segId)
-                                readonly property var cycle: ["", "calendar", "network", "bluetooth", "audio", "media", "controlcenter", "launcher", "settings", "nightlight", "power", "notifications", "mixer", "scratchpad", "networkdetails", "processes"]
+                                readonly property var cycle: ["", "calendar", "network", "bluetooth", "audio", "media", "controlcenter", "launcher", "settings", "nightlight", "power", "notifications", "mixer", "networkdetails", "processes"]
 
                                 function bump() {
                                     let idx = cycle.indexOf(effective);
@@ -3868,45 +3868,6 @@ PanelWindow {
                     YSection {
                         width: parent.width
                         index: "04"
-                        label: "Pomodoro"
-                        chip: Pomodoro.phase !== "idle" ? Pomodoro.label + " " + Pomodoro.display : "IDLE"
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Timer"
-                        sub: Pomodoro.phase !== "idle" ? Pomodoro.display + " · round " + Pomodoro.round : "not running"
-                        note: "⏱"
-                        on_: Pomodoro.running
-
-                        Row {
-                            spacing: Theme.sp1
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            YButton {
-                                label: Pomodoro.running ? "PAUSE" : Pomodoro.phase === "idle" ? "START" : "RESUME"
-                                tone: "acid"
-                                onClicked: Pomodoro.toggle()
-                            }
-
-                            YButton {
-                                label: "RESET"
-                                enabled: Pomodoro.phase !== "idle"
-                                onClicked: Pomodoro.reset()
-                            }
-                        }
-                    }
-
-                    YRow {
-                        width: root.contentW
-                        title: "Work duration"
-                        sub: Pomodoro.workMin + " min"
-                        interactive: false
-                    }
-
-                    YSection {
-                        width: parent.width
-                        index: "05"
                         label: "Battery"
                         chip: UPower.displayDevice && UPower.displayDevice.isPresent ? Math.round(UPower.displayDevice.percentage) + "%" : "NO BAT"
                     }

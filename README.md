@@ -13,23 +13,17 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 ## Features
 
-- **Bar** — 33 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp/fan), clock, mixer, scratchpad, chips, project profiles; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
+- **Bar** — 21 data-driven segments: workspaces, taskbar, tray, media ticker, stat blocks (CPU/GPU/mem/bat/disk/temp), clock, mixer, session, night light, recording, plugin widgets; reorder/toggle/zone-assign via drag-and-drop Kanban editor or IPC; battery wear, storage monitor, thermal thresholds integrated into control center; 7 built-in layout presets (Minimal, Classic, macOS, GNOME, Developer, Gaming, Ultra-minimal) with one-click apply; compact/full bar toggle; click profiles (Productivity, Media-First, Developer) with compound actions (IPC, shell commands, theme switching)
 - **Theme engine** — 12 preset schemes, wallpaper-derived palettes via matugen, runtime light mode, any-hex accent override; the whole shell repaints live
-- **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (89 matugen templates across 10 groups, 17 snippet rules)
+- **Wallpapers** — archive UI with one-pick apply: paints the desktop and regenerates every enabled app template in a single pass (90+ matugen templates across 10 groups, 17 snippet rules)
 - **Launcher / command palette** — frecency-ranked search (launch count × time decay, pinned apps first, recents second), prefix modes: `=` calculator (recursive descent parser, no eval), `>` shell command runner, `@` notification history search, `#` color converter (#hex to rgb to hsl), `~` recent files browser (XDG recently-used.xbel)
-- **Surfaces** — settings panel (17 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, scratchpad manager, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview (search + move windows), AltTab, power menu, lock screen, color picker, recording widget, updates checker, thermal OSD; each spawns from the bar, a screen edge, or float, per panel
+- **Surfaces** — settings panel (17 pages), control center (11 tabs), app launcher (grid/list/detail), notification center, network/bluetooth/audio consoles, calendar, clipboard, weather, emoji picker, workspace overview (search + move windows), AltTab, power menu, lock screen, color picker, recording widget, updates checker, thermal OSD; each spawns from the bar, a screen edge, or float, per panel
 - **Notifications** — the shell *is* the notification daemon: themed toasts, inline actions, inline reply, DND + snooze, per-app rules, smart grouping & dedup, persisted history with search & replay
 - **Connectivity & audio** — NetworkManager + BlueZ panels (pairing UX with pulsing border + cancel), PipeWire console with perceptual volume taper, per-app audio mixer (MixerPanel), OSDs, night light, brightness (internal + DDC/CI)
-- **Workspace intelligence** — 5 workspace render modes (thumbnails/active/pills/numbers/default), scratchpad manager, window pin-to-all-workspaces, overview with search + move-between-workspaces, alt-tab, quick-tile
-- **Session** — Wayland session lock (`WlSessionLock` + PAM auth, multi-monitor), hold-to-confirm power menu, caffeine idle-inhibit toggle, inhibitor-aware idle actions, power profiles, polkit dialog, pomodoro timer (work/break cycles with bar chip and notifications), night light schedule (auto on/off by time of day)
+- **Workspace intelligence** — 5 workspace render modes (thumbnails/active/pills/numbers/default), window pin-to-all-workspaces, overview with search + move-between-workspaces, alt-tab, quick-tile
+- **Session** — Wayland session lock (`WlSessionLock` + PAM auth, multi-monitor), hold-to-confirm power menu, caffeine idle-inhibit toggle, inhibitor-aware idle actions, power profiles, polkit dialog, night light schedule (auto on/off by time of day)
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
-- **AI Desktop Agent** — Ollama/OpenAI-compatible chat via Process+curl with SSE streaming; two panels: Command Palette (natural language → parsed action with `[DISPATCH]`/`[SHELL]`/`[IPC]` directives, EXECUTE/COPY buttons) and Chat Sidebar (conversational bubbles, markdown rendering, model selector); context-aware system prompt built from live desktop state (focused window, workspace, stats, media, weather); voice input via pw-record+faster-whisper transcription; screenshot-to-action via grim+slurp region capture → Ollama vision model analysis; command history; kill button; boot probes endpoint availability and degrades cleanly
-- **Project Profiles** — one-switch workspace contexts: save and restore bundles of wallpaper, apps, power profile, DND, bar layout, and night light; bar chip cycles profiles; profiles persist across sessions in state.json
-- **Automation Rules Engine** — declarative trigger-action rules ("when X happens, do Y"): 8 trigger types (time schedule, battery threshold, network, recording, temperature, focused app, media playback, idle), 8 action types (apply profile, power profile, DND, run command, notify, wallpaper, night light, bar preset); 30 s timer + event-driven signals with 60 s cooldown; 8 starter rules (all disabled by default); bar chip shows ⚡ + enabled count
-- **Developer Command Center** — 6 dev services: git status (branch + dirty/staged/untracked counts, CWD from focused terminal), Docker Compose monitor (project cards with restart/stop), CI/CD pipeline status (GitHub Actions via `gh`, configurable repos, failure notifications), live log tailer (journalctl + hyprland + custom sources with regex filter), tmux/zellij dashboard (session list, attach/kill), port scanner (listening ports with exposed-port warnings); 3 bar segments (git, docker, cicd)
-- **Focus & Wellness** — deep focus mode with Pomodoro-style work/break cycles: configurable durations (25/5/15 min defaults), DND + idle inhibit auto-enabled during focus, session stats logged to disk (30-day rolling window); bar segment shows ◉ countdown when focusing, "FOCUS" when idle; 4 configurable prefs in settings
-- **Smart System Monitor** — battery intelligence (health/wear ring gauge, time remaining, charge threshold write for ThinkPad/Lenovo), network health (30s ping probes with latency grade, VPN status, IP/DNS display), power budget (top CPU apps with bar chart, screen brightness, discharge rate + estimated time), workspace memory heatmap (color-coded grid by window count, click to switch); bar segment shows ⚙ + battery % + latency
-- **IPC** — 57 targets, 230+ functions; keybinds, CLI and settings panel share one implementation
+- **IPC** — 38 targets; keybinds, CLI and settings panel share one implementation
 - **Accessibility** — reduced motion mode (snaps all animations to instant), high contrast mode (maximum contrast palette), keyboard navigation (Tab/Shift+Tab focus cycling, Enter/Space activation, Escape to close panels)
 
 ## Requirements
@@ -52,7 +46,7 @@ Required backends (`grim`, `cliphist`, `wl-clipboard`) are probed at startup —
 
 ### Known issue: QtSvg icon crashes (Qt 6.11.2)
 
-Some Hicolor/theme SVG icons (e.g. `network-wired`, `Alacritty`) can trigger a segfault inside Qt's SVG engine (`QSvgNode::appendStyleProperty`, `QIcon::~QIcon`) — a known **recursive-destructor / heap-corruption bug in Qt 6.11.2 (CVE-2026-8168)**, not a shell-config bug. If you see the shell crash with those frames, update `qt6-svg` to a patched build. No QML-side workaround exists — do not edit the shell to "fix" it.
+Some Hicolor/theme SVG icons (e.g. `network-wired`, `Alacritty`) can trigger a segfault inside Qt's SVG engine (`QPen::~QPen` / `QSvgHandler::init`) — a known **heap-corruption bug in Qt 6.11.2 (CVE-2026-8168)**, not a shell-config bug. The shell routes every icon load through `ShellState.safeIcon()`, which rejects `.svg` paths so panels fall back to their accent-square/initial instead of invoking the buggy plugin. The underlying bug still exists — if you see a crash, update `qt6-svg` to a patched build; do not chase it in shell QML.
 
 ## Installation
 
@@ -103,8 +97,8 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-130 QML files · 52 singletons · 13 UI primitives · 57 IPC targets · 230+ functions
-89 matugen templates · 17 snippet rules · 33 bar segments · 12 color schemes
+98 QML files · 34 singletons · 13 UI primitives · 38 IPC targets
+90+ matugen templates · 17 snippet rules · 21 bar segments · 12 color schemes
 7 layout presets · 17 settings pages · 11 control center tabs · 4 spawn modes
 ```
 

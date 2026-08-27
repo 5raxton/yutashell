@@ -256,7 +256,7 @@ PanelWindow {
         required property var modelData
 
         readonly property string appId: modelData.id
-        readonly property string iconUrl: modelData.iconSrc === "" ? "" : Quickshell.iconPath(modelData.iconSrc)
+        readonly property string iconUrl: modelData.iconSrc === "" ? "" : ShellState.safeIcon(modelData.iconSrc)
         readonly property bool active: Dock.isActive(appId)
         readonly property bool running: modelData.running
         readonly property bool pinned: modelData.pinned

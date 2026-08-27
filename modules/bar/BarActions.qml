@@ -109,18 +109,6 @@ Singleton {
         case "mixer":
             ShellState.toggleMixer();
             break;
-        case "scratchpad":
-            ShellState.toggleOverview();
-            break;
-        case "pomodoro":
-            Pomodoro.toggle();
-            break;
-        case "profiles":
-            ProfileService.cycle();
-            break;
-        case "ai":
-            ShellState.toggleAi();
-            break;
         default:
             return false;
         }

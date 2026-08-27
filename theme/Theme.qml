@@ -88,7 +88,7 @@ Singleton {
     readonly property int barSp3: Math.round(sp3 * barScale)
     readonly property int barSp4: Math.round(sp4 * barScale)
 
-    readonly property string version: "1.0.0"
+    readonly property string version: "1.5.0"
 
     // ======== SCHEME ENGINE ========
     readonly property var presets: [{
