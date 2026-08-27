@@ -170,7 +170,7 @@ PanelWindow {
                     height: 28
                     color: Theme.acid
                     visible: root._moveAddr.length > 0
-                    radius: Theme.r2
+                    radius: Theme.radius
 
                     Row {
                         anchors.centerIn: parent

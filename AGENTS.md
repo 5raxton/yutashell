@@ -200,6 +200,11 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 - Don't reference another file's window instance (`MediaWidget.player` type access = undefined) — resolve services directly (`Mpris.players.values`).
 - Offscreen platform can't create PanelWindows — validate against the live Wayland session under `timeout`.
 - JS-function bindings (`readonly var x: Singleton.fn()`) do re-evaluate, but recreate all delegates per persist — small lists only.
+- **A `component X:` root `id` is invisible from the delegate usage body** — not in JS closures (`Component.onCompleted`), `NumberAnimation.target`, nor even direct QML bindings on the delegate. Component-internal references work (e.g. `item.x` inside the `component X` block). Keep delegate logic INSIDE the component and declare `required property int index` on the delegate, or drive it from the usage body with pure bindings (no closures). (PowerMenu stagger.)
+- **`Mpris` has NO `playersChanged` signal** (type `MprisQml`; `players` is a constant model) — media polling must run on a timer (`IdleInhibitor._checkMedia`, 3 s). A `Connections { target: Mpris; onPlayersChanged }` is a silent no-op.
+- **Design tokens must exist before use** — audit `Theme.` references against Theme.qml (an undefined token binds to `undefined`, e.g. `border.color:` → invisible border, `String(Theme.x ?? "")` → always `""`). Previously-undefined: `Theme.line`→`lineStrong`, `Theme.warn`→`alert`, `Theme.accentOverride`→`ShellState.accentOverride`, `theme.r2`→`Theme.radius`, and `sp6`/`sp8` are now real tokens.
+- `Recording.active` can read `undefined` during singleton warm-up — coerce with `!!Recording.active` before it feeds a `bool` binding.
+- **YField stretched via anchors.fill loops if a parent sizes from its live `height`** — size the parent from `implicitHeight` (`searchField.implicitHeight + Theme.sp2 * 2`), not `searchField.height`.
 
 ### 5. Surfaces: compose the kit, don't hand-animate
 - Bar sits at `WlrLayer.Overlay`; popups at `Top`; entrances emerge from behind the bar.
@@ -255,3 +260,4 @@ qs ipc -c yuta-qs call panel toggle
 - Failed-config instances exit instantly, so `pgrep -n` falls through to the user's shell — another reason to pass `--pid`.
 - Hot-reload makes mid-edit-sequence logs full of transient errors (caller saved before callee) — edit-order artifacts, not bugs; verify settled code against a freshly spawned instance.
 - `YUTA_DEBUG_CYCLE=1` walks all settings pages but requires zero other instances (briefly stopping the session shell).
+- **Crash reports (`.cache/quickshell/crashes/`), Aug 2026: 9 of 11 are QtSvg icon crashes** — SIGSEGV in `QSvgNode::appendStyleProperty`, `QIcon::~QIcon`, `QPen::~QPen` (and garbled `Cannot open file 'stop-color:…'`/UTF-16 filenames) after loading system SVG icons like `network-wired`/`Alacritty` through `Quickshell.iconPath` + `IconImage`. This is the known **Qt 6.11.2 QtSvg recursive-destructor / heap-corruption bug (CVE-2026-8168)**, NOT a config bug — do NOT chase it in shell QML. Fix = update `qt6-svg` to a patched build. The remaining two are old (Aug 24): a `QQuickRepeater` infinite recursion (the toast ObjectModel/Repeater combo — now guarded by the smoke test's `notifycenter test` path) and a Core-frame crash. Keep the smoke toast drive intact so that regression stays caught.

@@ -1055,7 +1055,7 @@ PanelWindow {
                                 // "" override = "follow palette" (the empty swatch);
                                 // any other value matches case-insensitively
                                 readonly property bool active: {
-                                    const ao = String(Theme.accentOverride ?? "");
+                                    const ao = String(ShellState.accentOverride ?? "");
                                     return ao.length === 0 ? modelData.length === 0 : ao.toLowerCase() === modelData.toLowerCase();
                                 }
 
@@ -2874,7 +2874,7 @@ PanelWindow {
                                 radius: Theme.sp1
                                 color: "transparent"
                                 border.width: availDrop.containsDrag ? 2 : 0
-                                border.color: Theme.warn
+                                border.color: Theme.alert
 
                                 Behavior on border.width {
                                     NumberAnimation { duration: 120 }
@@ -2981,7 +2981,7 @@ PanelWindow {
                             anchors.topMargin: 2
                             width: parent.width
                             text: availDrop.containsDrag ? "release to disable" : (availSegs.length === 0 ? "all modules enabled" : "drag to zone or click to enable")
-                            color: availDrop.containsDrag ? Theme.warn : Theme.faint
+                            color: availDrop.containsDrag ? Theme.alert : Theme.faint
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fsMicro
                             horizontalAlignment: Text.AlignHCenter
@@ -3328,7 +3328,7 @@ PanelWindow {
                                 anchors.rightMargin: Theme.sp2
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: "×"
-                                color: removeBtnArea.containsMouse ? Theme.warn : Theme.muted
+                                color: removeBtnArea.containsMouse ? Theme.alert : Theme.muted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fsBody
 

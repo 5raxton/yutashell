@@ -20,7 +20,8 @@ Singleton {
 
     readonly property bool _autoInhibit: {
         if (!autoMode) return false;
-        return _mediaPlaying || Recording.active;
+        // coerce — Recording.active can read undefined during singleton warm-up
+        return _mediaPlaying || !!Recording.active;
     }
 
     property bool autoMode: true
@@ -49,11 +50,8 @@ Singleton {
         _mediaPlaying = playing;
     }
 
-    Connections {
-        target: Mpris
-        function onPlayersChanged() { root._checkMedia(); }
-    }
-
+    // Mpris exposes no playersChanged signal (players is a constant model), so
+    // media polling runs on the 3s timer below.
     Timer {
         interval: 3000
         running: root.autoMode

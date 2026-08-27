@@ -39,10 +39,13 @@ Singleton {
     readonly property int sp3: 12         // related elements
     readonly property int sp4: 16         // sections
     readonly property int sp5: 24         // page margins
+    readonly property int sp6: 32         // oversized section gaps
+    readonly property int sp8: 48         // empty-state / hero offsets
     readonly property int rowH: 40        // standard setting row
     readonly property int ctlH: 28        // buttons / fields
     readonly property int headH: 54       // panel header band
     readonly property int footH: 32       // panel footer band
+    readonly property int radius: 8       // card / banner corner rounding
 
     // ---- motion: positional indicators only; hover/focus snap ----
     // movFast/movMed: indicators + small moves. movSlow: surface entrances

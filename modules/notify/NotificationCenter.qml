@@ -222,7 +222,9 @@ PanelWindow {
                 x: root.padX
                 y: dndRow.y + dndRow.height + Theme.sp2
                 width: surface.width - root.padX * 2 - 1
-                height: searchField.height + Theme.sp2 * 2
+                // field stretches via anchors.fill, so size by its implicit
+                // height — the live `height` would loop with the fill
+                height: searchField.implicitHeight + Theme.sp2 * 2
                 color: "transparent"
 
                 YField {

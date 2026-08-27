@@ -50,6 +50,10 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 
 Required backends (`grim`, `cliphist`, `wl-clipboard`) are probed at startup — missing ones hide their feature cleanly. Optional backends (`cava`, `hyprsunset`, `ddcutil`, `power-profiles-daemon`, `hyprpicker`, `gpu-screen-recorder`, `networkmanager`, `bluez`, `pipewire`) are also checked; if absent the related feature simply disappears.
 
+### Known issue: QtSvg icon crashes (Qt 6.11.2)
+
+Some Hicolor/theme SVG icons (e.g. `network-wired`, `Alacritty`) can trigger a segfault inside Qt's SVG engine (`QSvgNode::appendStyleProperty`, `QIcon::~QIcon`) — a known **recursive-destructor / heap-corruption bug in Qt 6.11.2 (CVE-2026-8168)**, not a shell-config bug. If you see the shell crash with those frames, update `qt6-svg` to a patched build. No QML-side workaround exists — do not edit the shell to "fix" it.
+
 ## Installation
 
 **Scripted (Arch, Debian, Fedora, openSUSE, Gentoo):**

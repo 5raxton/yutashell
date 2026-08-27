@@ -164,7 +164,7 @@ PanelWindow {
                                 color: isUser ? Theme.acid + "18" : Theme.bgAlt
                                 radius: Theme.sp2
                                 border.width: 1
-                                border.color: Theme.line
+                                border.color: Theme.lineStrong
 
                                 Column {
                                     anchors {

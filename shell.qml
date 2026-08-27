@@ -775,6 +775,15 @@ ShellRoot {
         function status(): string {
             return NightLight.available ? (NightLight.active ? "active · " : "idle · ") + NightLight.temp + "K" : "unavailable (install hyprsunset)";
         }
+
+        function schedule(onTime: string, offTime: string, enabled: string): string {
+            NightLight.setSchedule(String(onTime), String(offTime), String(enabled).toLowerCase() === "true" || String(enabled) === "on");
+            return "schedule " + NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
+        }
+
+        function schedulestatus(): string {
+            return NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
+        }
     }
 
     IpcHandler {
@@ -1214,19 +1223,6 @@ ShellRoot {
 
         function close(): void {
             ShellState.closeCheatsheet();
-        }
-    }
-
-    IpcHandler {
-        target: "nightlight"
-
-        function schedule(onTime: string, offTime: string, enabled: string): string {
-            NightLight.setSchedule(String(onTime), String(offTime), String(enabled).toLowerCase() === "true" || String(enabled) === "on");
-            return "schedule " + NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
-        }
-
-        function schedulestatus(): string {
-            return NightLight.scheduleOn + "-" + NightLight.scheduleOff + " " + (NightLight.scheduleEnabled ? "on" : "off");
         }
     }
 

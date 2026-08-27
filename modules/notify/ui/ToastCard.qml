@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import Quickshell
 import Quickshell.Widgets
 import qs.theme
 import qs.modules.common
@@ -284,7 +285,7 @@ Rectangle {
             Rectangle {
                 width: root.width - sendBtn.width - Theme.sp3 * 2 - Theme.sp2
                 height: replyField.implicitHeight + Theme.sp2
-                radius: Theme.r2
+                radius: Theme.radius
                 color: Theme.bg
                 border.width: 1
                 border.color: replyField.activeFocus ? Theme.acid : Theme.hairline

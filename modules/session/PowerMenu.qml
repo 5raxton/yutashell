@@ -129,39 +129,13 @@ PanelWindow {
                         Repeater {
                             model: Session.tiles
 
+                            // index must be declared on the delegate to stay in
+                            // scope; entranceDelay lives on the component so the
+                            // stagger binding resolves without a JS closure.
                             PowerTile {
-                                opacity: 0
-                                scale: 0.85
+                                required property int index
 
-                                Component.onCompleted: {
-                                    tileEntrance.delay = index * 30;
-                                    tileEntrance.start();
-                                }
-
-                                SequentialAnimation {
-                                    id: tileEntrance
-                                    property int delay: 0
-
-                                    PauseAnimation { duration: tileEntrance.delay }
-
-                                    ParallelAnimation {
-                                        NumberAnimation {
-                                            target: tile
-                                            property: "opacity"
-                                            from: 0; to: 1
-                                            duration: Theme.movSlow
-                                            easing.type: Easing.OutCubic
-                                        }
-                                        NumberAnimation {
-                                            target: tile
-                                            property: "scale"
-                                            from: 0.85; to: 1
-                                            duration: Theme.movSlow
-                                            easing.type: Easing.OutBack
-                                            easing.overshoot: 0.2
-                                        }
-                                    }
-                                }
+                                entranceDelay: index * 30
                             }
                         }
                     }
@@ -230,6 +204,39 @@ PanelWindow {
         id: tile
 
         required property var modelData
+
+        // staggered entrance — driven from inside the component so `tile` stays
+        // in scope (it is not visible from the delegate usage body)
+        required property int index
+        property int entranceDelay: 0
+        property bool entranceDone: false
+
+        opacity: entranceDone ? 1 : 0
+        scale: entranceDone ? 1 : 0.85
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.movSlow
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.movSlow
+                easing.type: Easing.OutBack
+                easing.overshoot: 0.2
+            }
+        }
+
+        Timer {
+            id: entranceTimer
+
+            interval: tile.entranceDelay
+            repeat: false
+            onTriggered: tile.entranceDone = true
+        }
+
+        Component.onCompleted: entranceTimer.start()
 
         readonly property bool destructive: Session.destructiveTiles.has(modelData)
         readonly property bool needsHold: destructive && ShellState.holdMs > 0

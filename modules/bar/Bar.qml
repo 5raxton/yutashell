@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import Quickshell.Wayland._IdleInhibitor as IdleMod
 import QtQuick
 import qs.theme
