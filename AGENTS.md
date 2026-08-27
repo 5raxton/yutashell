@@ -42,7 +42,7 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 
 ## New singletons (PH.07)
 
-- `SnapshotService` (session) — save/restore desktop states: captures open windows (hyprctl -j clients), wallpaper, barSegments, DND, nightLight. Snapshots persist as JSON in `~/.local/state/yutashell/snapshots/<name>.json`. Boot writes a Python helper script via `FileView.setText()` (works only from onCompleted); runtime saves call this helper via `Process` to bypass the FileView async-write limitation. IPC: `snapshots save/remove <name>/list/status`.
+- `SnapshotService` (session) — save/restore desktop states: captures open windows (hyprctl -j clients), wallpaper, barSegments, DND, nightLight. Snapshots persist as JSON in `~/.local/state/yutashell/snapshots/<name>.json`. Boot writes a Python helper script via `FileView.setText()` (works only from onCompleted); runtime saves call this helper via `Process` to bypass the FileView async-write limitation. IPC: `snapshots save/restore/remove <name>/list/status`.
 
 ## New singletons (PH.08)
 
@@ -51,7 +51,6 @@ README.md is the public-facing doc (features, install, IPC table) — keep it ac
 ## New singletons (PH.09)
 
 - `Pomodoro` (widgets) — singleton state machine: idle → work → break → longBreak. Properties: `phase`, `remaining` (seconds), `round`, `running`, `display` (MM:SS), `label`. Functions: `start()`, `pause()`, `resume()`, `reset()`, `toggle()`. Timer drives bar chip (⏱ + countdown); notifications on phase change. IPC: `pomodoro start/pause/resume/reset/toggle/status`.
-- `Cheatsheet` (widgets) — YSurface panel parsing `hyprctl -j binds` JSON into categorized bind list (GENERAL, WINDOWS, WORKSPACES, APPS, MEDIA, SESSION). Searchable by key combo or description. Falls back to static embed if parsing fails. IPC: `cheatsheet toggle/open/close`.
 - `NightLight` extended with schedule — `ShellState.nlSchedule` JSON `{on:"HH:MM", off:"HH:MM", enabled:bool}`. Timer checks every 60 s; auto-enables/disables hyprsunset. Handles midnight wrap (on > off = overnight). Settings: 3 presets (21:00–07:00, 22:00–06:00, 20:00–08:00). IPC: `nightlight schedule <on> <off> <bool>`, `nightlight schedulestatus`.
 
 ## AI Desktop Agent (PH.11)
@@ -71,33 +70,25 @@ ShellState additions: `aiOpen` / `aiChatOpen` (runtime, non-persisted, toggled b
 
 ## Project Profiles (PH.02)
 
-Two types in `modules/profiles/`:
-
 - **`ProfileService`** (singleton) — core profile management. Profile definition: `{id, name, icon, wallpaper, apps[], powerProfile, dnd, barPreset, nlActive}`. Stored in `ShellState.profiles` as a JSON array. `apply(id)` switches wallpaper via `Wallpaper.apply()`, launches apps via `DesktopEntries.heuristicLookup().execute()`, sets power profile via `PowerProfiles.profile`, DND via `Notify.setDnd()`, bar layout via `BarSegments.applyPreset()`, night light via `NightLight.setActive()`. `save(id, name)` snapshots current live state (running apps from `Hyprland.toplevels`, wallpaper, power profile, DND, night light). `deleteProfile(id)` removes a profile. `cycle()` advances to next profile. `activeId` tracks the current profile; `activeName` exposes it for the bar chip.
-- **`ProfilePicker`** (PanelWindow) — YSurface panel showing profile cards in a scrollable list. Each card: active indicator (acid left bar), icon, name, RENAME/APPLY/DEL buttons. "SAVE CURRENT" button at top creates a new profile from live state. RENAME cycles through preset names (Work/Play/Focus/Chill/Dev/Media). Clicking a card applies it.
 
-Bar: new `profiles` segment shows ◆ icon + active profile name. Click cycles profiles; scroll-down opens picker. Only visible when a profile is active. Added to all 7 layout presets (disabled by default). Falls through to `compactIds` when active.
+Bar: new `profiles` segment shows ◆ icon + active profile name (informational; displays the active profile). Click cycles profiles. Only visible when a profile is active. Added to all 7 layout presets (disabled by default). Falls through to `compactIds` when active.
 
-IPC: `profiles toggle/open/close/list/apply <id>/save <id> <name>/deleteprofile <id>/cycle/status`.
+IPC: `profiles list/apply <id>/save <id> <name>/deleteprofile <id>/cycle/status`.
 
-ShellState additions: `profilesOpen` (runtime, toggled by IPC), persisted `profiles` (JSON array) key.
+ShellState additions: persisted `profiles` (JSON array) key.
 
 ## Automation Rules Engine (PH.03)
 
-Two types in `modules/automation/`:
-
 - **`RuleService`** (singleton) — declarative trigger-action engine. Rules stored in `ShellState.automationRules` as JSON array of `{id, name, trigger:{type,config}, actions:[{type,config}], enabled}`. 8 trigger types: `time` (hour/minute/days-of-week), `battery` (above/below threshold %), `network` (connected/disconnected), `recording` (started/stopped), `temperature` (above/below °C), `focusedApp` (app gained/lost focus via `Hyprland.onRawEvent`), `mpris` (playback started/stopped), `idle` (user idle N seconds). 8 action types: `setProfile`, `setPowerProfile`, `toggleDnd`, `runCommand`, `notify`, `setWallpaper`, `setNightLight`, `setBarPreset`. Time-based rules evaluated by 30 s Timer; event-driven triggers subscribe to existing singleton signals (`SystemStats.warnRaised`/`thermalWarning`, `Connectivity.onWifiOnChanged`, `Recording.onActiveChanged`, etc.) via `Connections`. 60 s cooldown per rule prevents re-fire. CRUD: `create()`, `update(id, patch)`, `remove(id)`, `toggleEnabled(id)`, `setEnabled(id, bool)`, `testRule(id)`. 8 starter rules ship disabled by default (Low Battery Saver, Work Hours, Night Mode, Gaming Mode, Recording Focus, Thermal Throttle, Morning Wake, Mute on Media Stop).
-- **`RuleEditor`** (PanelWindow) — YSurface panel with two-column layout: scrollable rule list (left) with enabled dot + name + trigger summary, detail editor (right) with trigger type selector chips, type-specific config fields (hour/minute/day picker for time, op+threshold chips for battery/temperature, event chips for network/recording/mpris, text input for focusedApp app ID, duration chips for idle), action chips (existing actions with remove buttons + add-action chips from a palette), enable/disable toggle, TEST button, DEL button.
 
-Bar: new `automation` segment shows ⚡ + enabled rule count. Click opens RuleEditor. Added to all 7 layout presets (disabled by default). `present()` returns true when any rule is enabled.
+Bar: new `automation` segment shows ⚡ + enabled rule count. Added to all 7 layout presets (disabled by default). `present()` returns true when any rule is enabled.
 
-IPC: `automation toggle/open/close/list/enable <id>/disable <id>/test <id>/status`.
-
-ShellState additions: `automationOpen` (runtime, toggled by IPC), persisted `automationRules` (JSON array) key.
+IPC: `automation list/enable <id>/disable <id>/test <id>/status`.
 
 ## Developer Command Center (PH.04)
 
-Six singletons + one PanelWindow in `modules/dev/`:
+Six singletons in `modules/dev/`:
 
 - **`GitService`** (singleton) — reads git status from focused terminal's CWD. Tracks focused window via `Hyprland.onRawEvent`, extracts CWD from terminal title or `/proc/<pid>/cwd`. Runs `git status --porcelain=v2 --branch` on 3s timer. Exposes `branch`, `ahead`, `behind`, `dirty`, `staged`, `untracked`, `isRepo`, `cwd`. Probes `git` at boot.
 - **`DockerService`** (singleton) — reads docker compose projects via `docker compose ls --format json` on 10s timer. Exposes `projects[]` with name, status, container count. `restartProject(name)` and `stopProject(name)` functions. Probes `docker` at boot.
@@ -105,43 +96,33 @@ Six singletons + one PanelWindow in `modules/dev/`:
 - **`LogTailer`** (singleton) — streams journalctl or custom log sources via `Process` + `Splitter`. Sources: `system` (journalctl -f -p warning), `hyprland` (tail of hyprland.log), `custom` (user command). `filter` for regex, `paused` bool, `clear()`. Max 500 lines.
 - **`TmuxService`** (singleton) — reads tmux sessions via `tmux list-sessions -F` and zellij via `zellij list-sessions` on 5s timer. Auto-detects which is installed. `attachSession(name)`, `newSession(name)`, `killSession(name)`. Exposes `sessions[]` with name, windows, attached, via.
 - **`PortService`** (singleton) — reads `ss -tlnp` on 15s timer. Exposes `ports[]` with port, addr, process, pid. Flags non-localhost listeners in `_exposed[]`.
-- **`DevPanel`** (PanelWindow) — unified YSurface panel with 6 tab chips (GIT/DOCKER/CI/CD/LOGS/TMUX/PORTS). Each tab shows its service's live data with action buttons (restart docker, kill tmux session, pause logs, add CI repo).
 
-Bar: 3 new segments — `git` (branch + dirty badge, visible when dirty), `docker` (project count, visible when projects exist), `cicd` (run count + checkmark/X, visible when runs exist). All click to open DevPanel. Added to all 7 layout presets (disabled by default).
+Bar: 3 new segments — `git` (branch + dirty badge, visible when dirty), `docker` (project count, visible when projects exist), `cicd` (run count + checkmark/X, visible when runs exist). Added to all 7 layout presets (disabled by default).
 
-IPC: `dev toggle/open/close/gitstatus/dockerstatus/dockerrestart <name>/dockerstop <name>/cistatus/addrepo <name>/removerepo <name>/tmuxstatus/ports/status`.
+IPC: `dev gitstatus/dockerstatus/dockerrestart <name>/dockerstop <name>/cistatus/addrepo <name>/removerepo <name>/tmuxstatus/ports/status`.
 
-ShellState additions: `devOpen` (runtime, toggled by IPC), persisted `cicdRepos` (JSON array of repo strings).
+ShellState additions: persisted `cicdRepos` (JSON array of repo strings).
 
 ## Focus & Wellness (PH.05)
 
-Three types in `modules/focus/`:
-
-- **`FocusMode`** (singleton) — deep focus state machine: idle → focusing → break → longBreak → idle. Configurable work/break/longBreak durations and rounds. On focus start: enables DND via `Notify.setDnd(true)` and inhibits idle via `IdleInhibitor.manualInhibit`. Session stats logged to `~/.local/state/yutashell/focus-history.json` (30-day rolling window). Properties: `phase`, `remaining` (seconds), `round`, `running`, `display` (MM:SS), `label`, `focusing`, `showBreak`, `totalFocusedToday`, `history`. Functions: `start()`, `pause()`, `resume()`, `reset()`, `toggle()`, `status()`. IPC: `focus start/pause/resume/reset/toggle/status`.
-- **`BreakOverlay`** (PanelWindow) — fullscreen overlay at Overlay layer shown during break phases. Large countdown timer + rotating health tips (9 tips, 8s rotation). Dismissible after 10s minimum break time. Shows round counter. Blocks input via exclusion mode.
-- **`FocusPanel`** (PanelWindow) — YSurface panel showing focus stats (today's minutes, this week total, streak), start/pause/reset controls, and 7-day history list. Month navigation with `CalendarGrid` for heatmap display.
+- **`FocusMode`** (singleton) — deep focus state machine: idle → focusing → break → longBreak → idle. Configurable work/break/longBreak durations and rounds. On focus start: enables DND via `Notify.setDnd(true)` and inhibits idle via `IdleInhibitor.manualInhibit`. Session stats logged to `~/.local/state/yutashell/focus-history.json` (30-day rolling window). Properties: `phase`, `remaining` (seconds), `round`, `running`, `display` (MM:SS), `label`, `focusing`, `showBreak`, `totalFocusedToday`, `history`. Functions: `start()`, `pause()`, `resume()`, `reset()`, `toggle()`, `status()`. IPC: `focus start/pause/resume/reset/status`. The break overlay and focus panel windows were removed; only the service (and its bar segment) remain.
 
 Bar: new `focus` segment shows ◉/○ icon + countdown when focusing, "FOCUS" label when idle. Visible only when `phase !== "idle"`. Added to all 7 layout presets (disabled by default). Included in `compactIds`.
 
-IPC: `focus toggle/open/close/start/pause/resume/reset/status`.
-
-ShellState additions: `focusOpen` (runtime, toggled by IPC), persisted `focusWorkMin`, `focusBreakMin`, `focusLongBreakMin`, `focusRoundsBeforeLong` (adapter defaults 25/5/15/4).
+IPC: `focus start/pause/resume/reset/status`.
 
 ## Smart System Monitor (PH.06)
 
-Five singletons + one PanelWindow in `modules/system/` (plus `NetHealth` in `modules/system/`):
+Five singletons in `modules/system/` (plus `NetHealth` in `modules/system/`):
 
 - **`BatteryService`** (singleton) — battery intelligence: wraps SystemStats battery data with derived health/wear/time metrics. Reads charge threshold from sysfs on boot. Supports writing threshold via `setChargeThreshold(pct)` (sudo tee). Exposes `healthPct`, `wearPct`, `timeLeft`, `timeToFull`, `chargeRate`, `warn`, `crit`.
 - **`NetHealth`** (singleton) — network health monitor: periodic 30s probes for ping latency (1.1.1.1), IP address, VPN status (`ip link show wg0`), DNS resolution. Exposes `latencyMs`, `latencyGrade` (excellent/good/fair/poor/bad), `ip4`, `vpnActive`, `dnsServer`. Signals: `latencySpike(ms)`, `vpnChanged(active)`. Health reports on VPN disconnect.
 - **`PowerBudget`** (singleton) — power budget aggregator: reads top CPU apps from `ps aux`, screen brightness from sysfs, battery discharge rate. Exposes `topApps[]` (name, cpu%, mem%), `screenBrightness`, `dischargeRate` (mW), `estimatedMinutes`. 5s refresh.
 - **`WsHeatmap`** (singleton) — workspace memory visualization: queries `hyprctl -j workspaces` and `activeworkspace` on 3s timer + Hyprland raw events. Exposes `workspaces[]` (id, name, windows, focused). `switchTo(wsId)` dispatches focus.
-- **`SystemMonitor`** (PanelWindow) — unified YSurface panel with 4 tab chips (BATTERY/NETWORK/POWER/WORKSPACES). Battery tab: ring gauge + health/wear/energy/threshold. Network tab: latency/grade/IP/VPN/DNS rows. Power tab: discharge rate, brightness bar, top CPU apps with bar chart. Workspaces tab: color-coded grid (green→red by window count), click to switch.
 
-Bar: new `systemmonitor` segment shows ⚙ + battery % + latency. Click opens SystemMonitor. Added to all 7 layout presets (disabled by default).
+Bar: new `systemmonitor` segment shows ⚙ + battery % + latency. Added to all 7 layout presets (disabled by default).
 
-IPC: `systemmonitor toggle/open/close/battery/network/power/workspaces/status`.
-
-ShellState additions: `systemMonitorOpen` (runtime, toggled by IPC).
+IPC: `systemmonitor battery/network/power/workspaces/status`.
 
 ## Accessibility (PH.10)
 
@@ -166,7 +147,7 @@ ShellState additions: `systemMonitorOpen` (runtime, toggled by IPC).
 - Runtime config only via `hyprctl eval '<lua>'` — plain `hyprctl keyword` fails ("non-legacy parsers"). Nested Lua tables mirror option paths: `hl.config({general={col={active_border="…"}}})` → `general:col.active_border`.
 - Color formats (hyprctl round-trip verified): `rgba()` hex parses RRGGBBAA (trailing alpha!), bare `"0xAARRGGBB"` strings parse directly; internal form is always AARRGGBB. colors.lua template's `0xff…` values correct as-is; it applies borders via `hl.config` at require time, and the catalog post-hook re-applies through `hyprctl eval` after every matugen run.
 - `WlrLayershell` anchors are ONLY left/right/top/bottom — no horizontalCenter. Centered dock = full-width window (left+right+bottom) + `mask: Region { item: <centered content> }`.
-- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`. PH.08: Launcher features in dedicated section below. PH.09: `Pomodoro` bar chip with ⏱ + countdown, `Cheatsheet` bar chip with ⌨ toggle. PH.07: `Snapshots` bar chip with ⌘ + count. 29 total segment types.
+- **Workspaces**: five render modes via `ShellState.wsMode`: `default`/`numbers`/`pills`/`active`/`thumbnails`. Scratchpad windows live in `special:magic` (workspace id < 0 or name === "magic"); restore via `window.move({workspace="previous"})`. PH.04: `Scratchpad.qml` lists stash contents; `Dock.pinnedWindows` tracks addresses pinned to all workspaces; `OverviewGrid` has search filter + right-click move-window mode. PH.05: `IdleInhibitor` caffeine chip in bar session segment, `session idle-inhibit` IPC toggle. PH.06: Osd "thermal" kind for threshold-crossing alerts (auto-dismiss 4 s), gated by `ShellState.osdThermal`. PH.08: Launcher features in dedicated section below. PH.09: `Pomodoro` bar chip with ⏱ + countdown. PH.07: `Snapshots` bar chip with ⌘ + count. 33 total segment types.
 
 ## Hard-won lessons (do not regress)
 
@@ -227,8 +208,6 @@ Back-to-back `writeAdapter()`/`setText()`/`reload()` within a few hundred ms sil
 - SettingsPanel: 15 declarative pages behind lazy Loaders + switch; searchable two-level nav rail. ControlCenter: 11 tabs from `ShellState.ccTabs`; per-tab Timers gate on `activePageId === "x" && ShellState.ccOpen`.
 - SNI tray menu needs `//@ pragma UseQApplication` in shell.qml — takes effect only on fresh start, so the warning still logs mid-session after hot-reloads.
 - **StorageMonitor** (widgets) — singleton reading `df -h` every 5 s, per-mount usage with warn/crit thresholds; feeds disk bar segment and surface panel.
-- **NetDetails** (net) — YSurface panel showing IP4/IP6/gateway/DNS/signal; IPC: `network details`, `network copy-ip`.
-- **ProcessKiller** (widgets) — YSurface panel with process search + kill; IPC: `processes open/close/kill <pid>`.
 - **Launcher prefix modes** — search input prefixed with `=`, `>`, `@`, `#`, or `~` switches to a dedicated mode (calc/command/notify/color/recent). Each mode has its own UI component (CalcStrip, CommandCard, NotifyList, ColorResult, RecentFileList). Calculator uses a recursive descent parser (`CalcParser.qml`) — never `Function()` or `eval`. Frecency ranking: `ShellState.launchStats` per-app `{count, timestamps[]}`, score = `count * 1/(1+daysSince*0.1)`, 30-day decay. Sort: pinned → recent → frecency → alpha.
 
 ## Conventions (enforced)

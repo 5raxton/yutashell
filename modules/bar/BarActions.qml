@@ -112,35 +112,11 @@ Singleton {
         case "scratchpad":
             ShellState.toggleOverview();
             break;
-        case "networkdetails":
-            ShellState.toggleNetDetails();
-            break;
-        case "processes":
-            ShellState.toggleProcesses();
-            break;
         case "pomodoro":
             Pomodoro.toggle();
             break;
-        case "cheatsheet":
-            ShellState.toggleCheatsheet();
-            break;
         case "profiles":
             ProfileService.cycle();
-            break;
-        case "automation":
-            ShellState.toggleAutomation();
-            break;
-        case "dev":
-            ShellState.toggleDev();
-            break;
-        case "focus":
-            ShellState.toggleFocus();
-            break;
-        case "systemmonitor":
-            ShellState.toggleSystemMonitor();
-            break;
-        case "snapshots":
-            ShellState.toggleSnapshots();
             break;
         case "ai":
             ShellState.toggleAi();

@@ -29,13 +29,12 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `dnd` | `on` / `off` / `toggle` / `status` | do not disturb |
 | `notify` | `show <app> <sum> <body>` | send a toast notification |
 | `notifycenter` | `toggle` / `open` / `close` / `clear` / `test <urgency>` | notification history center |
-| `network` | `toggle` / `open` / `close` / `details` / `copy-ip` | network panel; `details` opens the info-dense panel, `copy-ip` copies current IPv4 |
-| `processes` | `open` / `close` / `kill <pid>` | process search + kill panel |
+| `network` | `toggle` / `open` / `close` / `copy-ip` | network panel; `copy-ip` copies current IPv4 |
+| `processes` | `kill <pid>` | send SIGTERM to a process |
 | `bluetooth` | `toggle` / `open` / `close` | bluetooth panel |
 | `media` | `toggle` / `close` / `playpause` / `next` / `previous` | MPRIS media widget |
 | `nightlight` | `toggle` / `on` / `off` / `temp <kelvin>` / `schedule <on> <off> <true/false>` / `schedulestatus` / `status` | night light (hyprsunset) with auto schedule |
 | `pomodoro` | `start` / `pause` / `resume` / `reset` / `toggle` / `status` | pomodoro timer (work/break cycles) |
-| `cheatsheet` | `toggle` / `open` / `close` | keybind cheatsheet panel (parsed from hyprctl binds) |
 | `shot` | `region` / `full` / `window` / `copy` / `dir` | screenshots (grim + slurp) |
 | `clipboard` | `toggle` / `open` / `close` / `status` | clipboard history (cliphist) |
 | `calendar` | `toggle` / `open` / `close` | calendar widget |
@@ -46,7 +45,7 @@ qs ipc -c yuta-qs call <target> <function> [args...]
 | `colorpicker` | `pick` | color pick operation (hyprpicker) |
 | `compositor` | `info` / `dsp <lua>` | capability report / warm-client Hyprland dispatch passthrough |
 | `dock` | `toggle` / `enable` / `disable` / `pin <id>` / `unpin <id>` / `hide <mode>` / `mode <mode>` / `status` | bottom dock |
-| `snapshots` | `toggle` / `open` / `close` / `save <name>` / `remove <name>` / `list` / `status` | session snapshots (save/restore desktop state) |
+| `snapshots` | `save <name>` / `restore <name>` / `remove <name>` / `list` / `status` | session snapshots (save/restore desktop state) |
 | `bar` | see below | bar layout |
 | `spawn` | see below | where each popup spawns from |
 
@@ -66,7 +65,7 @@ bar preset <id>                         # apply a bar layout preset
 bar status                              # current model as text
 ```
 
-29 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `pluginwidgets`, `pomodoro`, `cheatsheet`, `profiles`, `automation`, `git`, `docker`, `cicd`, `focus`, `systemmonitor`, `snapshots`, `clock`, `spacer`
+33 segment types: `identity`, `workspaces`, `taskbar`, `activewindow`, `tray`, `media`, `net`, `bt`, `audio`, `stats`, `cpu`, `mem`, `bat`, `cputemp`, `gpu`, `disk`, `nightlight`, `session`, `recording`, `mixer`, `scratchpad`, `pluginwidgets`, `clock`, `spacer`, `pomodoro`, `profiles`, `automation`, `git`, `docker`, `cicd`, `focus`, `systemmonitor`, `snapshots`
 
 ### `spawn`
 

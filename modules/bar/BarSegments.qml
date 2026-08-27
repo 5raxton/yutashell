@@ -50,7 +50,6 @@ Singleton {
             "clock": { label: "Clock", jp: "時" },
             "spacer": { label: "Spacer", jp: "余" },
             "pomodoro": { label: "Pomodoro timer", jp: "豆" },
-            "cheatsheet": { label: "Keybind cheatsheet", jp: "鍵" },
             "profiles": { label: "Project profiles", jp: "継" },
             "automation": { label: "Automation rules", jp: "働" },
             "git": { label: "Git status", jp: "変" },
@@ -146,11 +145,6 @@ Singleton {
     }
 
     // a segment's zone (its persisted zone, or its meta default)
-    function zoneOf(id) {
-        const s = root.model.find(x => x.id === id);
-        return s ? s.zone : "right";
-    }
-
     function zoneList(zone) {
         return root.model.filter(s => s.zone === zone);
     }
@@ -186,8 +180,6 @@ Singleton {
             return PluginService.enabledWidgets.length > 0;
         case "pomodoro":
             return Pomodoro.phase !== "idle";
-        case "cheatsheet":
-            return true;
         case "profiles":
             return ProfileService.activeName.length > 0;
         case "automation":
@@ -206,7 +198,7 @@ Singleton {
     }
 
     // compact mode: only identity, workspaces, clock
-    readonly property var compactIds: ["identity", "workspaces", "clock", "pomodoro", "cheatsheet", "focus"]
+    readonly property var compactIds: ["identity", "workspaces", "clock", "pomodoro", "focus"]
 
     // the ordered list of visible segment ids for a zone
     readonly property var leftVisible: root._visible("left")
@@ -236,7 +228,6 @@ Singleton {
             "mixer": "mixer",
             "scratchpad": "scratchpad",
             "pomodoro": "pomodoro",
-            "cheatsheet": "cheatsheet",
             "profiles": "profiles",
             "automation": "automation",
             "git": "dev",
@@ -342,12 +333,6 @@ Singleton {
         ShellState.set("barSegments", JSON.stringify(list));
     }
 
-    function labelFor(id) {
-        if (id.startsWith("spacer-"))
-            return "Spacer";
-        return (root.meta[id] ?? {}).label ?? id;
-    }
-
     // ---- layout presets (PH.07) ----
     readonly property var layoutPresets: [
         { id: "minimal", label: "MINIMAL", desc: "Identity + workspaces + clock", barScale: 0.8, barPosition: "top", wsMode: "default", segments: [{"id":"identity","zone":"left","enabled":true},{"id":"workspaces","zone":"left","enabled":true},{"id":"taskbar","zone":"left","enabled":false},{"id":"activewindow","zone":"center","enabled":false},{"id":"tray","zone":"right","enabled":false},{"id":"media","zone":"right","enabled":false},{"id":"net","zone":"right","enabled":false},{"id":"bt","zone":"right","enabled":false},{"id":"audio","zone":"right","enabled":false},{"id":"cpu","zone":"right","enabled":false},{"id":"mem","zone":"right","enabled":false},{"id":"bat","zone":"right","enabled":false},{"id":"cputemp","zone":"right","enabled":false},{"id":"gpu","zone":"right","enabled":false},{"id":"disk","zone":"right","enabled":false},{"id":"nightlight","zone":"right","enabled":false},{"id":"session","zone":"right","enabled":false},{"id":"recording","zone":"right","enabled":false},{"id":"mixer","zone":"right","enabled":false},{"id":"pluginwidgets","zone":"right","enabled":false},{"id":"profiles","zone":"right","enabled":false},{"id":"automation","zone":"right","enabled":false},{"id":"git","zone":"right","enabled":false},{"id":"docker","zone":"right","enabled":false},{"id":"cicd","zone":"right","enabled":false},{"id":"focus","zone":"right","enabled":false},{"id":"systemmonitor","zone":"right","enabled":false},{"id":"snapshots","zone":"right","enabled":false},{"id":"clock","zone":"right","enabled":true}] },
@@ -377,10 +362,6 @@ Singleton {
         ShellState.set("barPosition", p.barPosition);
         ShellState.set("wsMode", p.wsMode);
         return true;
-    }
-
-    function presetIds() {
-        return root.layoutPresets.map(p => p.id);
     }
 
     function abbrFor(id) {

@@ -406,7 +406,6 @@ Singleton {
     function snooze(minutes) {
         root._snoozeUntil = Date.now() + minutes * 60000;
         snoozeTimer.restart();
-        console.log("[notify] snoozed for " + minutes + " min until " + new Date(root._snoozeUntil).toLocaleTimeString());
     }
 
     function clearSnooze() {

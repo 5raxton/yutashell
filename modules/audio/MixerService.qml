@@ -41,10 +41,6 @@ Singleton {
         return "";
     }
 
-    function volume(stream) {
-        return stream && stream.audio ? stream.audio.volume : 0;
-    }
-
     function volumePct(stream) {
         return AudioService.nodePct(stream);
     }

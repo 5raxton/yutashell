@@ -2,4 +2,3 @@ singleton BatteryService 1.0 BatteryService.qml
 singleton NetHealth 1.0 NetHealth.qml
 singleton PowerBudget 1.0 PowerBudget.qml
 singleton WsHeatmap 1.0 WsHeatmap.qml
-SystemMonitor 1.0 SystemMonitor.qml

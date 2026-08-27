@@ -30,31 +30,10 @@ Singleton {
     // scratchpad manager (PH.04)
     property bool scratchpadOpen: false
 
-    // PH.06: network details + process killer
-    property bool netDetailsOpen: false
-    property bool processesOpen: false
-
     // AI agent (PH.11)
     property bool aiOpen: false
     property bool aiChatOpen: false
 
-    // project profiles (PH.02)
-    property bool profilesOpen: false
-
-    // automation rules (PH.03)
-    property bool automationOpen: false
-
-    // developer command center (PH.04)
-    property bool devOpen: false
-
-    // focus & wellness (PH.05)
-    property bool focusOpen: false
-
-    // smart system monitor (PH.06)
-    property bool systemMonitorOpen: false
-
-    // session snapshots (PH.07)
-    property bool snapshotsOpen: false
     property bool snapshotAuto: true
 
     // PH.04.3: pinned windows (addresses visible on all workspaces)
@@ -86,15 +65,6 @@ Singleton {
         root.ccOpen = name === "cc";
         root.mixerOpen = name === "mixer";
         root.scratchpadOpen = name === "scratchpad";
-        root.netDetailsOpen = name === "netdetails";
-        root.processesOpen = name === "processes";
-        root.cheatsheetOpen = name === "cheatsheet";
-        root.profilesOpen = name === "profiles";
-        root.automationOpen = name === "automation";
-        root.devOpen = name === "dev";
-        root.focusOpen = name === "focus";
-        root.systemMonitorOpen = name === "systemmonitor";
-        root.snapshotsOpen = name === "snapshots";
         root.aiOpen = name === "ai";
         root.aiChatOpen = name === "aichat";
     }
@@ -283,116 +253,11 @@ Singleton {
         root.scratchpadOpen = false;
     }
 
-    function toggleNetDetails() {
-        root._exclusive(root.netDetailsOpen ? "" : "netdetails");
-    }
-
-    function closeNetDetails() {
-        root.netDetailsOpen = false;
-    }
-
-    function toggleProcesses() {
-        root._exclusive(root.processesOpen ? "" : "processes");
-    }
-
-    function closeProcesses() {
-        root.processesOpen = false;
-    }
-
     function toggleCompact() {
         root.set("barCompact", !root.barCompact);
     }
 
-    // ---- cheatsheet panel ----
-    property bool cheatsheetOpen: false
-
-    function toggleCheatsheet() {
-        root._exclusive(root.cheatsheetOpen ? "" : "cheatsheet");
-    }
-
-    function closeCheatsheet() {
-        root.cheatsheetOpen = false;
-    }
-
-    // ---- project profiles (PH.02) ----
-    function toggleProfiles() {
-        root._exclusive(root.profilesOpen ? "" : "profiles");
-    }
-
-    function openProfiles() {
-        root._exclusive("profiles");
-    }
-
-    function closeProfiles() {
-        root.profilesOpen = false;
-    }
-
-    // ---- automation rules (PH.03) ----
-    function toggleAutomation() {
-        root._exclusive(root.automationOpen ? "" : "automation");
-    }
-
-    function openAutomation() {
-        root._exclusive("automation");
-    }
-
-    function closeAutomation() {
-        root.automationOpen = false;
-    }
-
-    // ---- developer command center (PH.04) ----
-    function toggleDev() {
-        root._exclusive(root.devOpen ? "" : "dev");
-    }
-
-    function openDev() {
-        root._exclusive("dev");
-    }
-
-    function closeDev() {
-        root.devOpen = false;
-    }
-
-    // ---- focus & wellness (PH.05) ----
-    function toggleFocus() {
-        root._exclusive(root.focusOpen ? "" : "focus");
-    }
-
-    function openFocus() {
-        root._exclusive("focus");
-    }
-
-    function closeFocus() {
-        root.focusOpen = false;
-    }
-
-    // ---- smart system monitor (PH.06) ----
-    function toggleSystemMonitor() {
-        root._exclusive(root.systemMonitorOpen ? "" : "systemmonitor");
-    }
-
-    function openSystemMonitor() {
-        root._exclusive("systemmonitor");
-    }
-
-    function closeSystemMonitor() {
-        root.systemMonitorOpen = false;
-    }
-
-    // ---- session snapshots (PH.07) ----
-    function toggleSnapshots() {
-        root._exclusive(root.snapshotsOpen ? "" : "snapshots");
-    }
-
-    function openSnapshots() {
-        root._exclusive("snapshots");
-    }
-
-    function closeSnapshots() {
-        root.snapshotsOpen = false;
-    }
-
-    // AI agent (PH.11)
+    // ---- AI agent (PH.11) ----
     function toggleAi() {
         root._exclusive(root.aiOpen ? "" : "ai");
     }
@@ -694,7 +559,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\",\"systemmonitor\":\"systemmonitor\",\"snapshots\":\"snapshots\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\",\"focus\":\"focus\",\"systemmonitor\":\"systemmonitor\",\"snapshots\":\"snapshots\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"

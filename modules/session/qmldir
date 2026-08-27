@@ -4,4 +4,3 @@ singleton SnapshotService 1.0 SnapshotService.qml
 LockScreen 1.0 LockScreen.qml
 PowerMenu 1.0 PowerMenu.qml
 PolkitDialog 1.0 PolkitDialog.qml
-SnapshotPicker 1.0 SnapshotPicker.qml

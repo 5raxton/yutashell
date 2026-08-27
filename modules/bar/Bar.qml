@@ -289,8 +289,6 @@ PanelWindow {
             return pluginWidgetsComp;
         case "pomodoro":
             return pomodoroComp;
-        case "cheatsheet":
-            return cheatsheetComp;
         case "profiles":
             return profilesComp;
         case "automation":
@@ -658,32 +656,6 @@ PanelWindow {
     }
 
     Component {
-        id: cheatsheetComp
-
-        Item {
-            implicitWidth: cheatText.implicitWidth + 12
-            implicitHeight: Theme.scaledBarHeight
-
-            Text {
-                id: cheatText
-                anchors.verticalCenter: parent.verticalCenter
-                x: 6
-                text: "⌨"
-                color: ShellState.cheatsheetOpen ? Theme.acid : Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.barFsBody
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleCheatsheet()
-            }
-        }
-    }
-
-    Component {
         id: profilesComp
 
         Item {
@@ -721,11 +693,8 @@ PanelWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: ProfileService.cycle()
-                onWheel: function(event) {
-                    if (event.angleDelta.y > 0)
-                        ProfileService.cycle();
-                    else
-                        ShellState.toggleProfiles();
+                onWheel: event => {
+                    ProfileService.cycle();
                 }
             }
         }
@@ -761,13 +730,6 @@ PanelWindow {
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleAutomation()
             }
         }
     }
@@ -826,12 +788,6 @@ PanelWindow {
                 }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleDev()
-            }
         }
     }
 
@@ -867,12 +823,6 @@ PanelWindow {
                 }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleDev()
-            }
         }
     }
 
@@ -909,12 +859,6 @@ PanelWindow {
                 }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleDev()
-            }
         }
     }
 
@@ -959,19 +903,11 @@ PanelWindow {
                     font.pixelSize: Theme.fsMicro
                 }
             }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleFocus()
-            }
         }
     }
 
     Component {
         id: sysMonComp
-
         Item {
             implicitWidth: sysRow.width + 12
             implicitHeight: Theme.scaledBarHeight
@@ -1010,13 +946,6 @@ PanelWindow {
                     font.pixelSize: Theme.fsMicro
                 }
             }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleSystemMonitor()
-            }
         }
     }
 
@@ -1051,13 +980,6 @@ PanelWindow {
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: ShellState.toggleSnapshots()
             }
         }
     }

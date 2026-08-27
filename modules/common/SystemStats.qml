@@ -28,7 +28,6 @@ Singleton {
     property real memTotal: -1      // bytes
     property real netDown: -1       // B/s
     property real netUp: -1         // B/s
-    property real load1: -1
     property real uptime: -1        // seconds
 
     // ---- SLOW class ----
@@ -282,13 +281,6 @@ Singleton {
         root._prevDiskStamp = now;
     }
 
-    function _sampleLoad(t) {
-        const f = t.trim().split(/\s+/);
-        const v = parseFloat(f[0]);
-        if (!isNaN(v))
-            root.load1 = v;
-    }
-
     function _sampleUptime(t) {
         const f = t.trim().split(/\s+/);
         const v = parseFloat(f[0]);
@@ -319,14 +311,6 @@ Singleton {
         watchChanges: false
         printErrors: false
         onLoaded: root._sampleNet(netFile.text())
-    }
-
-    FileView {
-        id: loadFile
-        path: "/proc/loadavg"
-        watchChanges: false
-        printErrors: false
-        onLoaded: root._sampleLoad(loadFile.text())
     }
 
     FileView {
@@ -587,7 +571,6 @@ Singleton {
             cpuFile.reload();
             memFile.reload();
             netFile.reload();
-            loadFile.reload();
             uptimeFile.reload();
         }
     }

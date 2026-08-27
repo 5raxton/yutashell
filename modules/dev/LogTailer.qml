@@ -82,13 +82,4 @@ Singleton {
     Component.onCompleted: {
         _restart();
     }
-
-    Connections {
-        target: ShellState
-        function onDevOpenChanged() {
-            if (ShellState.devOpen && !logProc.running) {
-                _restart();
-            }
-        }
-    }
 }

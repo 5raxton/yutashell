@@ -4,10 +4,10 @@
 
 ```
 yuta-qs/
-├── shell.qml              entry point, 35 IPC handlers (160+ functions), per-screen instances
+├── shell.qml              entry point, 46 IPC handlers (IPC-driven actions), per-screen instances
 ├── theme/                 Theme singleton, 12 preset palettes, matugen setup
 ├── modules/
-│   ├── bar/               26 segment types + Kanban drag-drop editor, BarActions dispatcher
+│   ├── bar/               33 segment types + Kanban drag-drop editor, BarActions dispatcher
 │   ├── common/            ShellState, Wallpaper/89-template pipeline, SystemStats,
 │   │                      PluginService, FocusMonitor, Compositor, Health, 13 UI primitives
 │   ├── settings/          settings panel (17 pages behind searchable nav rail)
@@ -23,7 +23,7 @@ yuta-qs/
 │   ├── overview/          workspace grid, alt-tab, tile presets
 │   └── widgets/           calendar, weather, clipboard, screenshots,
 │                          emoji, updates, recording, color picker,
-│                          pomodoro timer, keybind cheatsheet
+│                          pomodoro timer
 ├── plugins/               reference widget + daemon plugins
 └── docs/                  these pages
 ```

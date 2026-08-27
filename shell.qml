@@ -313,10 +313,6 @@ ShellRoot {
             ShellState.closeNet();
         }
 
-        function details(): void {
-            ShellState.toggleNetDetails();
-        }
-
         function copyIp(): string {
             copyIpProc.command = ["nmcli", "-g", "IP4.ADDRESS[1]", "dev", "show"];
             copyIpProc.running = true;
@@ -360,14 +356,6 @@ ShellRoot {
 
     IpcHandler {
         target: "processes"
-
-        function open(): void {
-            ShellState.toggleProcesses();
-        }
-
-        function close(): void {
-            ShellState.closeProcesses();
-        }
 
         function kill(pid: string): string {
             const p = parseInt(pid);
@@ -1211,22 +1199,6 @@ ShellRoot {
     }
 
     IpcHandler {
-        target: "cheatsheet"
-
-        function toggle(): void {
-            ShellState.toggleCheatsheet();
-        }
-
-        function open(): void {
-            ShellState._exclusive("cheatsheet");
-        }
-
-        function close(): void {
-            ShellState.closeCheatsheet();
-        }
-    }
-
-    IpcHandler {
         target: "ai"
 
         function toggle(): void {
@@ -1297,18 +1269,6 @@ ShellRoot {
     IpcHandler {
         target: "profiles"
 
-        function toggle(): void {
-            ShellState.toggleProfiles();
-        }
-
-        function open(): void {
-            ShellState.openProfiles();
-        }
-
-        function close(): void {
-            ShellState.closeProfiles();
-        }
-
         function list(): string {
             const profiles = ProfileService.profiles;
             if (profiles.length === 0) return "no profiles";
@@ -1350,18 +1310,6 @@ ShellRoot {
     IpcHandler {
         target: "automation"
 
-        function toggle(): void {
-            ShellState.toggleAutomation();
-        }
-
-        function open(): void {
-            ShellState.openAutomation();
-        }
-
-        function close(): void {
-            ShellState.closeAutomation();
-        }
-
         function list(): string {
             const rules = RuleService.rules;
             if (rules.length === 0) return "no rules";
@@ -1398,18 +1346,6 @@ ShellRoot {
 
     IpcHandler {
         target: "dev"
-
-        function toggle(): void {
-            ShellState.toggleDev();
-        }
-
-        function open(): void {
-            ShellState.openDev();
-        }
-
-        function close(): void {
-            ShellState.closeDev();
-        }
 
         function gitstatus(): string {
             if (!GitService.isRepo) return "not in a git repo";
@@ -1492,18 +1428,6 @@ ShellRoot {
     IpcHandler {
         target: "focus"
 
-        function toggle(): void {
-            ShellState.toggleFocus();
-        }
-
-        function open(): void {
-            ShellState.openFocus();
-        }
-
-        function close(): void {
-            ShellState.closeFocus();
-        }
-
         function start(): string {
             FocusMode.start();
             return "focus started";
@@ -1531,18 +1455,6 @@ ShellRoot {
 
     IpcHandler {
         target: "systemmonitor"
-
-        function toggle(): void {
-            ShellState.toggleSystemMonitor();
-        }
-
-        function open(): void {
-            ShellState.openSystemMonitor();
-        }
-
-        function close(): void {
-            ShellState.closeSystemMonitor();
-        }
 
         function battery(): string {
             if (!BatteryService.present) return "no battery";
@@ -1594,18 +1506,6 @@ ShellRoot {
 
     IpcHandler {
         target: "snapshots"
-
-        function toggle(): void {
-            ShellState.toggleSnapshots();
-        }
-
-        function open(): void {
-            ShellState.openSnapshots();
-        }
-
-        function close(): void {
-            ShellState.closeSnapshots();
-        }
 
         function save(name: string): string {
             SnapshotService.save(name);

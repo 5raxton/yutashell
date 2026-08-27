@@ -1405,22 +1405,6 @@ PanelWindow {
                     }
                 }
 
-                YRow {
-                    width: parent.width
-                    title: "Network details"
-                    sub: "IP · gateway · DNS · signal"
-                    note: "NET"
-                    onToggled: ShellState.toggleNetDetails()
-                }
-
-                YRow {
-                    width: parent.width
-                    title: "Process killer"
-                    sub: "search + kill processes"
-                    note: "PS"
-                    onToggled: ShellState.toggleProcesses()
-                }
-
                 Item {
                     width: 1
                     height: Theme.sp2

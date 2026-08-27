@@ -4,4 +4,3 @@ singleton CIService 1.0 CIService.qml
 singleton TmuxService 1.0 TmuxService.qml
 singleton PortService 1.0 PortService.qml
 LogTailer 1.0 LogTailer.qml
-DevPanel 1.0 DevPanel.qml

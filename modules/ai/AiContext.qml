@@ -50,7 +50,7 @@ Singleton {
 
         // system stats
         try {
-            parts.push("CPU: " + SystemStats.cpuPercent + "% | RAM: " + SystemStats.memUsedGb + "/" + SystemStats.memTotalGb + " GB");
+            parts.push("CPU: " + SystemStats.cpuPct + "% | RAM: " + (SystemStats.memUsed / 1073741824).toFixed(1) + "/" + (SystemStats.memTotal / 1073741824).toFixed(1) + " GB");
         } catch (e) {}
 
         // battery
