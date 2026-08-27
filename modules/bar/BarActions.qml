@@ -130,6 +130,9 @@ Singleton {
         case "automation":
             ShellState.toggleAutomation();
             break;
+        case "dev":
+            ShellState.toggleDev();
+            break;
         case "ai":
             ShellState.toggleAi();
             break;

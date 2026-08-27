@@ -12,6 +12,7 @@ import "../widgets"
 import "../common/ui"
 import "../profiles"
 import "../automation"
+import "../dev"
 import "."
 
 // Bar v2 (PH.14) — a data-driven organism. The layout (which segments, in
@@ -291,6 +292,12 @@ PanelWindow {
             return profilesComp;
         case "automation":
             return automationComp;
+        case "git":
+            return gitComp;
+        case "docker":
+            return dockerComp;
+        case "cicd":
+            return cicdComp;
         case "clock":
             return clockComp;
         case "spacer":
@@ -730,7 +737,7 @@ PanelWindow {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "⚡"
+                    text: "\u26A1"
                     color: RuleService.rules.some(r => r.enabled) ? Theme.acid : Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.barFsBody
@@ -752,6 +759,152 @@ PanelWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: ShellState.toggleAutomation()
+            }
+        }
+    }
+
+    Component {
+        id: gitComp
+
+        Item {
+            implicitWidth: gitRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: gitRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "\u2387"
+                    color: GitService.isRepo ? Theme.acid : Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                }
+
+                Text {
+                    visible: GitService.branch.length > 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: GitService.branch
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+
+                Rectangle {
+                    visible: GitService.dirty > 0
+                    width: dirtyNum.implicitWidth + 8
+                    height: 16
+                    radius: 4
+                    color: Theme.acid + "22"
+                    border.width: 1
+                    border.color: Theme.acid
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        id: dirtyNum
+                        anchors.centerIn: parent
+                        text: GitService.dirty
+                        color: Theme.acid
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fsMicro
+                        font.weight: Font.Bold
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleDev()
+            }
+        }
+    }
+
+    Component {
+        id: dockerComp
+
+        Item {
+            implicitWidth: dkRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: dkRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "\uD83D\uDC33"
+                    color: DockerService.projects.length > 0 ? Theme.acid : Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: DockerService.projects.length + " PROJ"
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleDev()
+            }
+        }
+    }
+
+    Component {
+        id: cicdComp
+
+        Item {
+            implicitWidth: ciRow.width + 12
+            implicitHeight: Theme.scaledBarHeight
+
+            Row {
+                id: ciRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: 6
+                spacing: 6
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: CIService.runs.some(r => r.conclusion === "failure") ? "\u2717" : "\u2713"
+                    color: CIService.runs.some(r => r.conclusion === "failure") ? "#ff4444" : Theme.acid
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsBody
+                    font.weight: Font.Bold
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: CIService.runs.length + " RUNS"
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.barFsMicro
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: ShellState.toggleDev()
             }
         }
     }

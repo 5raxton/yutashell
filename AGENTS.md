@@ -1,6 +1,6 @@
 # YUTASHELL
 
-Phases 1–3 complete.
+Phases 1–4 complete.
 
 Quickshell desktop shell for Hyprland every compositor call uses `hl.dsp.*` Lua forms, never raw dispatch strings.
 Entry: `shell.qml`. Design tokens: `theme/Theme.qml` (`qs.theme`). UI primitives: `modules/common/ui`. State: `modules/common/ShellState.qml`.
@@ -90,6 +90,24 @@ Bar: new `automation` segment shows ⚡ + enabled rule count. Click opens RuleEd
 IPC: `automation toggle/open/close/list/enable <id>/disable <id>/test <id>/status`.
 
 ShellState additions: `automationOpen` (runtime, toggled by IPC), persisted `automationRules` (JSON array) key.
+
+## Developer Command Center (PH.04)
+
+Six singletons + one PanelWindow in `modules/dev/`:
+
+- **`GitService`** (singleton) — reads git status from focused terminal's CWD. Tracks focused window via `Hyprland.onRawEvent`, extracts CWD from terminal title or `/proc/<pid>/cwd`. Runs `git status --porcelain=v2 --branch` on 3s timer. Exposes `branch`, `ahead`, `behind`, `dirty`, `staged`, `untracked`, `isRepo`, `cwd`. Probes `git` at boot.
+- **`DockerService`** (singleton) — reads docker compose projects via `docker compose ls --format json` on 10s timer. Exposes `projects[]` with name, status, container count. `restartProject(name)` and `stopProject(name)` functions. Probes `docker` at boot.
+- **`CIService`** (singleton) — reads GitHub Actions via `gh run list --json` on 60s timer. Configurable repos in `ShellState.cicdRepos`. Cycles through repos one at a time. Sends notification on failure. `addRepo(name)` / `removeRepo(name)`. Probes `gh` at boot.
+- **`LogTailer`** (singleton) — streams journalctl or custom log sources via `Process` + `Splitter`. Sources: `system` (journalctl -f -p warning), `hyprland` (tail of hyprland.log), `custom` (user command). `filter` for regex, `paused` bool, `clear()`. Max 500 lines.
+- **`TmuxService`** (singleton) — reads tmux sessions via `tmux list-sessions -F` and zellij via `zellij list-sessions` on 5s timer. Auto-detects which is installed. `attachSession(name)`, `newSession(name)`, `killSession(name)`. Exposes `sessions[]` with name, windows, attached, via.
+- **`PortService`** (singleton) — reads `ss -tlnp` on 15s timer. Exposes `ports[]` with port, addr, process, pid. Flags non-localhost listeners in `_exposed[]`.
+- **`DevPanel`** (PanelWindow) — unified YSurface panel with 6 tab chips (GIT/DOCKER/CI/CD/LOGS/TMUX/PORTS). Each tab shows its service's live data with action buttons (restart docker, kill tmux session, pause logs, add CI repo).
+
+Bar: 3 new segments — `git` (branch + dirty badge, visible when dirty), `docker` (project count, visible when projects exist), `cicd` (run count + checkmark/X, visible when runs exist). All click to open DevPanel. Added to all 7 layout presets (disabled by default).
+
+IPC: `dev toggle/open/close/gitstatus/dockerstatus/dockerrestart <name>/dockerstop <name>/cistatus/addrepo <name>/removerepo <name>/tmuxstatus/ports/status`.
+
+ShellState additions: `devOpen` (runtime, toggled by IPC), persisted `cicdRepos` (JSON array of repo strings).
 
 ## Accessibility (PH.10)
 

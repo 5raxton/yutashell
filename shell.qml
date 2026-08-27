@@ -24,6 +24,7 @@ import "modules/control"
 import "modules/ai"
 import "modules/profiles"
 import "modules/automation"
+import "modules/dev"
 
 ShellRoot {
     Tooltip {
@@ -64,6 +65,12 @@ ShellRoot {
             void ProfileService.profiles;
             // PH.03: automation rules service
             void RuleService.rules;
+            // PH.04: developer services
+            void GitService.available;
+            void DockerService.available;
+            void CIService.available;
+            void TmuxService.available;
+            void PortService.available;
         }
     }
 
@@ -1380,6 +1387,99 @@ ShellRoot {
             const rules = RuleService.rules;
             const enabled = rules.filter(r => r.enabled).length;
             return rules.length + " rules (" + enabled + " enabled)";
+        }
+    }
+
+    IpcHandler {
+        target: "dev"
+
+        function toggle(): void {
+            ShellState.toggleDev();
+        }
+
+        function open(): void {
+            ShellState.openDev();
+        }
+
+        function close(): void {
+            ShellState.closeDev();
+        }
+
+        function gitstatus(): string {
+            if (!GitService.isRepo) return "not in a git repo";
+            return "branch=" + GitService.branch + " dirty=" + GitService.dirty + " staged=" + GitService.staged + " untracked=" + GitService.untracked + " ahead=" + GitService.ahead + " behind=" + GitService.behind + " cwd=" + GitService.cwd;
+        }
+
+        function dockerstatus(): string {
+            if (!DockerService.available) return "docker not installed";
+            if (DockerService.projects.length === 0) return "no compose projects";
+            let out = "";
+            for (let i = 0; i < DockerService.projects.length; i++) {
+                const p = DockerService.projects[i];
+                out += p.name + "\t" + p.containers + " containers\t" + p.status + "\n";
+            }
+            return out.replace(/\s+$/, "");
+        }
+
+        function dockerrestart(name: string): string {
+            DockerService.restartProject(String(name));
+            return "restarting " + name;
+        }
+
+        function dockerstop(name: string): string {
+            DockerService.stopProject(String(name));
+            return "stopping " + name;
+        }
+
+        function cistatus(): string {
+            if (!CIService.available) return "gh not installed";
+            if (CIService.runs.length === 0) return "no runs (add repos via cicd addrepo)";
+            let out = "";
+            for (let i = 0; i < CIService.runs.length; i++) {
+                const r = CIService.runs[i];
+                out += r.repo + "/" + r.branch + "\t" + r.name + "\t" + (r.conclusion || r.status) + "\n";
+            }
+            return out.replace(/\s+$/, "");
+        }
+
+        function addrepo(name: string): string {
+            CIService.addRepo(String(name));
+            return "added repo " + name;
+        }
+
+        function removerepo(name: string): string {
+            CIService.removeRepo(String(name));
+            return "removed repo " + name;
+        }
+
+        function tmuxstatus(): string {
+            if (!TmuxService.available) return "tmux/zellij not installed";
+            if (TmuxService.sessions.length === 0) return "no sessions";
+            let out = "";
+            for (let i = 0; i < TmuxService.sessions.length; i++) {
+                const s = TmuxService.sessions[i];
+                const att = s.attached ? " (attached)" : "";
+                out += s.name + "\t" + s.windows + " windows" + att + "\t" + s.via + "\n";
+            }
+            return out.replace(/\s+$/, "");
+        }
+
+        function ports(): string {
+            if (PortService.ports.length === 0) return "no listening ports";
+            let out = "";
+            for (let i = 0; i < PortService.ports.length; i++) {
+                const p = PortService.ports[i];
+                out += p.port + "\t" + p.addr + "\t" + p.process + "\n";
+            }
+            return out.replace(/\s+$/, "");
+        }
+
+        function status(): string {
+            return "git=" + GitService.branch
+                + " docker=" + DockerService.projects.length + "projects"
+                + " ci=" + CIService.runs.length + "runs"
+                + " tmux=" + TmuxService.sessions.length + "sessions"
+                + " ports=" + PortService.ports.length;
         }
     }
 }

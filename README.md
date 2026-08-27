@@ -26,7 +26,8 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **AI Desktop Agent** — Ollama/OpenAI-compatible chat via Process+curl with SSE streaming; two panels: Command Palette (natural language → parsed action with `[DISPATCH]`/`[SHELL]`/`[IPC]` directives, EXECUTE/COPY buttons) and Chat Sidebar (conversational bubbles, markdown rendering, model selector); context-aware system prompt built from live desktop state (focused window, workspace, stats, media, weather); voice input via pw-record+faster-whisper transcription; screenshot-to-action via grim+slurp region capture → Ollama vision model analysis; command history; kill button; boot probes endpoint availability and degrades cleanly
 - **Project Profiles** — one-switch workspace contexts: save and restore bundles of wallpaper, apps, power profile, DND, bar layout, and night light; bar chip cycles profiles, YSurface picker for management; profiles persist across sessions in state.json
 - **Automation Rules Engine** — declarative trigger-action rules ("when X happens, do Y"): 8 trigger types (time schedule, battery threshold, network, recording, temperature, focused app, media playback, idle), 8 action types (apply profile, power profile, DND, run command, notify, wallpaper, night light, bar preset); 30 s timer + event-driven signals with 60 s cooldown; YSurface rule editor with config chips and action builder; 8 starter rules (all disabled by default); bar chip shows ⚡ + enabled count
-- **IPC** — 43 targets, 180+ functions; keybinds, CLI and settings panel share one implementation
+- **Developer Command Center** — unified dev surface with 6 tool tabs: git status (branch + dirty/staged/untracked counts, CWD from focused terminal), Docker Compose monitor (project cards with restart/stop), CI/CD pipeline status (GitHub Actions via `gh`, configurable repos, failure notifications), live log tailer (journalctl + hyprland + custom sources with regex filter), tmux/zellij dashboard (session list, attach/kill), port scanner (listening ports with exposed-port warnings); 3 bar segments (git, docker, cicd) with click-to-open
+- **IPC** — 48 targets, 200+ functions; keybinds, CLI and settings panel share one implementation
 - **Accessibility** — reduced motion mode (snaps all animations to instant), high contrast mode (maximum contrast palette), keyboard navigation (Tab/Shift+Tab focus cycling, Enter/Space activation, Escape to close panels)
 
 ## Requirements
@@ -96,8 +97,8 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-113 QML files · 40 singletons · 13 UI primitives · 43 IPC targets · 180+ functions
-89 matugen templates · 17 snippet rules · 25 bar segments · 12 color schemes
+121 QML files · 46 singletons · 13 UI primitives · 45 IPC targets · 200+ functions
+89 matugen templates · 17 snippet rules · 31 bar segments · 12 color schemes
 7 layout presets · 17 settings pages · 11 control center tabs · 4 spawn modes
 ```
 

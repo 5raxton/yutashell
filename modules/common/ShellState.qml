@@ -44,6 +44,9 @@ Singleton {
     // automation rules (PH.03)
     property bool automationOpen: false
 
+    // developer command center (PH.04)
+    property bool devOpen: false
+
     // PH.04.3: pinned windows (addresses visible on all workspaces)
     readonly property alias pinnedWindows: adapter.pinnedWindows
 
@@ -78,6 +81,7 @@ Singleton {
         root.cheatsheetOpen = name === "cheatsheet";
         root.profilesOpen = name === "profiles";
         root.automationOpen = name === "automation";
+        root.devOpen = name === "dev";
         root.aiOpen = name === "ai";
         root.aiChatOpen = name === "aichat";
     }
@@ -323,6 +327,19 @@ Singleton {
         root.automationOpen = false;
     }
 
+    // ---- developer command center (PH.04) ----
+    function toggleDev() {
+        root._exclusive(root.devOpen ? "" : "dev");
+    }
+
+    function openDev() {
+        root._exclusive("dev");
+    }
+
+    function closeDev() {
+        root.devOpen = false;
+    }
+
     // AI agent (PH.11)
     function toggleAi() {
         root._exclusive(root.aiOpen ? "" : "ai");
@@ -426,6 +443,9 @@ Singleton {
 
     // automation rules (PH.03): JSON array of {id, name, trigger, actions[], enabled}
     readonly property alias automationRules: adapter.automationRules
+
+    // developer command center (PH.04)
+    readonly property alias cicdRepos: adapter.cicdRepos
 
     // system / widgets (PH.11 + PH.13)
     readonly property alias clock24h: adapter.clock24h
@@ -616,7 +636,7 @@ Singleton {
     // workspace segment: "default" pills+numbers · "numbers" bare digits ·
     // "pills" boxes without digits · "active" only occupied/focused
     property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\"}"
+    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\",\"pomodoro\":\"pomodoro\",\"cheatsheet\":\"cheatsheet\",\"profiles\":\"profiles\",\"automation\":\"automation\",\"git\":\"dev\",\"docker\":\"dev\",\"cicd\":\"dev\"}"
 
     // control center: horizontal anchor + visible tab id order (JSON array)
     property string ccAnchor: "center"
@@ -641,6 +661,9 @@ Singleton {
     // automation rules (PH.03): JSON array of {id, name, trigger:{type,config},
     // actions:[{type,config}], enabled}
     property string automationRules: "[]"
+
+    // developer command center (PH.04): CI/CD repos JSON array of strings
+    property string cicdRepos: "[]"
         }
     }
 
