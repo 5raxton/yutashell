@@ -180,7 +180,7 @@ Singleton {
                 continue;
             const f = ln.split(/\s+/);
             const label = f[0];           // "cpu" | "cpu0" | ...
-            const nums = f.slice(1, 8).map(Number);
+            const nums = f.slice(1, 9).map(Number);
             const total = nums.reduce((a, b) => a + b, 0);
             const idle = (nums[3] || 0) + (nums[4] || 0);
             if (label === "cpu") {
@@ -260,7 +260,7 @@ Singleton {
         let w = 0;
         for (const ln of t.trim().split("\n")) {
             const f = ln.trim().split(/\s+/).map(Number);
-            if (f.length < 6 || !f[0])
+            if (f.length < 6 || isNaN(f[0]))
                 continue;
             // fields: major minor name reads ... sectors_read ... sectors_written
             if (f[5] !== undefined)
@@ -362,11 +362,13 @@ Singleton {
             } else {
                 root.batPresent = false;
                 root.batPct = -1;
+                root._batProbed = true;
             }
         }
     }
 
     property bool _batFallback: false
+    property bool _batProbed: false
 
     FileView {
         id: batStatFile
@@ -583,7 +585,7 @@ Singleton {
         triggeredOnStart: true
         onTriggered: {
             diskFile.reload();
-            if (root.batPresent || !root._batFallback) {
+            if (root.batPresent || !root._batProbed) {
                 batCapFile.reload();
                 batStatFile.reload();
                 batFullFile.reload();
@@ -591,7 +593,6 @@ Singleton {
                 batRateFile.reload();
             }
             // hwmon: discover + read temps + fans in one shot
-            tempProc.command = ["sensors", "-j"];
             tempProc.running = true;
             // GPU: one batched nvidia-smi query — but once absence is proven,
             // stop paying a failed fork/exec every tick forever. A missing

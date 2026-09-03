@@ -37,6 +37,19 @@ Singleton {
     property real gfetchedAt: 0
     property string error: ""
 
+    // staged write for cacheFile — coalesces setText calls from async callbacks
+    property string cacheCache: ""
+    Timer {
+        id: cacheFlush
+        interval: 100
+        onTriggered: {
+            if (root.cacheCache.length > 0) {
+                cacheFile.setText(root.cacheCache);
+                root.cacheCache = "";
+            }
+        }
+    }
+
     // ---- effective accessors -------------------------------------------
     readonly property bool configured: modeManual ? (String(ShellState.weatherLat).length > 0 && String(ShellState.weatherLon).length > 0) : ready
     readonly property string latStr: modeManual ? String(ShellState.weatherLat) : root.ready ? String(root.glat) : ""
@@ -70,7 +83,7 @@ Singleton {
         root.gfetchedAt = Date.now();
         root.ready = true;
         root.error = "";
-        cacheFile.setText(JSON.stringify({
+        cacheCache = JSON.stringify({
                 "_geo": {
                     "lat": root.glat,
                     "lon": root.glon,
@@ -78,7 +91,8 @@ Singleton {
                     "tz": root.gtz,
                     "fetchedAt": root.gfetchedAt
                 }
-            }));
+            });
+        cacheFlush.restart();
     }
 
     Component.onCompleted: {

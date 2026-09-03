@@ -67,7 +67,7 @@ Item {
                     id: iconImg
                     anchors.centerIn: parent
                     implicitSize: 15
-                    source: ShellState.safeIcon(cell.modelData.icon)
+                    source: (cell.modelData.icon && cell.modelData.icon.length > 0) ? ShellState.safeIcon(cell.modelData.icon) : ""
                     opacity: area.containsMouse ? 1 : 0.85
                     scale: area.containsMouse ? 1.12 : 1.0
                     visible: source.length > 0 && status !== Image.Error && status !== Image.Null

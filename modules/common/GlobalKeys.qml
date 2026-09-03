@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Hyprland
 import QtQuick
 import qs.modules.common
-import qs.modules.session
 import qs.modules.audio
 import qs.modules.widgets
 

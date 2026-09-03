@@ -202,7 +202,7 @@ PanelWindow {
                             YSlider {
                                 width: parent.width
                                 value: root.sink ? AudioService.nodeFrac(root.sink) : 0
-                                onMoved: v => AudioService.setFrac(root.sink, v)
+                                onMoved: v => { if (root.sink) AudioService.setFrac(root.sink, v); }
                             }
 
                             Row {
@@ -293,7 +293,7 @@ PanelWindow {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 150
                                     value: AudioService.nodeFrac(sinkRow.modelData)
-                                    onMoved: v => AudioService.setFrac(sinkRow.modelData, v)
+                                    onMoved: v => { if (sinkRow.modelData) AudioService.setFrac(sinkRow.modelData, v); }
                                 }
                             }
                         }
@@ -363,7 +363,7 @@ PanelWindow {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 150
                                     value: AudioService.nodeFrac(srcRow.modelData)
-                                    onMoved: v => AudioService.setFrac(srcRow.modelData, v)
+                                    onMoved: v => { if (srcRow.modelData) AudioService.setFrac(srcRow.modelData, v); }
                                 }
                             }
                         }

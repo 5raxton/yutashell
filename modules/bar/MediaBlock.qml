@@ -252,8 +252,8 @@ Item {
             if (!root.player)
                 return;
             if (wheel.angleDelta.y > 0) {
-                if (root.player.canTogglePlaying)
-                    root.player.togglePlaying();
+                if (root.player.canGoPrevious)
+                    root.player.previous();
             } else if (root.player.canGoNext) {
                 root.player.next();
             }

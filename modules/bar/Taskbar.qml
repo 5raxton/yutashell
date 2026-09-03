@@ -37,7 +37,6 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
-        // keep fallback boxes / hover chrome inside the segment's own width
         clip: true
 
         Repeater {
@@ -61,8 +60,8 @@ Item {
                     return false;
                 }
 
-                width: 30
-                height: 30
+                width: Math.round(30 * Theme.barScale)
+                height: Math.round(30 * Theme.barScale)
                 color: hover.containsMouse ? Theme.surface : "transparent"
 
                 Behavior on color {
@@ -73,7 +72,7 @@ Item {
                 Rectangle {
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: item.active ? 18 : item.running ? 4 : 0
+                    width: item.active ? Math.round(18 * Theme.barScale) : item.running ? 4 : 0
                     height: 2
                     color: item.active ? Theme.acid : Theme.muted
 
@@ -100,8 +99,8 @@ Item {
                 // acid square + initial fallback
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 22
-                    height: 22
+                    width: Math.round(22 * Theme.barScale)
+                    height: Math.round(22 * Theme.barScale)
                     color: Theme.acid
                     visible: item.iconUrl === "" || icon.status === Image.Error || icon.status === Image.Null
 
@@ -119,7 +118,7 @@ Item {
                     id: icon
 
                     anchors.centerIn: parent
-                    implicitSize: 22
+                    implicitSize: Math.round(22 * Theme.barScale)
                     source: item.iconUrl
                     asynchronous: true
                     visible: item.iconUrl !== "" && icon.status !== Image.Error && icon.status !== Image.Null

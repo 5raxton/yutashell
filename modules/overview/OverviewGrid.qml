@@ -38,6 +38,9 @@ PanelWindow {
     // PH.04.4: search filter
     property string _searchQuery: ""
 
+    // gate the repeater model until the surface has been revealed once
+    property bool _everOpened: false
+
     // PH.04.4: window move mode — click a workspace tile to move the selected window there
     property string _moveAddr: ""
     property string _moveTitle: ""

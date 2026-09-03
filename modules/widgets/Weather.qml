@@ -24,6 +24,19 @@ Singleton {
     property string error: ""
     property date lastFetch: new Date(0)
 
+    // staged write for cacheFile — coalesces setText calls from async callbacks
+    property string cacheCache: ""
+    Timer {
+        id: cacheFlush
+        interval: 100
+        onTriggered: {
+            if (root.cacheCache.length > 0) {
+                cacheFile.setText(root.cacheCache);
+                root.cacheCache = "";
+            }
+        }
+    }
+
     // current conditions
     property var current: null   // {temp, code, wind, time}
     property var forecast: []    // [{date, max, min, code}]
@@ -96,7 +109,8 @@ Singleton {
             // cache the raw payload (with fetch timestamp) for boot-time
             if (!j._fetchedAt)
                 j._fetchedAt = Date.now();
-            cacheFile.setText(JSON.stringify(j));
+            cacheCache = JSON.stringify(j);
+            cacheFlush.restart();
         } catch (e) {
             root.error = "parse error";
         }

@@ -24,7 +24,7 @@ Singleton {
             root.notices = root.notices.map((n, i) => i === idx ? {
                         module: m,
                         message: message
-                    } : n).slice();
+                    } : n);
         } else {
             root.notices = root.notices.concat([{
                         module: m,

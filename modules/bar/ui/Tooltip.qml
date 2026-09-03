@@ -15,7 +15,7 @@ PanelWindow {
     anchors.top: !root.bottomAnchored
     anchors.bottom: root.bottomAnchored
 
-    margins.top: root.bottomAnchored ? 0 : Theme.barHeight + 8
+    margins.top: root.bottomAnchored ? 0 : Theme.barHeight + Theme.sp2
     margins.bottom: root.bottomAnchored ? root.edgeGap : 0
     margins.left: {
         if (!anchorItem)
@@ -34,7 +34,7 @@ PanelWindow {
 
     property Item anchorItem
     property bool bottomAnchored: false
-    readonly property int gapX: 6
+    readonly property int gapX: Theme.sp1 + 2
     readonly property int edgeGap: 64
 
     implicitWidth: box.width
@@ -83,8 +83,8 @@ PanelWindow {
     Rectangle {
         id: box
 
-        width: label.width + 24
-        height: 22
+        width: label.width + Theme.sp2 * 3
+        height: Theme.ctlH - 6
         color: Theme.bgAlt
         border.width: 1
         border.color: Theme.lineStrong
@@ -118,7 +118,7 @@ PanelWindow {
 
         Text {
             id: label
-            x: 12
+            x: Theme.sp3
             anchors.verticalCenter: parent.verticalCenter
             color: Theme.ink
             font.family: Theme.fontFamily

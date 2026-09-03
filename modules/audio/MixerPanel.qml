@@ -167,7 +167,7 @@ PanelWindow {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width - masterPct.width - Theme.sp3
                                     elide: Text.ElideRight
-                                    text: root.currentSink ? MixerService.currentSink ? AudioService.deviceLabel(root.currentSink).toUpperCase() : "NO DEVICE" : "NO DEVICE"
+                                    text: root.currentSink ? AudioService.deviceLabel(root.currentSink).toUpperCase() : "NO DEVICE"
                                     color: Theme.ink
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fsBody
@@ -188,7 +188,7 @@ PanelWindow {
                             YSlider {
                                 width: parent.width
                                 value: root.currentSink ? MixerService.volumeFrac(root.currentSink) : 0
-                                onMoved: v => MixerService.setVolumeFrac(root.currentSink, v)
+                                onMoved: v => { if (root.currentSink) MixerService.setVolumeFrac(root.currentSink, v); }
                             }
 
                             Row {
@@ -264,7 +264,7 @@ PanelWindow {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 120
                                     value: MixerService.volumeFrac(sinkRow.modelData)
-                                    onMoved: v => MixerService.setVolumeFrac(sinkRow.modelData, v)
+                                    onMoved: v => { if (sinkRow.modelData) MixerService.setVolumeFrac(sinkRow.modelData, v); }
                                 }
                             }
                         }
@@ -349,7 +349,7 @@ PanelWindow {
                                 YSlider {
                                     width: parent.width
                                     value: MixerService.volumeFrac(streamCard.modelData)
-                                    onMoved: v => MixerService.setVolumeFrac(streamCard.modelData, v)
+                                    onMoved: v => { if (streamCard.modelData) MixerService.setVolumeFrac(streamCard.modelData, v); }
                                 }
                             }
                         }
@@ -425,7 +425,7 @@ PanelWindow {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 120
                                     value: MixerService.volumeFrac(srcRow.modelData)
-                                    onMoved: v => MixerService.setVolumeFrac(srcRow.modelData, v)
+                                    onMoved: v => { if (srcRow.modelData) MixerService.setVolumeFrac(srcRow.modelData, v); }
                                 }
                             }
                         }

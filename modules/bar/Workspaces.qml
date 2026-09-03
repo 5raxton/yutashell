@@ -46,7 +46,40 @@ Item {
         return Array.from(s).sort((a, b) => a - b);
     }
 
+    // precomputed map of workspace id -> {windows, appIcons} for thumbnail mode
+    readonly property var thumbData: {
+        const out = {};
+        const tlVals = Hyprland.toplevels.values;
+        for (let i = 0; i < tlVals.length; i++) {
+            const tl = tlVals[i];
+            const wsId = tl.workspace?.id;
+            if (!wsId || wsId <= 0)
+                continue;
+            const entry = out[wsId] ?? (out[wsId] = { count: 0, icons: [] });
+            entry.count++;
+            if (entry.icons.length < 3) {
+                const appId = tl.wayland?.appId || tl.lastIpcObject?.class || "";
+                if (appId && !entry.icons.includes(appId)) {
+                    const e = DesktopEntries.byId(appId) || DesktopEntries.heuristicLookup(appId);
+                    entry.icons.push(e ? (e.icon || "") : "");
+                }
+            }
+        }
+        return out;
+    }
+
     readonly property int focusedId: Hyprland.focusedWorkspace?.id ?? -1
+
+    // precomputed set of live workspace ids — avoids O(pills × workspaces)
+    // scans inside delegate bindings on every workspace event
+    readonly property var occupiedIds: {
+        const s = new Set();
+        const vals = Hyprland.workspaces.values;
+        for (let i = 0; i < vals.length; i++)
+            if (vals[i].id > 0)
+                s.add(vals[i].id);
+        return s;
+    }
 
     property var urgentIds: []
     property bool blinkOn: false
@@ -143,7 +176,7 @@ Item {
                     required property int modelData
 
                     readonly property bool isActive: modelData === root.focusedId
-                    readonly property bool isOccupied: Hyprland.workspaces.values.some(w => w.id === modelData)
+                    readonly property bool isOccupied: root.occupiedIds.has(modelData)
                     readonly property bool isUrgent: !isActive && root.urgentIds.includes(modelData)
 
                     width: root.slotW
@@ -268,26 +301,7 @@ Item {
                             visible: btn.isOccupied
 
                             Repeater {
-                                model: {
-                                    const wsWins = [];
-                                    const tlVals = Hyprland.toplevels.values;
-                                    for (let i = 0; i < tlVals.length; i++) {
-                                        if (tlVals[i].workspace && tlVals[i].workspace.id === btn.modelData)
-                                            wsWins.push(tlVals[i]);
-                                    }
-                                    // show up to 3 app icons
-                                    const icons = [];
-                                    const seen = {};
-                                    for (let i = 0; i < wsWins.length && icons.length < 3; i++) {
-                                        const appId = wsWins[i].wayland?.appId || wsWins[i].lastIpcObject?.class || "";
-                                        if (appId && !seen[appId]) {
-                                            seen[appId] = true;
-                                            const e = DesktopEntries.byId(appId) || DesktopEntries.heuristicLookup(appId);
-                                            icons.push(e ? (e.icon || "") : "");
-                                        }
-                                    }
-                                    return icons;
-                                }
+                                model: root.thumbData[btn.modelData]?.icons ?? []
 
                                 Rectangle {
                                     required property var modelData
@@ -318,19 +332,11 @@ Item {
 
                             // +N overflow indicator
                             Text {
-                                visible: {
-                                    let count = 0;
-                                    const tlVals = Hyprland.toplevels.values;
-                                    for (let i = 0; i < tlVals.length; i++) {
-                                        if (tlVals[i].workspace && tlVals[i].workspace.id === btn.modelData)
-                                            count++;
-                                    }
-                                    return count > 3;
-                                }
+                                visible: (root.thumbData[btn.modelData]?.count ?? 0) > 3
                                 text: "+"
                                 color: Theme.faint
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 7
+                                font.pixelSize: Theme.barFsMicro
                             }
                         }
                     }

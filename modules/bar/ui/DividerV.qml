@@ -6,7 +6,7 @@ import qs.theme
 Item {
     id: root
 
-    implicitWidth: 17
+    implicitWidth: Math.round(17 * Theme.barScale)
     implicitHeight: Theme.scaledBarHeight
 
     Rectangle {

@@ -368,7 +368,8 @@ Singleton {
         const job = _snipQueue[0];
         const r = root.snippetRules[job.id];
         const p = String(r.file).replace(/^~/, Quickshell.env("HOME") ?? "");
-        snipReader.command = ["sh", "-c", "mkdir -p '" + p.slice(0, p.lastIndexOf("/")) + "' && cat '" + p + "' 2>/dev/null || true"];
+        const escP = p.replace(/'/g, "'\\''");
+        snipReader.command = ["sh", "-c", "mkdir -p '" + p.slice(0, p.lastIndexOf("/")).replace(/'/g, "'\\''") + "' && cat '" + escP + "' 2>/dev/null || true"];
         snipReader.running = true;
     }
 
@@ -438,7 +439,8 @@ Singleton {
         blockWrites: true
 
         onSaved: {
-            snipCopier.command = ["sh", "-c", "cp '" + snipStage.path + "' '" + root._snipTarget.replace(/'/g, "'\\''") + "'; rm -f '" + snipStage.path + "'"];
+            const srcEsc = snipStage.path.replace(/'/g, "'\\''");
+            snipCopier.command = ["sh", "-c", "cp '" + srcEsc + "' '" + root._snipTarget.replace(/'/g, "'\\''") + "'; rm -f '" + srcEsc + "'"];
             snipCopier.running = true;
         }
     }

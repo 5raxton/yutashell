@@ -241,7 +241,7 @@ Singleton {
     Process {
         id: scanProc
 
-        property string _script: "d='" + root.pluginsRoot + "'; [ -d \"$d\" ] || exit 0; find \"$d\" -mindepth 2 -maxdepth 2 -name plugin.json | sort | while read -r f; do echo \"@@FILE $f\"; cat \"$f\"; done"
+        property string _script: "d='" + root.pluginsRoot.replace(/'/g, "'\\''") + "'; [ -d \"$d\" ] || exit 0; find \"$d\" -mindepth 2 -maxdepth 2 -name plugin.json | sort | while read -r f; do echo \"@@FILE $f\"; cat \"$f\"; done"
         command: ["sh", "-c", _script]
         stdout: StdioCollector {
             onStreamFinished: root._parseListing(this.text)
@@ -344,6 +344,7 @@ Singleton {
                 console.warn("plugin", mf.id, "failed:", comp.errorString());
                 return;
             }
+            root._comps[mf.id] = comp;
             const obj = comp.createObject(root, {
                 "pluginId": mf.id
             });
@@ -363,6 +364,11 @@ Singleton {
             delete root.daemons[id];
             console.warn("plugin daemon down:", id);
         }
+        const comp = root._comps[id];
+        if (comp) {
+            comp.destroy();
+            delete root._comps[id];
+        }
     }
 
     function _instantiatePanel(mf) {
@@ -375,6 +381,7 @@ Singleton {
                 console.warn("plugin panel", mf.id, "failed:", comp.errorString());
                 return;
             }
+            root._comps[mf.id] = comp;
             const obj = comp.createObject(root, {});
             if (obj) {
                 root.panels[mf.id] = obj;
@@ -392,7 +399,14 @@ Singleton {
             delete root.panels[id];
             console.warn("plugin panel down:", id);
         }
+        const comp = root._comps[id];
+        if (comp) {
+            comp.destroy();
+            delete root._comps[id];
+        }
     }
+
+    property var _comps: {}
 
     Component.onCompleted: scan()
 }

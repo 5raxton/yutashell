@@ -294,7 +294,7 @@ ShellRoot {
         id: copyIpProc
         stdout: StdioCollector {
             onStreamFinished: {
-                const ip = this.text.trim().split("\n")[0] || "";
+                const ip = (this.text ?? "").trim().split("\n")[0] || "";
                 if (ip.length > 0) {
                     copyIpClip.command = ["wl-copy", ip];
                     copyIpClip.running = true;
@@ -502,19 +502,22 @@ ShellRoot {
         }
 
         function playpause(): void {
-            const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
+            const vals = Mpris.players.values ?? [];
+            const p = vals.find(q => q.isPlaying) ?? vals[0] ?? null;
             if (p && p.canTogglePlaying)
                 p.togglePlaying();
         }
 
         function next(): void {
-            const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
+            const vals = Mpris.players.values ?? [];
+            const p = vals.find(q => q.isPlaying) ?? vals[0] ?? null;
             if (p && p.canGoNext)
                 p.next();
         }
 
         function previous(): void {
-            const p = (Mpris.players.values ?? []).find(p => p.isPlaying) ?? (Mpris.players.values ?? [])[0] ?? null;
+            const vals = Mpris.players.values ?? [];
+            const p = vals.find(q => q.isPlaying) ?? vals[0] ?? null;
             if (p && p.canGoPrevious)
                 p.previous();
         }
@@ -676,17 +679,19 @@ ShellRoot {
         target: "brightness"
 
         function up(): void {
-            DisplayService.setBright(DisplayService.brightPct + 10);
+            DisplayService.setBright(Math.max(0, Math.min(100, DisplayService.brightPct + 10)));
             AudioService.osdPing("bright");
         }
 
         function down(): void {
-            DisplayService.setBright(DisplayService.brightPct - 10);
+            DisplayService.setBright(Math.max(0, Math.min(100, DisplayService.brightPct - 10)));
             AudioService.osdPing("bright");
         }
 
         function set(v: string): void {
-            DisplayService.setBright(parseInt(v));
+            const n = parseInt(v);
+            if (!isNaN(n))
+                DisplayService.setBright(Math.max(0, Math.min(100, n)));
             AudioService.osdPing("bright");
         }
 

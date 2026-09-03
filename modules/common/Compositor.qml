@@ -32,7 +32,7 @@ Singleton {
 
         property bool _done: false
 
-        command: ["sh", "-c", "for b in hyprsunset wlsunset grim slurp cliphist; do command -v $b >/dev/null 2>&1 && echo \"$b ok\" || echo \"$b missing\"; done"]
+        command: ["sh", "-c", "for b in hyprsunset wlsunset grim slurp cliphist; do command -v \"$b\" >/dev/null 2>&1 && echo \"$b ok\" || echo \"$b missing\"; done"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const map = {};
