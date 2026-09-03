@@ -419,8 +419,8 @@ PanelWindow {
 
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: 52
-                                        label: streamItem.smut ? "LIVE" : "MUTE"
-                                        tone: streamItem.smut ? "acid" : "default"
+                                        label: streamItem.smut ? "UNMUTE" : "MUTE"
+                                        tone: streamItem.smut ? "default" : "acid"
                                         onClicked: AudioService.toggleMute(streamItem.modelData)
                                     }
 

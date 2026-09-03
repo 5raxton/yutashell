@@ -23,7 +23,7 @@ Flat black surfaces, bone-white ink, a single acid accent, hairline structure, s
 - **Workspace intelligence** — 5 workspace render modes (thumbnails/active/pills/numbers/default), window pin-to-all-workspaces, overview with search + move-between-workspaces, alt-tab, quick-tile
 - **Session** — Wayland session lock (`WlSessionLock` + PAM auth, multi-monitor), hold-to-confirm power menu, caffeine idle-inhibit toggle, inhibitor-aware idle actions, power profiles, polkit dialog, night light schedule (auto on/off by time of day)
 - **Plugins** — drop-in QML widgets for the bar and headless daemons
-- **IPC** — 38 targets; keybinds, CLI and settings panel share one implementation
+- **IPC** — 39 targets; keybinds, CLI and settings panel share one implementation
 - **Accessibility** — reduced motion mode (snaps all animations to instant), high contrast mode (maximum contrast palette), keyboard navigation (Tab/Shift+Tab focus cycling, Enter/Space activation, Escape to close panels)
 
 ## Requirements
@@ -88,7 +88,7 @@ _G.yuta = "qs -c yuta-qs ipc call"
 hl.bind(mainMod .. " + SPACE",       hl.dsp.exec_cmd(yuta .. " launcher toggle"))
 hl.bind(mainMod .. " + PERIOD",      hl.dsp.exec_cmd(yuta .. " cc toggle"))
 hl.bind(mainMod .. " + L",           hl.dsp.exec_cmd(yuta .. " session lock"))
-hl.bind("CTRL + SHIFT + I",         hl.dsp.exec_cmd(yuta .. " session idle-inhibit"))
+hl.bind("CTRL + SHIFT + I",         hl.dsp.exec_cmd(yuta .. " session idleToggle"))
 hl.bind("ALT + Tab",                 hl.dsp.exec_cmd(yuta .. " overview alttab"))
 ```
 
@@ -97,7 +97,7 @@ Full command table → [docs/ipc.md](docs/ipc.md)
 ## Architecture at a glance
 
 ```
-98 QML files · 34 singletons · 13 UI primitives · 38 IPC targets
+98 QML files · 34 singletons · 13 UI primitives · 39 IPC targets
 90+ matugen templates · 17 snippet rules · 21 bar segments · 12 color schemes
 7 layout presets · 17 settings pages · 11 control center tabs · 4 spawn modes
 ```

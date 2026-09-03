@@ -46,7 +46,7 @@ Singleton {
             const f = lines[i].trim().split(/\s+/);
             if (f.length < 7)
                 continue;
-            const pct = parseInt(f[4]);
+            const pct = parseInt(f[6]);
             if (isNaN(pct))
                 continue;
             out.push({

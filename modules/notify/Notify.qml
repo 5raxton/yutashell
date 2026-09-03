@@ -390,7 +390,7 @@ Singleton {
 
     function invokeAction(id, actId) {
         const vm = root.live.find(v => v.id === id);
-        if (!vm)
+        if (!vm || vm.dead)
             return;
         const a = vm.acts.find(x => x.id === actId);
         if (a && a.ref)

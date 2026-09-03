@@ -330,8 +330,8 @@ PanelWindow {
 
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: 52
-                                        label: streamCard.smut ? "LIVE" : "MUTE"
-                                        tone: streamCard.smut ? "acid" : "default"
+                                        label: streamCard.smut ? "UNMUTE" : "MUTE"
+                                        tone: streamCard.smut ? "default" : "acid"
                                         onClicked: MixerService.toggleMute(streamCard.modelData)
                                     }
 

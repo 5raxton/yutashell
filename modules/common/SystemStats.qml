@@ -617,5 +617,18 @@ Singleton {
     property int _gpuMiss: 0
     property bool _gpuDead: false
 
+    // once absence is proven we stop forking failed nvidia-smi every tick; a
+    // slow recovery timer re-arms the probe so a later-installed binary is
+    // rediscovered instead of being latched off forever
+    Timer {
+        interval: 300000
+        running: true
+        repeat: true
+        onTriggered: {
+            if (root._gpuDead)
+                root._gpuDead = false;
+        }
+    }
+
     Component.onCompleted: hostnameFile.reload()
 }

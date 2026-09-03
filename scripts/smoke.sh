@@ -34,8 +34,8 @@ ipc() {
     sleep 0.7
 }
 
-ipc shell state
-ipc theme info 2>/dev/null || true
+ipc bar status
+ipc theme dark on
 ipc scheme list
 ipc compositor info
 ipc plugins list

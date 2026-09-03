@@ -28,7 +28,7 @@ Singleton {
     }
 
     Component.onCompleted: {
-        binProbe.command = ["sh", "-c", "command -v hyprpicker >/dev/null 2>&1 && echo yes || echo no"];
+        binProbe.command = ["sh", "-c", "command -v hyprpicker >/dev/null 2>&1 && command -v wl-copy >/dev/null 2>&1 && echo yes || echo no"];
         binProbe.running = true;
     }
 
@@ -40,7 +40,7 @@ Singleton {
                 root._probed = true;
                 root._binOk = text.trim() === "yes";
                 if (!root._binOk)
-                    Health.report("hyprpicker", "color picker unavailable (install hyprpicker)");
+                    Health.report("hyprpicker", "color picker unavailable (install hyprpicker + wl-clipboard)");
                 else
                     Health.clear("hyprpicker");
             }

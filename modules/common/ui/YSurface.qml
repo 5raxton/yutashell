@@ -362,14 +362,27 @@ Rectangle {
             scanline.y = -2;
             scanline.opacity = 0.85;
             landTimer.restart();
-            intro.restart();
-            powerLine.width = root.width;
-            revealDelay.restart();
+            // reduced motion: skip the scanline/tick/powerline ritual and the
+            // landing delay — the card just appears (the y/opacity behaviors
+            // already snap to instant via Theme.movSlow/movMed === 0)
+            if (Theme.reducedMotion) {
+                powerLine.width = root.width;
+                root._landed = true;
+                familyTick.height = 26;
+                scanline.opacity = 0;
+            } else {
+                intro.restart();
+                powerLine.width = root.width;
+                revealDelay.restart();
+            }
         } else {
             intro.stop();
             landTimer.stop();
             root._landed = false;
-            outro.restart();
+            if (Theme.reducedMotion)
+                scanline.opacity = 0;
+            else
+                outro.restart();
         }
     }
 

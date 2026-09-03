@@ -294,6 +294,7 @@ Singleton {
     readonly property alias osdThermal: adapter.osdThermal
     readonly property alias nlTemp: adapter.nlTemp
     readonly property alias nlActive: adapter.nlActive
+    readonly property alias nlSchedule: adapter.nlSchedule
 
     // session/power prefs
     readonly property alias lockMonitors: adapter.lockMonitors
@@ -304,6 +305,9 @@ Singleton {
     readonly property alias pamService: adapter.pamService
     readonly property alias barSession: adapter.barSession
     readonly property alias lockAvatar: adapter.lockAvatar
+    readonly property alias idleInhibitAuto: adapter.idleInhibitAuto
+    readonly property alias idleInhibitManual: adapter.idleInhibitManual
+    readonly property alias globalKeybinds: adapter.globalKeybinds
 
     // dock prefs
     readonly property alias dockEnabled: adapter.dockEnabled
@@ -338,6 +342,10 @@ Singleton {
     readonly property alias barClick: adapter.barClick
     readonly property alias panelSpawn: adapter.panelSpawn
     readonly property alias panelSpawnDefault: adapter.panelSpawnDefault
+
+    // accessibility
+    readonly property alias reducedMotion: adapter.reducedMotion
+    readonly property alias highContrast: adapter.highContrast
 
     // control center (PH.15): anchor + visible tab order
     readonly property alias ccAnchor: adapter.ccAnchor
@@ -411,105 +419,105 @@ Singleton {
             // launcher card width (px, clamped by consumer)
             property int launcherW: 640
 
-    // launcher: view mode (grid|list|detail), placement (center|left|right),
-    // detail panel toggle, pinned + recent app ids as JSON arrays
-    property string launcherMode: "list"
-    property string launcherAnchor: "center"
-    property bool launcherDetail: true
-    property string launcherPins: "[]"
-    property string launcherRecents: "[]"
-    // frecency: { "appId": { "count": N, "lastLaunch": timestamp } }
-    property string launcherStats: "{}"
-
-    // audio: overdrive ceiling percent (100+), OSD corner (tl|tc|tr|bl|bc|br),
-    // OSD card width, OSD fade delay ms, per-kind OSD gates, night light
-    // temperature (K)
-    property int audioCeiling: 130
-    property string osdCorner: "bc"
-    property int osdWidth: 420
-    property int osdFadeMs: 1600
-    property bool osdVolume: true
-    property bool osdMic: true
-    property bool osdBright: true
-    property bool osdThermal: true
-    property int nlTemp: 4500
-    property bool nlActive: false
-    // night light schedule: JSON {on: "HH:MM", off: "HH:MM", enabled: bool}
-    property string nlSchedule: '{"on":"21:00","off":"07:00","enabled":false}'
-    // session/power: lock-screen monitor selection ("all"|"primary"|JSON name
-    // list), idle action ("none"|"lock"|"suspend"|"shutdown") after idleSecs,
-    // hold-to-confirm duration for destructive tiles (0 disables), power menu
-    // tile order (JSON id array), PAM service for the lock screen, bar
-    // inhibit indicator toggle, lock avatar path override (PH.16 shell tab)
-    property string lockMonitors: "all"
-    property string idleAction: "none"
-    property int idleSecs: 900
-    property int holdMs: 1100
-    property string sessionTiles: "[\"lock\",\"suspend\",\"hibernate\",\"reboot\",\"poweroff\",\"logout\"]"
-    property string pamService: "system-auth"
-    property bool barSession: true
-    property string lockAvatar: ""
-
-    // idle inhibit (PH.01.2): auto mode + manual override
-    property bool idleInhibitAuto: true
-    property bool idleInhibitManual: false
-
-    // global keybinds (PH.01.4): JSON array of {id, key, label, enabled}
-    property string globalKeybinds: "[]"
-
-    // dock: master switch (OFF by default), layer mode (overlay|exclusive),
-    // hide mode (never|dodge|always), monitor scope (all|primary),
-    // pinned app ids (JSON array of desktop-entry ids)
-    property bool dockEnabled: false
-    property string dockMode: "overlay"
-    property string dockHide: "never"
-    property string dockMonitors: "all"
-    property string dockPins: "[]"
-    property string pinnedWindows: "[]"
-
-    // system / widgets: clock in 24h (true) or 12h (false); screenshot save
-    // dir + strftime-style filename template; weather location (open-meteo)
-    // + label + unit ("celsius"|"fahrenheit")
-    property bool clock24h: true
-    property string shotDir: "~/Pictures/Shots"
-    property string shotName: "%Y%m%d-%H%M%S"
-    property string weatherLat: ""
-    property string weatherLon: ""
-    property string weatherLabel: ""
-    // location source: "" = legacy auto (manual coords win when set, else
-    // IP-locate), "auto" = forced IP geolocation, "manual" = forced static
-    property string weatherMode: ""
-    property string weatherUnit: "celsius"
-    property string clipboardPins: "[]"
-
-    // bar v2 (PH.14): ordered segment model [{id,zone,enabled}], layout scale
-    // (0.8-1.4x), top/bottom position, and per-segment click-action map
-    // {id: action} where action is calendar|network|bluetooth|audio|power|
-    // notifications|controlcenter|launcher|none (or ipc:target/fn)
-    // panel spawn origins: per-panel vertical spawn mode JSON map
-    // {panelId: "bar"|"top"|"bottom"|"float"} + the default for unset panels
-    property string panelSpawn: "{}"
-    property string panelSpawnDefault: "bar"
-
-    property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cpu\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"mem\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bat\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
-    property real barScale: 1.0
-    property string barPosition: "top"
-    property bool barCompact: false
-    property bool reducedMotion: false
-    property bool highContrast: false
-    property string customPresets: "[]"
-    // workspace segment: "default" pills+numbers · "numbers" bare digits ·
-    // "pills" boxes without digits · "active" only occupied/focused
-    property string wsMode: "default"
-    property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
-
-    // control center: horizontal anchor + visible tab id order (JSON array)
-    property string ccAnchor: "center"
-    property string ccTabs: "[\"home\",\"media\",\"audio\",\"monitors\",\"system\",\"power\",\"network\",\"bluetooth\",\"weather\",\"calendar\",\"notifications\"]"
-
-    // plugins (PH.05): namespaced per-plugin state — JSON map
-    // { "<pluginId>": { "enabled": bool, "data": { key: value } } }
-    property string pluginData: "{}"
+            // launcher: view mode (grid|list|detail), placement (center|left|right),
+            // detail panel toggle, pinned + recent app ids as JSON arrays
+            property string launcherMode: "list"
+            property string launcherAnchor: "center"
+            property bool launcherDetail: true
+            property string launcherPins: "[]"
+            property string launcherRecents: "[]"
+            // frecency: { "appId": { "count": N, "lastLaunch": timestamp } }
+            property string launcherStats: "{}"
+        
+            // audio: overdrive ceiling percent (100+), OSD corner (tl|tc|tr|bl|bc|br),
+            // OSD card width, OSD fade delay ms, per-kind OSD gates, night light
+            // temperature (K)
+            property int audioCeiling: 130
+            property string osdCorner: "bc"
+            property int osdWidth: 420
+            property int osdFadeMs: 1600
+            property bool osdVolume: true
+            property bool osdMic: true
+            property bool osdBright: true
+            property bool osdThermal: true
+            property int nlTemp: 4500
+            property bool nlActive: false
+            // night light schedule: JSON {on: "HH:MM", off: "HH:MM", enabled: bool}
+            property string nlSchedule: '{"on":"21:00","off":"07:00","enabled":false}'
+            // session/power: lock-screen monitor selection ("all"|"primary"|JSON name
+            // list), idle action ("none"|"lock"|"suspend"|"shutdown") after idleSecs,
+            // hold-to-confirm duration for destructive tiles (0 disables), power menu
+            // tile order (JSON id array), PAM service for the lock screen, bar
+            // inhibit indicator toggle, lock avatar path override (PH.16 shell tab)
+            property string lockMonitors: "all"
+            property string idleAction: "none"
+            property int idleSecs: 900
+            property int holdMs: 1100
+            property string sessionTiles: "[\"lock\",\"suspend\",\"hibernate\",\"reboot\",\"poweroff\",\"logout\"]"
+            property string pamService: "system-auth"
+            property bool barSession: true
+            property string lockAvatar: ""
+        
+            // idle inhibit (PH.01.2): auto mode + manual override
+            property bool idleInhibitAuto: true
+            property bool idleInhibitManual: false
+        
+            // global keybinds (PH.01.4): JSON array of {id, key, label, enabled}
+            property string globalKeybinds: "[]"
+        
+            // dock: master switch (OFF by default), layer mode (overlay|exclusive),
+            // hide mode (never|dodge|always), monitor scope (all|primary),
+            // pinned app ids (JSON array of desktop-entry ids)
+            property bool dockEnabled: false
+            property string dockMode: "overlay"
+            property string dockHide: "never"
+            property string dockMonitors: "all"
+            property string dockPins: "[]"
+            property string pinnedWindows: "[]"
+        
+            // system / widgets: clock in 24h (true) or 12h (false); screenshot save
+            // dir + strftime-style filename template; weather location (open-meteo)
+            // + label + unit ("celsius"|"fahrenheit")
+            property bool clock24h: true
+            property string shotDir: "~/Pictures/Shots"
+            property string shotName: "%Y%m%d-%H%M%S"
+            property string weatherLat: ""
+            property string weatherLon: ""
+            property string weatherLabel: ""
+            // location source: "" = legacy auto (manual coords win when set, else
+            // IP-locate), "auto" = forced IP geolocation, "manual" = forced static
+            property string weatherMode: ""
+            property string weatherUnit: "celsius"
+            property string clipboardPins: "[]"
+        
+            // bar v2 (PH.14): ordered segment model [{id,zone,enabled}], layout scale
+            // (0.8-1.4x), top/bottom position, and per-segment click-action map
+            // {id: action} where action is calendar|network|bluetooth|audio|power|
+            // notifications|controlcenter|launcher|none (or ipc:target/fn)
+            // panel spawn origins: per-panel vertical spawn mode JSON map
+            // {panelId: "bar"|"top"|"bottom"|"float"} + the default for unset panels
+            property string panelSpawn: "{}"
+            property string panelSpawnDefault: "bar"
+        
+            property string barSegments: "[{\"id\":\"identity\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"workspaces\",\"zone\":\"left\",\"enabled\":true},{\"id\":\"taskbar\",\"zone\":\"left\",\"enabled\":false},{\"id\":\"activewindow\",\"zone\":\"center\",\"enabled\":true},{\"id\":\"tray\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"media\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"net\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bt\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"audio\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cpu\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"mem\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"bat\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"cputemp\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"gpu\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"disk\",\"zone\":\"right\",\"enabled\":false},{\"id\":\"nightlight\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"session\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"recording\",\"zone\":\"right\",\"enabled\":true},{\"id\":\"clock\",\"zone\":\"right\",\"enabled\":true}]"
+            property real barScale: 1.0
+            property string barPosition: "top"
+            property bool barCompact: false
+            property bool reducedMotion: false
+            property bool highContrast: false
+            property string customPresets: "[]"
+            // workspace segment: "default" pills+numbers · "numbers" bare digits ·
+            // "pills" boxes without digits · "active" only occupied/focused
+            property string wsMode: "default"
+            property string barClick: "{\"clock\":\"calendar\",\"net\":\"network\",\"bt\":\"bluetooth\",\"audio\":\"audio\",\"cpu\":\"controlcenter\",\"mem\":\"controlcenter\",\"bat\":\"controlcenter\",\"cputemp\":\"controlcenter\",\"gpu\":\"controlcenter\",\"disk\":\"controlcenter\",\"media\":\"media\",\"identity\":\"settings\"}"
+        
+            // control center: horizontal anchor + visible tab id order (JSON array)
+            property string ccAnchor: "center"
+            property string ccTabs: "[\"home\",\"media\",\"audio\",\"monitors\",\"system\",\"power\",\"network\",\"bluetooth\",\"weather\",\"calendar\",\"notifications\"]"
+        
+            // plugins (PH.05): namespaced per-plugin state — JSON map
+            // { "<pluginId>": { "enabled": bool, "data": { key: value } } }
+            property string pluginData: "{}"
         }
     }
 

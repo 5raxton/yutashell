@@ -4,7 +4,7 @@
 
 ```
 yuta-qs/
-├── shell.qml              entry point, 38 IPC targets (IPC-driven actions), per-screen instances
+├── shell.qml              entry point, 39 IPC targets (IPC-driven actions), per-screen instances
 ├── theme/                 Theme singleton, 12 preset palettes, matugen setup
 ├── modules/
 │   ├── bar/               21 segment types + Kanban drag-drop editor, BarActions dispatcher

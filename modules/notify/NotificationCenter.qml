@@ -53,7 +53,7 @@ PanelWindow {
             const e = src[i];
             const k = e.app || "unknown";
             if (!groups[k]) groups[k] = [];
-            groups[k].push(Object.assign({}, e, { _idx: i }));
+            groups[k].push(e);
         }
         // sort groups by most recent entry descending
         const keys = Object.keys(groups).sort((a, b) => {

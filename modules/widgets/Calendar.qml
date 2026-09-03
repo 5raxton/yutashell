@@ -39,7 +39,8 @@ PanelWindow {
     property int viewYear: new Date().getFullYear()
     property int viewMonth: new Date().getMonth()
 
-    readonly property date now: new Date()
+    readonly property date now: _now
+    property date _now: new Date()
     readonly property string monthLabel: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][viewMonth]
     readonly property string heroWeekday: Theme.jpEnabled ? ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"][now.getDay()] : ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"][(now.getDay() + 6) % 7]
 
@@ -56,12 +57,21 @@ PanelWindow {
         function onCalendarOpenChanged() {
             if (ShellState.calendarOpen) {
                 const n = new Date();
+                root._now = n;
                 root.viewYear = n.getFullYear();
                 root.viewMonth = n.getMonth();
             } else {
                 hideDelay.restart();
             }
         }
+    }
+
+    // keep the hero "today" block honest if the popup stays open past midnight
+    Timer {
+        interval: 60000
+        running: ShellState.calendarOpen
+        repeat: true
+        onTriggered: root._now = new Date()
     }
 
     function shiftMonth(delta) {

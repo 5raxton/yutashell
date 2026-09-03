@@ -29,6 +29,7 @@ Singleton {
             return;
         _watching = true;
         _poll();
+        pollTimer.start();
     }
 
     function stopWatching() {

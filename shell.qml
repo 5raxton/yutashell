@@ -852,7 +852,7 @@ ShellRoot {
         function status(): string {
             if (!Weather.configured)
                 return "no location set";
-            return "configured · " + Weather.locLabel + (Geo.tz.length > 0 && Geo.effective ? " · " + Geo.tz : "") + " · " + (Weather.current ? Weather.current.temp + "°" : "no data");
+            return "configured · " + Weather.locLabel + (Geo.tz.length > 0 ? " · " + Geo.tz : "") + " · " + (Weather.current ? Weather.current.temp + "°" : "no data");
         }
     }
 
@@ -977,11 +977,11 @@ ShellRoot {
             return "segments reset";
         }
 
-        // workspace segment render mode: default|numbers|pills|active
+        // workspace segment render mode: default|numbers|pills|active|thumbnails
         function wsmode(m: string): string {
             const v = String(m).toLowerCase();
-            if (["default", "numbers", "pills", "active"].indexOf(v) < 0)
-                return "usage: bar wsmode default|numbers|pills|active";
+            if (["default", "numbers", "pills", "active", "thumbnails"].indexOf(v) < 0)
+                return "usage: bar wsmode default|numbers|pills|active|thumbnails";
             ShellState.set("wsMode", v);
             return "wsmode " + v;
         }

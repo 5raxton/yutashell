@@ -38,9 +38,9 @@ Singleton {
         while ((m = re.exec(raw)) !== null) {
             items.push({
                 uri: m[1],
-                name: m[2],
-                added: m[3],
-                timestamp: Date.parse(m[3]) || 0
+                name: m[3],
+                added: m[2],
+                timestamp: Date.parse(m[2]) || 0
             });
         }
         // sort newest first, cap at 20

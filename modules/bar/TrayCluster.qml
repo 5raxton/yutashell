@@ -3,6 +3,7 @@ import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import QtQuick
 import qs.theme
+import qs.modules.common
 
 Item {
     id: root
@@ -66,7 +67,7 @@ Item {
                     id: iconImg
                     anchors.centerIn: parent
                     implicitSize: 15
-                    source: (cell.modelData.icon && cell.modelData.icon.length > 0) ? cell.modelData.icon : ""
+                    source: ShellState.safeIcon(cell.modelData.icon)
                     opacity: area.containsMouse ? 1 : 0.85
                     scale: area.containsMouse ? 1.12 : 1.0
                     visible: source.length > 0 && status !== Image.Error && status !== Image.Null
@@ -101,6 +102,15 @@ Item {
 
                     onClicked: mouse => {
                         const sni = cell.modelData;
+                        const pos = iconImg.mapToItem(null, iconImg.width / 2, iconImg.height / 2);
+                        // right-click always shows the context menu
+                        if (mouse.button === Qt.RightButton) {
+                            if (sni.hasMenu)
+                                sni.display(cell.QsWindow.window, pos.x - 12, pos.y + 16);
+                            else
+                                sni.activate();
+                            return;
+                        }
                         if (mouse.button === Qt.MiddleButton) {
                             sni.secondaryActivate();
                             return;
@@ -109,7 +119,6 @@ Item {
                             sni.activate();
                             return;
                         }
-                        const pos = iconImg.mapToItem(null, iconImg.width / 2, iconImg.height / 2);
                         sni.display(cell.QsWindow.window, pos.x - 12, pos.y + 16);
                     }
 

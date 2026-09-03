@@ -2690,7 +2690,7 @@ PanelWindow {
                         spacing: Theme.sp1
 
                         Repeater {
-                            model: [{ id: "default", label: "DEFAULT" }, { id: "numbers", label: "NUMBERS" }, { id: "pills", label: "PILLS" }, { id: "active", label: "ACTIVE ONLY" }]
+                            model: [{ id: "default", label: "DEFAULT" }, { id: "numbers", label: "NUMBERS" }, { id: "pills", label: "PILLS" }, { id: "active", label: "ACTIVE ONLY" }, { id: "thumbnails", label: "THUMBNAILS" }]
 
                             delegate: YButton {
                                 required property var modelData
@@ -2704,7 +2704,7 @@ PanelWindow {
 
                     Text {
                         width: parent.width
-                        text: "DEFAULT numbered pills · NUMBERS bare digits · PILLS boxes without digits · ACTIVE ONLY occupied or focused workspaces"
+                        text: "DEFAULT numbered pills · NUMBERS bare digits · PILLS boxes without digits · ACTIVE ONLY occupied or focused workspaces · THUMBNAILS mini workspace cards"
                         color: Theme.faint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fsLabel

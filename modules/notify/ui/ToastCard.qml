@@ -304,7 +304,7 @@ Rectangle {
                 label: "→"
                 onClicked: {
                     const txt = replyField.text.trim();
-                    if (txt.length === 0 || !root.entry.hasInlineReply)
+                    if (txt.length === 0 || !root.entry.hasInlineReply || !root.entry.n || root.entry.dead)
                         return;
                     root.entry.n.sendInlineReply(txt);
                     replyField.text = "";

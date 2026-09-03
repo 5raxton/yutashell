@@ -52,11 +52,16 @@ PanelWindow {
     // delegate tiles watch it and animate in with per-index delay
     property int _revealTick: 0
 
+    // set once the overview has been opened — the grid model gated on this so
+    // the workspace cards (and their windows) don't render before first open
+    property bool _everOpened: false
+
     Connections {
         target: ShellState
 
         function onOverviewOpenChanged() {
             if (ShellState.overviewOpen) {
+                root._everOpened = true;
                 root._revealTick++;
             } else {
                 hideDelay.restart();

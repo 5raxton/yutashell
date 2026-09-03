@@ -148,7 +148,7 @@ Singleton {
         case "session":
             return Session.inhibitCount > 0 || IdleInhibitor.inhibited;
         case "recording":
-            return Recording.active;
+            return !!Recording.active;
         case "mixer":
             return MixerService.ready;
         case "pluginwidgets":
@@ -321,9 +321,9 @@ Singleton {
             "activewindow": "AW", "tray": "TR", "media": "MD", "net": "NT",
             "bt": "BT", "audio": "AU", "cpu": "C", "mem": "M", "bat": "B",
             "cputemp": "T", "gpu": "G", "disk": "D", "nightlight": "NL",
-            "session": "INK",         "recording": "REC",
-        "mixer": "MX",
-        "pluginwidgets": "PW",
+            "session": "INK", "recording": "REC",
+            "mixer": "MX",
+            "pluginwidgets": "PW",
             "clock": "CK"
         };
         if (id.startsWith("spacer-"))
